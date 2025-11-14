@@ -102,15 +102,24 @@ def parse_fio(raw: str) -> NameParts:
         first = _strip_trailing_dot(first)
         patro = _strip_trailing_dot(patro)
     elif len(tokens) == 2:
-        # Could be LAST FIRST  or  FIRST PATRO
+        # Could be LAST FIRST, FIRST PATRO, LAST + initials (I or IO)
         t1, t2 = tokens
-        # If t2 is compact initials like "и.о." or "ио"
         t2_compact = t2.replace(".", "")
+        # initials like "И.О." or "ио"
         if len(t2_compact) == 2 and t2_compact.isalpha():
             last, first, patro = t1, t2_compact[0], t2_compact[1]
+        elif len(t2_compact) == 1 and t2_compact.isalpha():
+            last, first, patro = t1, t2_compact[0], None
         else:
-            # default to LAST FIRST
-            last, first = t1, _strip_trailing_dot(t2)
+            # heuristics for FIRST+PATRONYMIC
+            patro_suf = (
+                "ович", "евич", "ич", "овна", "евна", "ична",
+                "қызы", "углы", "улы", "уулу", "кызы", "қызы",
+            )
+            if any(t2.endswith(s) for s in patro_suf):
+                last, first, patro = None, _strip_trailing_dot(t1), _strip_trailing_dot(t2)
+            else:
+                last, first = t1, _strip_trailing_dot(t2)
     else:  # len == 1
         # Might be just LAST; keep as-is
         last = _strip_trailing_dot(tokens[0])
@@ -152,6 +161,34 @@ def build_variants(p: NameParts) -> Dict[str, str]:
     return variants
 
 
+def detect_variant(raw: str) -> str:
+    """Detect which variant the RAW document string most closely represents.
+    Returns one of: FULL, LF, FP, L_I, L_IO, L
+    """
+    s = normalize_for_name(raw)
+    tokens = s.split()
+    if not tokens:
+        return "L"
+    if len(tokens) == 1:
+        return "L"
+    if len(tokens) >= 3:
+        return "FULL"
+    # len == 2
+    t1, t2 = tokens
+    t2c = t2.replace(".", "")
+    if len(t2c) == 2 and t2c.isalpha():
+        return "L_IO"
+    if len(t2c) == 1 and t2c.isalpha():
+        return "L_I"
+    patro_suf = (
+        "ович", "евич", "ич", "овна", "евна", "ична",
+        "қызы", "углы", "улы", "уулу", "кызы", "қызы",
+    )
+    if any(t2.endswith(s) for s in patro_suf):
+        return "FP"
+    return "LF"
+
+
 def _normalize_initials_form(s: str) -> str:
     """Normalize dots and spaces for initials comparisons.
     - Remove dots
@@ -184,23 +221,22 @@ def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False
     app_parts = parse_fio(app_fio)
     app_variants = build_variants(app_parts)
 
+    doc_variant = detect_variant(doc_fio)
     doc_parts = parse_fio(doc_fio)
     doc_variants = build_variants(doc_parts)
 
-    order = ["FULL", "LF", "FP", "L_I", "L_IO", "L"]
-    for v in order:
-        app_val = app_variants.get(v)
-        doc_val = doc_variants.get(v)
-        if not app_val or not doc_val:
-            continue
-        if equals_canonical(doc_val, app_val):
-            return True, {
-                "matched_variant": v,
-                "meta_variant_value": app_val,
-                "doc_variant_value": doc_val,
-                "meta_parse": asdict(app_parts),
-                "fuzzy_score": None,
-            }
+    # Match ONLY against the variant explicitly detected from the document.
+    v = doc_variant
+    app_val = app_variants.get(v)
+    doc_val = doc_variants.get(v)
+    if app_val and doc_val and equals_canonical(doc_val, app_val):
+        return True, {
+            "matched_variant": v,
+            "meta_variant_value": app_val,
+            "doc_variant_value": doc_val,
+            "meta_parse": asdict(app_parts),
+            "fuzzy_score": None,
+        }
 
     # Fallback (optional)
     fuzzy_score = None
