@@ -238,6 +238,20 @@ def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False
             "fuzzy_score": None,
         }
 
+    # Special-case: if the document shows two initials (L_IO), accept match by last + first-initial only,
+    # but ONLY when application includes a patronymic (3-part name). This keeps L_IO rejected for 2-part apps.
+    if doc_variant == "L_IO" and app_parts.last and app_parts.first and app_parts.patro:
+        doc_li = doc_variants.get("L_I")
+        app_li = app_variants.get("L_I")
+        if doc_li and app_li and equals_canonical(doc_li, app_li):
+            return True, {
+                "matched_variant": "L_IO",
+                "meta_variant_value": app_li,
+                "doc_variant_value": doc_li,
+                "meta_parse": asdict(app_parts),
+                "fuzzy_score": None,
+            }
+
     # Fallback (optional)
     fuzzy_score = None
     if enable_fuzzy_fallback and fuzz is not None:
