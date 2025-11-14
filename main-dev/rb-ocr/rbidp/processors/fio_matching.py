@@ -244,6 +244,19 @@ def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False
             "fuzzy_score": None,
         }
 
+    # If doc variant is L_IO but doc parsing produced spaced initials like 'Иванов И О',
+    # compare normalized raw doc against application's L_IO representation.
+    if doc_variant == "L_IO":
+        app_lio = app_variants.get("L_IO")
+        if app_lio and equals_canonical(normalize_for_name(doc_fio), app_lio):
+            return True, {
+                "matched_variant": "L_IO",
+                "meta_variant_value": app_lio,
+                "doc_variant_value": normalize_for_name(doc_fio),
+                "meta_parse": asdict(app_parts),
+                "fuzzy_score": None,
+            }
+
     # Special-case: if the document shows two initials (L_IO), accept match by last + first-initial only,
     # but ONLY when application includes a patronymic (3-part name). This keeps L_IO rejected for 2-part apps.
     if doc_variant == "L_IO" and app_parts.last and app_parts.first and app_parts.patro:
