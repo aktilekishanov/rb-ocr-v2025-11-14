@@ -119,11 +119,12 @@ def parse_fio(raw: str) -> NameParts:
 
 
 def build_variants(p: NameParts) -> Dict[str, str]:
-    """Return canonical strings per variant: FULL, LF, FP, L_I, L_IO.
+    """Return canonical strings per variant: FULL, LF, FP, L_I, L_IO, L.
     Canonicalization rules:
     - FULL/LF/FP: single space between tokens, lowercased.
     - L_I: f"{last} {F}" (no dot stored).
     - L_IO: f"{last} {F}{P}" (no dot and no space between initials stored).
+    - L: f"{last}" (surname only) for edge cases where both sides only provide last name.
     """
     variants: Dict[str, str] = {}
     last, first, patro = p.last, p.first, p.patro
@@ -145,6 +146,8 @@ def build_variants(p: NameParts) -> Dict[str, str]:
     if last and first and patro:
         # store initials concatenated without spaces/dots
         variants["L_IO"] = _canon(f"{last} {first[:1]}{patro[:1]}")
+    if last:
+        variants["L"] = _canon(last)
 
     return variants
 
@@ -175,24 +178,26 @@ def equals_canonical(a: str, b: str) -> bool:
 
 def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False, fuzzy_threshold: int = 90) -> Tuple[bool, Dict[str, object]]:
     """Return (match_bool, diagnostics).
-    Strategy: derive canonical variants from APPLICATION FIO, then compare the DOCUMENT FIO string
-    against each canonical form using `equals_canonical` in the order FULL, LF, FP, L_I, L_IO.
+    Strategy: parse BOTH application and document FIO, build canonical variants for both, and
+    compare same-variant types (FULL, LF, FP, L_I, L_IO) using `equals_canonical`.
     """
     app_parts = parse_fio(app_fio)
     app_variants = build_variants(app_parts)
 
-    doc_norm = normalize_for_name(doc_fio)
+    doc_parts = parse_fio(doc_fio)
+    doc_variants = build_variants(doc_parts)
 
-    order = ["FULL", "LF", "FP", "L_I", "L_IO"]
+    order = ["FULL", "LF", "FP", "L_I", "L_IO", "L"]
     for v in order:
         app_val = app_variants.get(v)
-        if not app_val:
+        doc_val = doc_variants.get(v)
+        if not app_val or not doc_val:
             continue
-        if equals_canonical(doc_norm, app_val):
+        if equals_canonical(doc_val, app_val):
             return True, {
                 "matched_variant": v,
                 "meta_variant_value": app_val,
-                "doc_variant_value": doc_norm,
+                "doc_variant_value": doc_val,
                 "meta_parse": asdict(app_parts),
                 "fuzzy_score": None,
             }
@@ -216,7 +221,7 @@ def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False
     return False, {
         "matched_variant": None,
         "meta_variant_value": None,
-        "doc_variant_value": doc_norm,
+        "doc_variant_value": normalize_for_name(doc_fio),
         "meta_parse": asdict(app_parts),
         "fuzzy_score": fuzzy_score,
     }
