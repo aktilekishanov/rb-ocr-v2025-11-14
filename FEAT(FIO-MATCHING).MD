@@ -5,9 +5,19 @@ Implement a precise, deterministic matching for applicant FIO vs extracted FIO. 
 - Фамилия Имя Отчество vs Фамилия Имя Отчество
 - Фамилия Имя vs Фамилия Имя
 - Имя Отчество vs Имя Отчество
+- Фамилия И vs Фамилия И
 - Фамилия И. О. vs Фамилия И. О.
 
 The current validator uses fuzzy matching (`rapidfuzz.token_sort_ratio >= 90`) on normalized strings. We will replace the decision rule with the deterministic pattern-matching above, while optionally keeping fuzzy as a guarded fallback (feature flag) for safety during rollout.
+
+## Assumptions / inputs
+- Application FIO is always a legal full name with either 2 parts (Фамилия Имя) or 3 parts (Фамилия Имя Отчество).
+- Documents may present abbreviated or partial variants, including:
+  - Фамилия Имя Отчество
+  - Фамилия Имя
+  - Имя Отчество
+  - Фамилия И
+  - Фамилия И. О.
 
 ## Current state (as of DEV)
 - File: `apps/main-dev/rb-ocr/rbidp/processors/validator.py`
@@ -19,10 +29,11 @@ The current validator uses fuzzy matching (`rapidfuzz.token_sort_ratio >= 90`) o
 - Create a small, focused FIO module that:
   1) Normalizes inputs using the same pipeline as validator (whitespace, casefold, KZ→RU, Latin→Cyrillic).
   2) Parses FIO into parts: last name, first name, patronymic (all optional, robust to hyphens and extra spaces).
-  3) Builds canonical variants for four formats:
+  3) Builds canonical variants for five formats:
      - FULL: `Фамилия Имя Отчество`
      - LF: `Фамилия Имя`
      - FP: `Имя Отчество`
+     - L_I: `Фамилия И` (single first initial; dot optional in compare)
      - L_IO: `Фамилия И. О.` (initials; dots optional in compare)
   4) Compares equal-typed variants between application and document. If any pair matches, `fio_match=True`.
   5) Optionally: apply fuzzy fallback behind a feature flag if no deterministic match.
@@ -46,10 +57,11 @@ The current validator uses fuzzy matching (`rapidfuzz.token_sort_ratio >= 90`) o
 
   def build_variants(p: NameParts) -> Dict[str, str]:
       """
-      Returns canonical strings per variant key among {"FULL", "LF", "FP", "L_IO"} if viable.
+      Returns canonical strings per variant key among {"FULL", "LF", "FP", "L_I", "L_IO"} if viable.
       - FULL: "{last} {first} {patro}"
       - LF: "{last} {first}"
       - FP: "{first} {patro}"
+      - L_I: "{last} {F}" (allow compare with/without trailing dot)
       - L_IO: "{last} {F.} {P.}" (allow compare ignoring dots)
       """
 
@@ -58,14 +70,14 @@ The current validator uses fuzzy matching (`rapidfuzz.token_sort_ratio >= 90`) o
   def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False, fuzzy_threshold: int = 90) -> tuple[bool, dict]:
       """
       Returns (match_bool, diagnostics_dict)
-      - Try FULL↔FULL, LF↔LF, FP↔FP, L_IO↔L_IO (in this order).
+      - Try FULL↔FULL, LF↔LF, FP↔FP, L_I↔L_I, L_IO↔L_IO (in this order).
       - If none match and enable_fuzzy_fallback=True, evaluate fuzzy as last resort.
       - Diagnostics include matched_variant, compared_values, and any fuzzy score.
       """
   ```
 
 Notes:
-- For initials compare, treat `И.О.`, `И. О.`, `ИО`, `И О` as equivalent (ignore dots/spaces between initials when comparing).
+- For initials compare, treat `И.О.`, `И. О.`, `ИО`, `И О` as equivalent (ignore dots/spaces between initials when comparing). For the single-initial form, treat `И` and `И.` as equivalent.
 - Keep hyphens as-is inside tokens (e.g., `Петров-Сидоров`).
 
 ## Project-wide changes
@@ -93,6 +105,7 @@ Notes:
      - Detect and strip trailing dots in initials candidates.
    - Implement `build_variants`:
      - Produce strings with single spaces, casefolded.
+     - For `L_I`, derive first-letter initial for `first` if present; representation stored canonically without dot; accept dotted/non-dotted during compare.
      - For `L_IO`, derive first-letter initials for `first` and `patro` if both exist; representation: `"{last} {F}{sep}{P}"` with `sep` canonicalized (store canonical without dots; accept dotted forms during equals).
    - Implement `equals_canonical` and `fio_match` according to API above.
 
@@ -117,6 +130,7 @@ Notes:
      - FULL↔FULL: `"Иванов Иван Иванович"` vs `"Иванов Иван Иванович"` → True
      - LF↔LF: `"Иванов Иван"` vs `"Иванов Иван"` → True
      - FP↔FP: `"Иван Иванович"` vs `"Иван Иванович"` → True
+     - L_I↔L_I: `"Иванов И"` vs `"Иванов И."` → True
      - L_IO↔L_IO: `"Иванов И. И."` vs `"Иванов И.И."` → True
      - Dots/spaces variants: `"Иванов И О"` vs `"Иванов И.О."` → True
      - Hyphen last names: `"Петров-Сидоров Иван Иванович"` → match across variants
@@ -137,11 +151,11 @@ Notes:
 - Case-insensitive, whitespace-collapsed.
 - KZ→RU substitutions then Latin→Cyrillic lookalikes.
 - Hyphens preserved within tokens.
-- Initials comparison ignores dots and internal spaces between initials.
+- Initials comparison ignores dots and internal spaces between initials. For L_I, treat a trailing dot as optional.
 - For `LF`/`FP`/`FULL`, comparison is exact equality of canonical strings.
 
 ## Diagnostics (added fields)
-- `fio_matched_variant`: one of `FULL`, `LF`, `FP`, `L_IO`, or `None`.
+- `fio_matched_variant`: one of `FULL`, `LF`, `FP`, `L_I`, `L_IO`, or `None`.
 - `fio_meta_variant_value`, `fio_doc_variant_value`: the two canonical strings that matched (when matched).
 - `fio_fuzzy_score`: present only if fallback was used.
 - `fio_parse`: serialized `NameParts` for meta and doc for debugging.
@@ -157,7 +171,7 @@ Notes:
 - Should patronymic-less forms be permitted in production flows? Spec already covers `LF` and `FP` variants.
 
 ## Acceptance criteria
-- `fio_match` returns True iff any same-variant canonical pair matches among FULL/LF/FP/L_IO.
+- `fio_match` returns True iff any same-variant canonical pair matches among FULL/LF/FP/L_I/L_IO.
 - Unit tests cover all outlined cases.
 - Validator shows matched variant in diagnostics and uses it for verdict gating.
 

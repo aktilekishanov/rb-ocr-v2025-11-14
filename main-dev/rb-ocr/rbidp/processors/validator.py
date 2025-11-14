@@ -6,6 +6,7 @@ from rapidfuzz import fuzz
 from rbidp.core.config import VALIDATION_FILENAME
 from rbidp.core.dates import now_utc_plus
 from rbidp.core.validity import compute_valid_until, is_within_validity, format_date
+from rbidp.processors.fio_matching import fio_match as det_fio_match
 
 VALIDATION_MESSAGES = {
     "checks": {
@@ -136,14 +137,25 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
     except Exception:
         pass
 
-    if fio_meta_norm and fio_norm:
-        try:
-            score = fuzz.token_sort_ratio(fio_meta_norm, fio_norm)
-            fio_match = score >= 90
-        except Exception:
-            fio_match = fio_meta_norm == fio_norm
-    else:
+    # Deterministic FIO matching using explicit variants (FULL/LF/FP/L_I/L_IO)
+    # Pass raw values; matcher performs its own normalization.
+    try:
+        fio_match_bool, fio_diag = det_fio_match(
+            fio_meta_raw or "",
+            fio_raw or "",
+            enable_fuzzy_fallback=False,
+            fuzzy_threshold=90,
+        )
+        fio_match = bool(fio_match_bool)
+    except Exception:
         fio_match = None
+        fio_diag = {
+            "matched_variant": None,
+            "meta_variant_value": None,
+            "doc_variant_value": None,
+            "meta_parse": None,
+            "fuzzy_score": None,
+        }
     if doc_type_meta and doc_class:
         doc_type_match = doc_type_meta == doc_class
     else:
@@ -210,6 +222,7 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
             "policy_error": policy_error,
         },
         "checks": checks,
+        "fio_details": fio_diag,
         "messages": {
             key: VALIDATION_MESSAGES["checks"][key].get(val) if val is not None else None
             for key, val in checks.items()
