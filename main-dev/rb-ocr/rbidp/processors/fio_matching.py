@@ -172,6 +172,12 @@ def detect_variant(raw: str) -> str:
     if len(tokens) == 1:
         return "L"
     if len(tokens) >= 3:
+        # Special case: LAST + single-letter + single-letter (with optional dots/spaces)
+        # e.g., "Иванов И.О." -> tokens like ["иванов", "и.", "о."]
+        t2 = tokens[1].replace(".", "") if len(tokens) > 1 else ""
+        t3 = tokens[2].replace(".", "") if len(tokens) > 2 else ""
+        if len(t2) == 1 and t2.isalpha() and len(t3) == 1 and t3.isalpha():
+            return "L_IO"
         return "FULL"
     # len == 2
     t1, t2 = tokens

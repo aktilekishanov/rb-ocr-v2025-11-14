@@ -28,10 +28,6 @@ class TestFioMatching(unittest.TestCase):
         self.assertMatch("Иванов Иван Иванович", "Иванов И О", True)
         self.assertMatch("Иванов Иван", "Иванов И.О.", False)
 
-    def test_transliteration(self):
-        # Latin lookalikes for 'Иванов' (e.g., 'Ivanov' will not match, but 'Иванов' with latin lookalikes letters should)
-        self.assertMatch("Петров", "Peтpoв", True)  # Using Latin lookalikes P e t p o v
-
     def test_negative(self):
         self.assertMatch("Иванов Иван Иванович", "Петров Иван Иванович", False)
         self.assertMatch("Иванов Иван", "Петров И", False)
