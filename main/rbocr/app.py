@@ -6,6 +6,7 @@ from pathlib import Path
 import streamlit as st
 
 from rbidp.orchestrator import run_pipeline
+from rbidp.core.config import STAMP_ENABLED
 from rbidp.core.errors import message_for
 
 # --- Page setup ---
@@ -195,8 +196,9 @@ if submitted:
                                 {"Поле": "Дата (из документа)", "Значение": str(side_by_side.get("doc_date", {}).get("extracted"))},
                                 {"Поле": "Действителен до", "Значение": str(side_by_side.get("doc_date", {}).get("valid_until"))},
                                 {"Поле": "Один тип документа", "Значение": str(side_by_side.get("single_doc_type", {}).get("extracted"))},
-                                {"Поле": "Печать обнаружена", "Значение": str(side_by_side.get("stamp_present", {}).get("extracted"))},
                             ]
+                            if STAMP_ENABLED:
+                                rows.append({"Поле": "Печать обнаружена", "Значение": str(side_by_side.get("stamp_present", {}).get("extracted"))})
                         except Exception:
                             rows = []
                         if rows:
@@ -205,7 +207,7 @@ if submitted:
                     pass
 
         # Preview visualization of stamp detector (if available)
-        if isinstance(final_result_path, str):
+        if STAMP_ENABLED and isinstance(final_result_path, str):
             try:
                 meta_dir = os.path.dirname(final_result_path)
                 run_base = os.path.dirname(meta_dir)
@@ -238,12 +240,17 @@ if submitted:
                         ocr_t = timing.get("ocr_seconds")
                         gpt_t = timing.get("gpt_seconds")
                         with st.expander("SLA и тайминги выполнения"):
-                            # Show four metrics if available
-                            cols = st.columns(4)
-                            cols[0].metric("Всего (сек)", f"{dur:.2f}" if isinstance(dur, (int, float)) else "-")
-                            cols[1].metric("Печать (сек)", f"{stamp_t:.2f}" if isinstance(stamp_t, (int, float)) else "-")
-                            cols[2].metric("OCR (сек)", f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-")
-                            cols[3].metric("GPT (сек)", f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-")
+                            if STAMP_ENABLED:
+                                cols = st.columns(4)
+                                cols[0].metric("Всего (сек)", f"{dur:.2f}" if isinstance(dur, (int, float)) else "-")
+                                cols[1].metric("Печать (сек)", f"{stamp_t:.2f}" if isinstance(stamp_t, (int, float)) else "-")
+                                cols[2].metric("OCR (сек)", f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-")
+                                cols[3].metric("GPT (сек)", f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-")
+                            else:
+                                cols = st.columns(3)
+                                cols[0].metric("Всего (сек)", f"{dur:.2f}" if isinstance(dur, (int, float)) else "-")
+                                cols[1].metric("OCR (сек)", f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-")
+                                cols[2].metric("GPT (сек)", f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-")
             except Exception:
                 pass
 

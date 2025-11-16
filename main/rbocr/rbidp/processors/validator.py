@@ -3,7 +3,7 @@ import os
 from typing import Dict, Any
 import re
 from rapidfuzz import fuzz  
-from rbidp.core.config import VALIDATION_FILENAME
+from rbidp.core.config import VALIDATION_FILENAME, STAMP_ENABLED
 from rbidp.core.dates import now_utc_plus
 from rbidp.core.validity import compute_valid_until, is_within_validity, format_date
 
@@ -160,8 +160,8 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
     else:
         single_doc_type_valid = None
 
-    # stamp_present comes from detector; treat as tri-state
-    if isinstance(stamp_present_raw, bool):
+    # stamp_present comes from detector; treat as tri-state and honor toggle
+    if STAMP_ENABLED and isinstance(stamp_present_raw, bool):
         stamp_present = stamp_present_raw
     else:
         stamp_present = None
@@ -179,7 +179,7 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
         and checks.get("doc_type_match") is True
         and checks.get("doc_date_valid") is True
         and checks.get("single_doc_type_valid") is True
-        and checks.get("stamp_present") is True
+        and (checks.get("stamp_present") is True if STAMP_ENABLED else True)
     )
 
     diagnostics = {

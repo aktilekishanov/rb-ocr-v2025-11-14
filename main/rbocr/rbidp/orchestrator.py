@@ -28,6 +28,7 @@ from rbidp.core.config import (
     METADATA_FILENAME,
     MAX_PDF_PAGES,
     UTC_OFFSET_HOURS,
+    STAMP_ENABLED,
 )
 from rbidp.core.validity import compute_valid_until, format_date
 from rbidp.processors.stamp_check import stamp_present_for_source
@@ -220,7 +221,7 @@ def run_pipeline(
         errors.append(make_error("FILE_SAVE_FAILED", details=str(e)))
         final_path = meta_dir / "final_result.json"
         artifacts["duration_seconds"] = time.perf_counter() - t0
-        artifacts["stamp_seconds"] = t_stamp
+        artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
         artifacts["ocr_seconds"] = t_ocr
         artifacts["gpt_seconds"] = t_gpt
         result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -257,7 +258,7 @@ def run_pipeline(
             errors.append(make_error("PDF_TOO_MANY_PAGES"))
             final_path = meta_dir / "final_result.json"
             artifacts["duration_seconds"] = time.perf_counter() - t0
-            artifacts["stamp_seconds"] = t_stamp
+            artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
             artifacts["ocr_seconds"] = t_ocr
             artifacts["gpt_seconds"] = t_gpt
             result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -287,7 +288,7 @@ def run_pipeline(
         final_path = meta_dir / "final_result.json"
         t_ocr += (time.perf_counter() - _t_ocr_start)
         artifacts["duration_seconds"] = time.perf_counter() - t0
-        artifacts["stamp_seconds"] = t_stamp
+        artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
         artifacts["ocr_seconds"] = t_ocr
         artifacts["gpt_seconds"] = t_gpt
         result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -322,7 +323,7 @@ def run_pipeline(
             final_path = meta_dir / "final_result.json"
             t_ocr += (time.perf_counter() - _t_ocr_start)
             artifacts["duration_seconds"] = time.perf_counter() - t0
-            artifacts["stamp_seconds"] = t_stamp
+            artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
             artifacts["ocr_seconds"] = t_ocr
             artifacts["gpt_seconds"] = t_gpt
             result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -391,7 +392,7 @@ def run_pipeline(
             # ensure timing is recorded for early return
             t_gpt += (time.perf_counter() - _t_gpt_start)
             artifacts["duration_seconds"] = time.perf_counter() - t0
-            artifacts["stamp_seconds"] = t_stamp
+            artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
             artifacts["ocr_seconds"] = t_ocr
             artifacts["gpt_seconds"] = t_gpt
             result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -444,7 +445,7 @@ def run_pipeline(
         final_path = meta_dir / "final_result.json"
         t_gpt += (time.perf_counter() - _t_gpt_start)
         artifacts["duration_seconds"] = time.perf_counter() - t0
-        artifacts["stamp_seconds"] = t_stamp
+        artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
         artifacts["ocr_seconds"] = t_ocr
         artifacts["gpt_seconds"] = t_gpt
         result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -499,21 +500,22 @@ def run_pipeline(
         # Close out GPT timing BEFORE running stamp check to avoid overlapping with stamp time
         t_gpt += (time.perf_counter() - _t_gpt_start)
 
-        stamp_flag = None
-        try:
-            suffix = saved_path.suffix.lower()
-            if suffix in {".jpg", ".jpeg", ".png", ".pdf"}:
-                t_s = time.perf_counter()
-                # save detector visualization into the run's input/original folder
-                stamp_flag = stamp_present_for_source(str(saved_path), vis_dest_dir=str(input_dir))
-                t_stamp += (time.perf_counter() - t_s)
-        except Exception:
+        if STAMP_ENABLED:
             stamp_flag = None
-        # Persist detector response into a dedicated file to separate inputs vs outputs
-        if stamp_flag is not None:
-            scr_path = meta_dir / "stamp_check_response.json"
-            _write_json(scr_path, {"stamp_present": bool(stamp_flag)})
-            artifacts["stamp_check_response_path"] = str(scr_path)
+            try:
+                suffix = saved_path.suffix.lower()
+                if suffix in {".jpg", ".jpeg", ".png", ".pdf"}:
+                    t_s = time.perf_counter()
+                    # save detector visualization into the run's input/original folder
+                    stamp_flag = stamp_present_for_source(str(saved_path), vis_dest_dir=str(input_dir))
+                    t_stamp += (time.perf_counter() - t_s)
+            except Exception:
+                stamp_flag = None
+            # Persist detector response into a dedicated file to separate inputs vs outputs
+            if stamp_flag is not None:
+                scr_path = meta_dir / "stamp_check_response.json"
+                _write_json(scr_path, {"stamp_present": bool(stamp_flag)})
+                artifacts["stamp_check_response_path"] = str(scr_path)
 
         # Restart GPT timing AFTER stamp check
         _t_gpt_start = time.perf_counter()
@@ -523,7 +525,7 @@ def run_pipeline(
         # ensure timing is recorded for early return
         t_gpt += (time.perf_counter() - _t_gpt_start)
         artifacts["duration_seconds"] = time.perf_counter() - t0
-        artifacts["stamp_seconds"] = t_stamp
+        artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
         artifacts["ocr_seconds"] = t_ocr
         artifacts["gpt_seconds"] = t_gpt
         result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -550,7 +552,7 @@ def run_pipeline(
         # ensure timing is recorded for early return
         t_gpt += (time.perf_counter() - _t_gpt_start)
         artifacts["duration_seconds"] = time.perf_counter() - t0
-        artifacts["stamp_seconds"] = t_stamp
+        artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
         artifacts["ocr_seconds"] = t_ocr
         artifacts["gpt_seconds"] = t_gpt
         result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -644,7 +646,7 @@ def run_pipeline(
         final_path = meta_dir / "final_result.json"
         t_gpt += (time.perf_counter() - _t_gpt_start)
         artifacts["duration_seconds"] = time.perf_counter() - t0
-        artifacts["stamp_seconds"] = t_stamp
+        artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
         artifacts["ocr_seconds"] = t_ocr
         artifacts["gpt_seconds"] = t_gpt
         result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -682,7 +684,7 @@ def run_pipeline(
             # ensure timing is recorded for early return
             t_gpt += (time.perf_counter() - _t_gpt_start)
             artifacts["duration_seconds"] = time.perf_counter() - t0
-            artifacts["stamp_seconds"] = t_stamp
+            artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
             artifacts["ocr_seconds"] = t_ocr
             artifacts["gpt_seconds"] = t_gpt
             result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
@@ -728,17 +730,18 @@ def run_pipeline(
             if checks.get("single_doc_type_valid") is False:
                 check_errors.append(make_error("SINGLE_DOC_TYPE_INVALID"))
             # stamp_present mirrors single_doc_type flow
-            sp = checks.get("stamp_present")
-            if sp is False:
-                check_errors.append(make_error("STAMP_NOT_PRESENT"))
-            elif sp is None:
-                check_errors.append(make_error("STAMP_CHECK_MISSING"))
+            if STAMP_ENABLED:
+                sp = checks.get("stamp_present")
+                if sp is False:
+                    check_errors.append(make_error("STAMP_NOT_PRESENT"))
+                elif sp is None:
+                    check_errors.append(make_error("STAMP_CHECK_MISSING"))
         errors.extend(check_errors)
 
         final_path = meta_dir / "final_result.json"
         t_gpt += (time.perf_counter() - _t_gpt_start)
         artifacts["duration_seconds"] = time.perf_counter() - t0
-        artifacts["stamp_seconds"] = t_stamp
+        artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
         artifacts["ocr_seconds"] = t_ocr
         artifacts["gpt_seconds"] = t_gpt
         result = _build_final(run_id, errors, verdict=verdict, checks=checks, artifacts=artifacts, final_path=final_path)
@@ -764,7 +767,7 @@ def run_pipeline(
         final_path = meta_dir / "final_result.json"
         t_gpt += (time.perf_counter() - _t_gpt_start)
         artifacts["duration_seconds"] = time.perf_counter() - t0
-        artifacts["stamp_seconds"] = t_stamp
+        artifacts["stamp_seconds"] = (t_stamp if STAMP_ENABLED else None)
         artifacts["ocr_seconds"] = t_ocr
         artifacts["gpt_seconds"] = t_gpt
         result = _build_final(run_id, errors, verdict=False, checks=None, artifacts=artifacts, final_path=final_path)
