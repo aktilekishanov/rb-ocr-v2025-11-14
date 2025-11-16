@@ -11,7 +11,7 @@ DOC_DISABILITY_CERT = "Справка об инвалидности"
 DOC_LOSS_OF_WORK_CAPACITY = "Справка о степени утраты общей трудоспособности"
 
 # Default and overrides
-DEFAULT_FIXED_DAYS = 30
+DEFAULT_FIXED_DAYS = 40
 
 VALIDITY_OVERRIDES: Dict[str, Dict[str, Any]] = {
     DOC_VKK: {"type": "fixed_days", "days": 180},
