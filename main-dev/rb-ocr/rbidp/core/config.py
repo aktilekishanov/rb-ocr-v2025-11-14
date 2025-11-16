@@ -1,3 +1,9 @@
+import os
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    v = str(os.getenv(name, str(default))).strip().lower()
+    return v in ("1", "true", "t", "yes", "y", "on")
+
 # Centralized filenames and constants used across the pipeline
 
 # OCR outputs
@@ -22,12 +28,10 @@ METADATA_FILENAME = "metadata.json"
 # Global settings
 MAX_PDF_PAGES = 3
 UTC_OFFSET_HOURS = 5
+STAMP_ENABLED = _env_bool("RB_IDP_STAMP_ENABLED", False)
 
 
-
-
-
-
+#
 
 # CHECKPOINT 2025-11-07
 
