@@ -143,8 +143,8 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
         fio_match_bool, fio_diag = det_fio_match(
             fio_meta_raw or "",
             fio_raw or "",
-            enable_fuzzy_fallback=False,
-            fuzzy_threshold=90,
+            enable_fuzzy_fallback=True,
+            fuzzy_threshold=85,
         )
         fio_match = bool(fio_match_bool)
     except Exception:

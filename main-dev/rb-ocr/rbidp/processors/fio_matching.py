@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import difflib
 from dataclasses import dataclass, asdict
 from typing import Optional, Dict, Tuple
 
@@ -219,7 +220,7 @@ def equals_canonical(a: str, b: str) -> bool:
     return _normalize_initials_form(a_std) == _normalize_initials_form(b_std)
 
 
-def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False, fuzzy_threshold: int = 90) -> Tuple[bool, Dict[str, object]]:
+def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = True, fuzzy_threshold: int = 85) -> Tuple[bool, Dict[str, object]]:
     """Return (match_bool, diagnostics).
     Strategy: parse BOTH application and document FIO, build canonical variants for both, and
     compare same-variant types (FULL, LF, FP, L_I, L_IO) using `equals_canonical`.
@@ -241,7 +242,7 @@ def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False
             "meta_variant_value": app_val,
             "doc_variant_value": doc_val,
             "meta_parse": asdict(app_parts),
-            "fuzzy_score": None,
+            "fuzzy_score": 100,
         }
 
     # If doc variant is L_IO but doc parsing produced spaced initials like 'Иванов И О',
@@ -254,7 +255,7 @@ def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False
                 "meta_variant_value": app_lio,
                 "doc_variant_value": normalize_for_name(doc_fio),
                 "meta_parse": asdict(app_parts),
-                "fuzzy_score": None,
+                "fuzzy_score": 100,
             }
 
     # Special-case: if the document shows two initials (L_IO), accept match by last + first-initial only,
@@ -268,21 +269,50 @@ def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = False
                 "meta_variant_value": app_li,
                 "doc_variant_value": doc_li,
                 "meta_parse": asdict(app_parts),
-                "fuzzy_score": None,
+                "fuzzy_score": 100,
             }
 
-    # Fallback (optional)
-    fuzzy_score = None
-    if enable_fuzzy_fallback and fuzz is not None:
+    # Variant-level fuzzy comparison (preferred)
+    def _score(a: str, b: str) -> Optional[int]:
         try:
-            fuzzy_score = fuzz.token_sort_ratio(normalize_for_name(app_fio or ""), normalize_for_name(doc_fio or ""))
-            if isinstance(fuzzy_score, (int, float)) and fuzzy_score >= fuzzy_threshold:
+            if fuzz is not None:
+                return int(fuzz.ratio(a, b))
+            # Fallback if rapidfuzz is unavailable
+            return int(round(difflib.SequenceMatcher(None, a, b).ratio() * 100))
+        except Exception:
+            return None
+
+    fuzzy_score = None
+    if enable_fuzzy_fallback and app_val and doc_val:
+        s = _score(app_val, doc_val)
+        if isinstance(s, int):
+            fuzzy_score = s
+            if s >= fuzzy_threshold:
+                return True, {
+                    "matched_variant": v,
+                    "meta_variant_value": app_val,
+                    "doc_variant_value": doc_val,
+                    "meta_parse": asdict(app_parts),
+                    "fuzzy_score": s,
+                }
+
+    # Raw fuzzy fallback if variant not available or failed
+    if enable_fuzzy_fallback:
+        try:
+            app_norm = normalize_for_name(app_fio or "")
+            doc_norm = normalize_for_name(doc_fio or "")
+            if fuzz is not None:
+                s2 = int(fuzz.token_sort_ratio(app_norm, doc_norm))
+            else:
+                s2 = int(round(difflib.SequenceMatcher(None, app_norm, doc_norm).ratio() * 100))
+            fuzzy_score = max(fuzzy_score, s2) if isinstance(fuzzy_score, int) else s2
+            if s2 >= fuzzy_threshold:
                 return True, {
                     "matched_variant": None,
                     "meta_variant_value": None,
                     "doc_variant_value": doc_norm,
                     "meta_parse": asdict(app_parts),
-                    "fuzzy_score": fuzzy_score,
+                    "fuzzy_score": s2,
                 }
         except Exception:
             pass
