@@ -174,38 +174,25 @@ import json
 # """
 
 PROMPT = """
-You are a **deterministic OCR document-type classifier**.
-Your ONLY goal: analyze the given OCR text and decide whether it represents **one single document type** or **multiple distinct ones**.
-Output **only** a single JSON object in this exact format:
+You are a deterministic OCR document-type classifier.
+Analyze the OCR text and output ONLY the following JSON object (no extra text):
 
 {
+  "detected_doc_types": [string],
   "single_doc_type": true | false,
-  "detected_doc_types": [ "..." ],
-  "reasoning": "..."
+  "confidence": 0-100,
+  "reasoning": string,
+  "doc_type_known": true | false
 }
-No extra text or commentary outside the JSON.
- 
----
- 
-## CLASSIFICATION ALGORITHM (strict order)
- 
-### 1. Noise Filtering
- 
-Ignore any of the following — they NEVER create new document types:
-* OCR artifacts, partial English words, mixed-language fragments
-* Dates, form numbers, signatures, translations, page numbers, headers/footers
-* Repetitions of the same title in another language (e.g. Kazakh ↔ Russian)
- 
-### 2. Candidate Title Detection
- 
-Search the **first 15 non-empty lines** for possible document titles.
-A line is a title if it contains or resembles words like:
-**ПРИКАЗ, СПРАВКА, ЛИСТ, ВЫПИСКА, ЗАКЛЮЧЕНИЕ, УВЕДОМЛЕНИЕ**
-or their Kazakh equivalents (**БҰЙРЫҚ, АНЫҚТАМА, ХАТТАМА, ХАБАРЛАМА**).
 
-### 3. Canonical Document Types (reference list)
- 
-Fuzzy-match (Levenshtein ≥ 0.6) each candidate title to one of these canonical types:
+Semantics:
+- detected_doc_types: canonicalized titles (best-first). If none, output an empty array.
+- single_doc_type: whether the file contains exactly one distinct document type.
+- doc_type_known: true ONLY if the top candidate is in the following Dictionary; false for unknown/ambiguous types.
+- confidence: coarse confidence for the top candidate (diagnostics only; do not derive doc_type_known from it).
+- reasoning: brief explanation for the decision.
+
+Dictionary (canonical types):
 1. Лист временной нетрудоспособности (больничный лист)
 2. Приказ о выходе в декретный отпуск по уходу за ребенком
 3. Справка о выходе в декретный отпуск по уходу за ребенком
@@ -222,44 +209,19 @@ Fuzzy-match (Levenshtein ≥ 0.6) each candidate title to one of these canonical
 14. Уведомление о регистрации в качестве лица, ищущего работу
 15. Лица, зарегистрированные в качестве безработных
 
-**Important semantic aliases (normalize these as identical):**
-* "о предоставлении отпуска по уходу за ребенком"
-* "о выходе в декретный отпуск по уходу за ребенком"
-* "о предоставлении декретного отпуска"
+Classification algorithm (strict order):
+1) Noise filtering: ignore OCR artifacts, partial English words, mixed-language fragments, dates, form numbers, signatures, headers/footers, and translations. These never create new document types.
+2) Candidate title detection: scan the first 15 non-empty lines for titles (e.g., ПРИКАЗ, СПРАВКА, ЛИСТ, ВЫПИСКА, ЗАКЛЮЧЕНИЕ, УВЕДОМЛЕНИЕ; or Казakh equivalents).
+3) Canonical matching: fuzzy-match candidates to the Dictionary; normalize aliases and translations to the same canonical type.
+4) Distinct detection: if two or more different canonical types are present, set single_doc_type=false.
+5) Issuer check: only if two unrelated issuers each align to a different canonical type → single_doc_type=false.
+6) Default safety: if ambiguous/noisy, prefer single_doc_type=true but keep detected_doc_types and set doc_type_known accordingly.
 
-All refer to **one canonical type:**
-**Приказ о выходе в декретный отпуск по уходу за ребенком.**
- 
-### 4. Normalization
- 
-Merge duplicates, translations, or paraphrases describing the same purpose.
-If all detected titles are linguistic variants or synonyms of one canonical type → treat as **one** document → `single_doc_type = true`.
- 
-### 5. Distinct Document Detection
-If two or more **different canonical types** are present (e.g. "Приказ о расторжении трудового договора" and "Справка о расторжении трудового договора") → `single_doc_type = false`.
-Before declaring "multiple types," confirm that they represent **different legal purposes**, not wording variants or translations.
- 
-### 6. Issuer Check
+Output rules:
+- Return exactly one valid JSON object; do not include code fences or extra text.
+- Use double quotes for all JSON keys/values.
 
-If the text shows clearly unrelated issuers (different organizations or ministries), and each is tied to a distinct canonical type → `single_doc_type = false`.
-Otherwise, ignore repeated issuer mentions.
- 
-### 7. Default Safety
- 
-If uncertain, noisy, or ambiguous → default to
-`{"single_doc_type": true, "detected_doc_types": [...], "reasoning": "Ambiguous or translated duplicates treated as one document type."}`
- 
----
- 
-### 8. Output Rules
-
-* Return **exactly one** valid JSON object.
-* Do **not** include markdown formatting, code fences, or explanations.
-* JSON keys and string values must be enclosed in double quotes.
- 
----
- 
-### TEXT FOR ANALYSIS
+TEXT FOR ANALYSIS:
 {}
 """
 

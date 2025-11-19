@@ -14,9 +14,9 @@ VALIDATION_MESSAGES = {
             True: "Относится к заявителю",
             False: "Не относится к заявителю",
         },
-        "doc_type_match": {
-            True: "Верный формат документа",
-            False: "Неверный формат документа",
+        "doc_type_known": {
+            True: "Тип документа распознан",
+            False: "Не удалось определить тип документа",
         },
         "doc_date_valid": {
             True: "Актуальная дата документа",
@@ -126,6 +126,7 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
     valid_until_raw = merged.get("valid_until") if isinstance(merged, dict) else None
     single_doc_type_raw = merged.get("single_doc_type") if isinstance(merged, dict) else None
     stamp_present_raw = merged.get("stamp_present") if isinstance(merged, dict) else None
+    doc_type_known_raw = merged.get("doc_type_known") if isinstance(merged, dict) else None
 
     score_before = None
     score_after = None
@@ -156,10 +157,11 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
             "meta_parse": None,
             "fuzzy_score": None,
         }
-    if doc_type_meta and doc_class:
-        doc_type_match = doc_type_meta == doc_class
+    # doc_type_known is supplied by the doc type checker via merged.json
+    if isinstance(doc_type_known_raw, bool):
+        doc_type_known = doc_type_known_raw
     else:
-        doc_type_match = None
+        doc_type_known = None
 
     now = _now_utc_plus_5()
     valid_until_dt, policy_type, policy_days, policy_error = compute_valid_until(
@@ -180,7 +182,7 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
 
     checks = {
         "fio_match": fio_match,
-        "doc_type_match": doc_type_match,
+        "doc_type_known": doc_type_known,
         "doc_date_valid": doc_date_valid,
         "single_doc_type_valid": single_doc_type_valid,
         "stamp_present": stamp_present,
@@ -188,7 +190,7 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
 
     verdict = (
         checks.get("fio_match") is True
-        and checks.get("doc_type_match") is True
+        and checks.get("doc_type_known") is True
         and checks.get("doc_date_valid") is True
         and checks.get("single_doc_type_valid") is True
         and (checks.get("stamp_present") is True if STAMP_ENABLED else True)

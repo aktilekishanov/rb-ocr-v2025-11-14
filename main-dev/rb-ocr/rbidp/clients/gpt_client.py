@@ -2,7 +2,7 @@ import json
 import urllib.request
 import ssl
  
-def call_fortebank_gpt(prompt: str, model: str = "gpt-4o-mini", temperature: float = 0.1, max_tokens: int = 200) -> str:
+def call_fortebank_gpt(prompt: str, model: str = "gpt-4o", temperature: float = 0, max_tokens: int = 500) -> str:
     """
     Calls the internal ForteBank GPT endpoint and returns the model's response as a string.
     """
@@ -29,7 +29,7 @@ def call_fortebank_gpt(prompt: str, model: str = "gpt-4o-mini", temperature: flo
  
     return raw
 
-def ask_gpt(prompt: str, model: str = "gpt-4o-mini", temperature: float = 0.1, max_tokens: int = 200) -> str:
+def ask_gpt(prompt: str, model: str = "gpt-4o", temperature: float = 0, max_tokens: int = 500) -> str:
     raw = call_fortebank_gpt(prompt, model=model, temperature=temperature, max_tokens=max_tokens)
     try:
         obj = json.loads(raw)

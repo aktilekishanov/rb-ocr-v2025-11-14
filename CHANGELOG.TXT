@@ -1,0 +1,33 @@
+2025-11-19
+Scope: apps/main-dev/rb-ocr only (no changes in apps/main)
+
+- Extractor (agent_extractor.py)
+  - Removed doc_type from output schema and prompt.
+  - Now outputs only: fio, doc_date, valid_until.
+
+- Doc Type Checker (agent_doc_type_checker.py)
+  - New output contract: detected_doc_types[], single_doc_type, confidence, reasoning, doc_type_known.
+  - Prompt updated with canonical Dictionary and explicit algorithm.
+
+- Merge (processors/merge_outputs.py)
+  - Curated merged.json keys: fio, doc_date, valid_until, single_doc_type, doc_type, doc_type_known.
+  - doc_type is taken as detected_doc_types[0] (or null).
+  - Optionally merges stamp_present if produced by detector.
+
+- Validator (processors/validator.py)
+  - Replaced doc_type_match with doc_type_known in checks, messages, and verdict.
+  - Verdict requires: fio_match AND doc_type_known AND doc_date_valid AND single_doc_type_valid (and stamp_present when enabled).
+
+- Orchestrator (rbidp/orchestrator.py)
+  - Updated extractor schema validation (no doc_type required; valid_until optional).
+  - Kept early exit on single_doc_type=false (MULTIPLE_DOCUMENTS).
+  - Added doc_type_known to side_by_side.json.
+  - Validation error mapping: doc_type_known false/none -> DOC_TYPE_UNKNOWN.
+
+- Errors (core/errors.py)
+  - Added DOC_TYPE_UNKNOWN: "Не удалось определить тип документа".
+
+- Notes
+  - Filenames in core/config.py unchanged.
+  - Prompts for both GPT processors updated.
+  - merged.json is now the sole source of doc_type (from checker), extractor no longer emits doc_type.

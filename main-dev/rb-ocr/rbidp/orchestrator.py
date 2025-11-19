@@ -481,10 +481,10 @@ def run_pipeline(
         artifacts["gpt_extractor_filtered_path"] = str(filtered_path)
         with open(filtered_path, "r", encoding="utf-8") as f:
             filtered_obj = json.load(f)
-        # schema check
+        # schema check (extractor no longer returns doc_type)
         if not isinstance(filtered_obj, dict):
             raise ValueError("Extractor filtered object is not a dict")
-        for k in ("fio", "doc_type", "doc_date"):
+        for k in ("fio", "doc_date"):
             if k not in filtered_obj:
                 raise ValueError("Missing key: " + k)
             v = filtered_obj[k]
@@ -607,6 +607,7 @@ def run_pipeline(
             valid_until_str = format_date(vu_dt)
 
             single_doc_type_raw = merged_obj.get("single_doc_type") if isinstance(merged_obj, dict) else None
+            doc_type_known_raw = merged_obj.get("doc_type_known") if isinstance(merged_obj, dict) else None
 
             side_by_side = {
                 "request_created_at": request_created_at,
@@ -624,6 +625,9 @@ def run_pipeline(
                 },
                 "single_doc_type": {
                     "extracted": single_doc_type_raw,
+                },
+                "doc_type_known": {
+                    "extracted": (doc_type_known_raw if isinstance(doc_type_known_raw, bool) else None),
                 },
             }
             # append stamp_present from dedicated response file if available
@@ -716,11 +720,9 @@ def run_pipeline(
             elif fm is None:
                 check_errors.append(make_error("FIO_MISSING"))
 
-            dtm = checks.get("doc_type_match")
-            if dtm is False:
-                check_errors.append(make_error("DOC_TYPE_MISMATCH"))
-            elif dtm is None:
-                check_errors.append(make_error("DOC_TYPE_MISSING"))
+            dtk = checks.get("doc_type_known")
+            if dtk is False or dtk is None:
+                check_errors.append(make_error("DOC_TYPE_UNKNOWN"))
 
             dv = checks.get("doc_date_valid")
             if dv is False:
