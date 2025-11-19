@@ -13,9 +13,9 @@ def merge_extractor_and_doc_type(
 ) -> str:
     """
     Merge two JSON objects from given file paths and save to output_dir/filename.
-    - extractor_filtered_path: file with extractor result (dict) with keys: fio, doc_date, valid_until
+    - extractor_filtered_path: file with extractor result (dict) with keys: fio, doc_date
     - doc_type_filtered_path: file with doc-type check result (dict) with keys: detected_doc_types, single_doc_type, doc_type_known
-    The curated merged.json will contain only: fio, doc_date, valid_until, single_doc_type, doc_type, doc_type_known
+    The curated merged.json will contain only: fio, doc_date, single_doc_type, doc_type, doc_type_known
     Optionally, stamp_present is merged from stamp_check_response_path if provided.
     """
     with open(extractor_filtered_path, "r", encoding="utf-8") as ef:
@@ -29,10 +29,8 @@ def merge_extractor_and_doc_type(
     if isinstance(extractor_obj, dict):
         fio = extractor_obj.get("fio")
         doc_date = extractor_obj.get("doc_date")
-        valid_until = extractor_obj.get("valid_until")
         merged["fio"] = fio if (fio is None or isinstance(fio, str)) else None
         merged["doc_date"] = doc_date if (doc_date is None or isinstance(doc_date, str)) else None
-        merged["valid_until"] = valid_until if (valid_until is None or isinstance(valid_until, str)) else None
 
     # Doc-type checker curated fields
     single_doc_type_val = None

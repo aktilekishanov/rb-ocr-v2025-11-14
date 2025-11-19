@@ -123,7 +123,6 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
     doc_class_raw = merged.get("doc_type") if isinstance(merged, dict) else None
     doc_class = _norm_text(doc_class_raw)
     doc_date_raw = merged.get("doc_date") if isinstance(merged, dict) else None
-    valid_until_raw = merged.get("valid_until") if isinstance(merged, dict) else None
     single_doc_type_raw = merged.get("single_doc_type") if isinstance(merged, dict) else None
     stamp_present_raw = merged.get("stamp_present") if isinstance(merged, dict) else None
     doc_type_known_raw = merged.get("doc_type_known") if isinstance(merged, dict) else None
@@ -165,7 +164,7 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
 
     now = _now_utc_plus_5()
     valid_until_dt, policy_type, policy_days, policy_error = compute_valid_until(
-        doc_class_raw, doc_date_raw, valid_until_raw
+        doc_class_raw, doc_date_raw
     )
     doc_date_valid = is_within_validity(valid_until_dt, now)
 
@@ -203,7 +202,6 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
             "doc_type_meta": doc_type_meta_raw,
             "doc_type": doc_class_raw,
             "doc_date": doc_date_raw,
-            "valid_until": valid_until_raw,
             "single_doc_type": single_doc_type_raw,
         },
         "normalization": {

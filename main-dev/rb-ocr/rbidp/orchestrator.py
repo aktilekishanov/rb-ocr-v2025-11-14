@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 import time
-
+ 
 from rbidp.clients.tesseract_async_client import ask_tesseract
 from rbidp.processors.filter_ocr_response import filter_ocr_response
 from rbidp.processors.agent_doc_type_checker import check_single_doc_type
@@ -32,17 +32,17 @@ from rbidp.core.config import (
 )
 from rbidp.core.validity import compute_valid_until, format_date
 from rbidp.processors.stamp_check import stamp_present_for_source
-
-
+ 
+ 
 logger = logging.getLogger(__name__)
-
-
+ 
+ 
 def _safe_filename(name: str) -> str:
     name = re.sub(r"[^\w\-\.\s]", "_", (name or "").strip())
     name = re.sub(r"\s+", "_", name)
     return name or "file"
-
-
+ 
+ 
 def _count_pdf_pages(path: str) -> Optional[int]:
     try:
         import pypdf as _pypdf  # type: ignore
@@ -69,14 +69,14 @@ def _count_pdf_pages(path: str) -> Optional[int]:
         return len(_re.findall(br"/Type\s*/Page\b", data)) or None
     except Exception:
         return None
-
-
+ 
+ 
 def _write_json(path: Path, obj: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=False, indent=2)
-
-
+ 
+ 
 def _write_manifest(
     meta_dir: Path,
     *,
@@ -101,7 +101,7 @@ def _write_manifest(
     stamp_seconds = artifacts.get("stamp_seconds") if isinstance(artifacts, dict) else None
     ocr_seconds = artifacts.get("ocr_seconds") if isinstance(artifacts, dict) else None
     gpt_seconds = artifacts.get("gpt_seconds") if isinstance(artifacts, dict) else None
-
+ 
     manifest = {
         "run_id": run_id,
         "created_at": created_at,
@@ -122,14 +122,14 @@ def _write_manifest(
         "error": error,
     }
     _write_json(meta_dir / "manifest.json", manifest)
-
-
+ 
+ 
 def _now_id() -> str:
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     short_id = uuid.uuid4().hex[:5]
     return f"{ts}_{short_id}"
-
-
+ 
+ 
 def _mk_run_dirs(runs_root: Path, run_id: str) -> Dict[str, Path]:
     date_str = datetime.now().strftime("%Y-%m-%d")
     base_dir = runs_root / date_str / run_id
@@ -146,8 +146,8 @@ def _mk_run_dirs(runs_root: Path, run_id: str) -> Dict[str, Path]:
         "gpt": gpt_dir,
         "meta": meta_dir,
     }
-
-
+ 
+ 
 def _build_final(
     run_id: str,
     errors: List[Dict[str, Any]],
@@ -188,8 +188,8 @@ def _build_final(
         "errors": errors,
         "final_result_path": str(final_path),
     }
-
-
+ 
+ 
 def run_pipeline(
     fio: Optional[str],
     reason: Optional[str],
@@ -209,10 +209,10 @@ def run_pipeline(
     base_dir, input_dir, ocr_dir, gpt_dir, meta_dir = (
         dirs["base"], dirs["input"], dirs["ocr"], dirs["gpt"], dirs["meta"]
     )
-
+ 
     errors: List[Dict[str, Any]] = []
     artifacts: Dict[str, str] = {}
-
+ 
     base_name = _safe_filename(original_filename or os.path.basename(source_file_path))
     saved_path = input_dir / base_name
     try:
@@ -242,16 +242,16 @@ def run_pipeline(
             created_at=request_created_at,
         )
         return result
-
+ 
     size_bytes = None
     try:
         size_bytes = saved_path.stat().st_size
     except Exception:
         pass
-
+ 
     metadata = {"fio": fio or None, "reason": reason, "doc_type": doc_type}
     _write_json(meta_dir / METADATA_FILENAME, metadata)
-
+ 
     if saved_path.suffix.lower() == ".pdf":
         pages = _count_pdf_pages(str(saved_path))
         if pages is not None and pages > MAX_PDF_PAGES:
@@ -279,7 +279,7 @@ def run_pipeline(
                 created_at=request_created_at,
             )
             return result
-
+ 
     # OCR
     _t_ocr_start = time.perf_counter()
     textract_result = ask_tesseract(str(saved_path), output_dir=str(ocr_dir), save_json=True)
@@ -309,7 +309,7 @@ def run_pipeline(
             created_at=request_created_at,
         )
         return result
-
+ 
     # Filter OCR pages
     try:
         filtered_pages_path = filter_ocr_response(textract_result.get("raw_obj", {}), str(ocr_dir), filename=OCR_PAGES)
@@ -370,10 +370,10 @@ def run_pipeline(
             created_at=request_created_at,
         )
         return result
-
+ 
     # Successfully finished OCR stage; record OCR duration
     t_ocr += (time.perf_counter() - _t_ocr_start)
-
+ 
     # Doc type checker (GPT)
     _t_gpt_start = time.perf_counter()
     try:
@@ -466,7 +466,7 @@ def run_pipeline(
             created_at=request_created_at,
         )
         return result
-
+ 
     # Extraction (GPT)
     try:
         gpt_raw = extract_doc_data(pages_obj)
@@ -490,16 +490,11 @@ def run_pipeline(
             v = filtered_obj[k]
             if v is not None and not isinstance(v, str):
                 raise ValueError(f"Key {k} has invalid type")
-        # optional field valid_until
-        if "valid_until" in filtered_obj:
-            vu = filtered_obj.get("valid_until")
-            if vu is not None and not isinstance(vu, str):
-                raise ValueError("Key valid_until has invalid type")
-
+ 
         # Stamp presence (non-fatal) deferred until after successful single-doc and extraction
         # Close out GPT timing BEFORE running stamp check to avoid overlapping with stamp time
         t_gpt += (time.perf_counter() - _t_gpt_start)
-
+ 
         if STAMP_ENABLED:
             stamp_flag = None
             try:
@@ -516,7 +511,7 @@ def run_pipeline(
                 scr_path = meta_dir / "stamp_check_response.json"
                 _write_json(scr_path, {"stamp_present": bool(stamp_flag)})
                 artifacts["stamp_check_response_path"] = str(scr_path)
-
+ 
         # Restart GPT timing AFTER stamp check
         _t_gpt_start = time.perf_counter()
     except ValueError as ve:
@@ -573,7 +568,7 @@ def run_pipeline(
             created_at=request_created_at,
         )
         return result
-
+ 
     # Merge
     try:
         merged_path = merge_extractor_and_doc_type(
@@ -591,24 +586,23 @@ def run_pipeline(
                 meta_obj = json.load(mf)
             with open(merged_path, "r", encoding="utf-8") as mg:
                 merged_obj = json.load(mg)
-
+ 
             fio_meta_raw = meta_obj.get("fio") if isinstance(meta_obj, dict) else None
             fio_extracted_raw = merged_obj.get("fio") if isinstance(merged_obj, dict) else None
-
+ 
             doc_type_meta_raw = meta_obj.get("doc_type") if isinstance(meta_obj, dict) else None
             doc_type_extracted_raw = merged_obj.get("doc_type") if isinstance(merged_obj, dict) else None
-
+ 
             doc_date_extracted = merged_obj.get("doc_date") if isinstance(merged_obj, dict) else None
-            valid_until_extracted_raw = merged_obj.get("valid_until") if isinstance(merged_obj, dict) else None
             # compute policy-based valid_until and format
             vu_dt, _, _, _ = compute_valid_until(
-                doc_type_extracted_raw, doc_date_extracted, valid_until_extracted_raw
+                doc_type_extracted_raw, doc_date_extracted
             )
             valid_until_str = format_date(vu_dt)
-
+ 
             single_doc_type_raw = merged_obj.get("single_doc_type") if isinstance(merged_obj, dict) else None
             doc_type_known_raw = merged_obj.get("doc_type_known") if isinstance(merged_obj, dict) else None
-
+ 
             side_by_side = {
                 "request_created_at": request_created_at,
                 "fio": {
@@ -671,7 +665,7 @@ def run_pipeline(
             created_at=request_created_at,
         )
         return result
-
+ 
     # Validation
     try:
         validation = validate_run(
@@ -708,7 +702,7 @@ def run_pipeline(
                 created_at=request_created_at,
             )
             return result
-
+ 
         val_result = validation.get("result", {})
         checks = val_result.get("checks") if isinstance(val_result, dict) else None
         verdict = bool(val_result.get("verdict")) if isinstance(val_result, dict) else False
@@ -719,11 +713,11 @@ def run_pipeline(
                 check_errors.append(make_error("FIO_MISMATCH"))
             elif fm is None:
                 check_errors.append(make_error("FIO_MISSING"))
-
+ 
             dtk = checks.get("doc_type_known")
             if dtk is False or dtk is None:
                 check_errors.append(make_error("DOC_TYPE_UNKNOWN"))
-
+ 
             dv = checks.get("doc_date_valid")
             if dv is False:
                 check_errors.append(make_error("DOC_DATE_TOO_OLD"))
@@ -739,7 +733,7 @@ def run_pipeline(
                 elif sp is None:
                     check_errors.append(make_error("STAMP_CHECK_MISSING"))
         errors.extend(check_errors)
-
+ 
         final_path = meta_dir / "final_result.json"
         t_gpt += (time.perf_counter() - _t_gpt_start)
         artifacts["duration_seconds"] = time.perf_counter() - t0
@@ -792,3 +786,7 @@ def run_pipeline(
             created_at=request_created_at,
         )
         return result
+ 
+ 
+ 
+ 
