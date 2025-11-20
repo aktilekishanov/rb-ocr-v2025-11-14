@@ -1,6 +1,7 @@
 import json
 import os
-from typing import Dict, Any
+from typing import Any
+
 from rbidp.core.config import MERGED_FILENAME
 
 
@@ -18,12 +19,12 @@ def merge_extractor_and_doc_type(
     The curated merged.json will contain only: fio, doc_date, single_doc_type, doc_type, doc_type_known
     Optionally, stamp_present is merged from stamp_check_response_path if provided.
     """
-    with open(extractor_filtered_path, "r", encoding="utf-8") as ef:
-        extractor_obj: Dict[str, Any] = json.load(ef)
-    with open(doc_type_filtered_path, "r", encoding="utf-8") as df:
-        doc_type_obj: Dict[str, Any] = json.load(df)
+    with open(extractor_filtered_path, encoding="utf-8") as ef:
+        extractor_obj: dict[str, Any] = json.load(ef)
+    with open(doc_type_filtered_path, encoding="utf-8") as df:
+        doc_type_obj: dict[str, Any] = json.load(df)
 
-    merged: Dict[str, Any] = {}
+    merged: dict[str, Any] = {}
 
     # Extractor fields
     if isinstance(extractor_obj, dict):
@@ -56,8 +57,8 @@ def merge_extractor_and_doc_type(
     # Optionally merge stamp_check_response (e.g., {"stamp_present": true|false})
     if stamp_check_response_path:
         try:
-            with open(stamp_check_response_path, "r", encoding="utf-8") as sf:
-                stamp_obj: Dict[str, Any] = json.load(sf)
+            with open(stamp_check_response_path, encoding="utf-8") as sf:
+                stamp_obj: dict[str, Any] = json.load(sf)
             if isinstance(stamp_obj, dict):
                 merged.update(stamp_obj)
         except Exception:

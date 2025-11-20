@@ -1,5 +1,6 @@
-from rbidp.clients.gpt_client import ask_gpt
 import json
+
+from rbidp.clients.gpt_client import ask_gpt
 
 PROMPT = """
 You are an expert in multilingual document information extraction and normalization.
@@ -62,6 +63,7 @@ STEP 4 — OUTPUT STRICTLY IN THIS JSON FORMAT (no explanations, no extra text, 
 Text for analysis:
 {}
 """
+
 
 def extract_doc_data(pages_obj: dict) -> str:
     pages_json_str = json.dumps(pages_obj, ensure_ascii=False)

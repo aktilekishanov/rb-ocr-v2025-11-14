@@ -1,11 +1,13 @@
 import json
 import os
-from typing import Dict, Any
 import re
-from rapidfuzz import fuzz  
-from rbidp.core.config import VALIDATION_FILENAME, STAMP_ENABLED
+from typing import Any, Dict
+
+from rapidfuzz import fuzz
+
+from rbidp.core.config import STAMP_ENABLED, VALIDATION_FILENAME
 from rbidp.core.dates import now_utc_plus
-from rbidp.core.validity import compute_valid_until, is_within_validity, format_date
+from rbidp.core.validity import compute_valid_until, format_date, is_within_validity
 
 VALIDATION_MESSAGES = {
     "checks": {
@@ -48,55 +50,68 @@ def _norm_text(s: Any) -> str:
 def _now_utc_plus_5():
     return now_utc_plus(5)
 
+
 def kz_to_ru(s: str) -> str:
-    table = str.maketrans({
-        "қ": "к",
-        "ұ": "у",
-        "ү": "у", 
-        "ң": "н",
-        "ғ": "г",
-        "ө": "о",
-        "Қ": "К",
-        "Ұ": "У",
-        "Ү": "У",
-        "Ң": "Н",
-        "Ғ": "Г",
-        "Ө": "О",
-    })
+    table = str.maketrans(
+        {
+            "қ": "к",
+            "ұ": "у",
+            "ү": "у",
+            "ң": "н",
+            "ғ": "г",
+            "ө": "о",
+            "Қ": "К",
+            "Ұ": "У",
+            "Ү": "У",
+            "Ң": "Н",
+            "Ғ": "Г",
+            "Ө": "О",
+        }
+    )
     return s.translate(table)
+
 
 def latin_to_cyrillic(s: str) -> str:
-    table = str.maketrans({
-        "a": "а",
-        "e": "е",
-        "o": "о",
-        "p": "р",
-        "c": "с",
-        "y": "у",
-        "x": "х",
-        "k": "к",
-        "h": "н",
-        "b": "в",
-        "m": "м",
-        "t": "т",
-        "i": "и",
-        "A": "А",
-        "E": "Е",
-        "O": "О",
-        "P": "Р",
-        "C": "С",
-        "Y": "У",
-        "X": "Х",
-        "K": "К",
-        "H": "Н",
-        "B": "В",
-        "M": "М",
-        "T": "Т",
-        "I": "И",
-    })
+    table = str.maketrans(
+        {
+            "a": "а",
+            "e": "е",
+            "o": "о",
+            "p": "р",
+            "c": "с",
+            "y": "у",
+            "x": "х",
+            "k": "к",
+            "h": "н",
+            "b": "в",
+            "m": "м",
+            "t": "т",
+            "i": "и",
+            "A": "А",
+            "E": "Е",
+            "O": "О",
+            "P": "Р",
+            "C": "С",
+            "Y": "У",
+            "X": "Х",
+            "K": "К",
+            "H": "Н",
+            "B": "В",
+            "M": "М",
+            "T": "Т",
+            "I": "И",
+        }
+    )
     return s.translate(table)
 
-def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: str = VALIDATION_FILENAME, write_file: bool = True) -> Dict[str, Any]:
+
+def validate_run(
+    meta_path: str,
+    merged_path: str,
+    output_dir: str,
+    filename: str = VALIDATION_FILENAME,
+    write_file: bool = True,
+) -> Dict[str, Any]:
     try:
         with open(meta_path, "r", encoding="utf-8") as mf:
             meta = json.load(mf)
@@ -104,7 +119,6 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
             merged = json.load(gf)
     except Exception as e:
         return {"success": False, "error": f"IO error: {e}", "validation_path": "", "result": None}
-
 
     fio_meta_raw = meta.get("fio") if isinstance(meta, dict) else None
     doc_type_meta_raw = meta.get("doc_type") if isinstance(meta, dict) else None
@@ -227,8 +241,12 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
     try:
         os.makedirs(output_dir, exist_ok=True)
     except Exception as e:
-        return {"success": False, "error": f"Validation error: {e}", "validation_path": "", "result": None}
-
+        return {
+            "success": False,
+            "error": f"Validation error: {e}",
+            "validation_path": "",
+            "result": None,
+        }
 
 
 # CHECKPOINT 06.11.2025 12:10 -- RESTORE IF APP CRASHES
@@ -237,7 +255,7 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
 # import os
 # from typing import Dict, Any
 # import re
-# from rapidfuzz import fuzz  
+# from rapidfuzz import fuzz
 # from rbidp.core.config import VALIDATION_FILENAME
 # from rbidp.core.dates import now_utc_plus
 # from rbidp.core.validity import compute_valid_until, is_within_validity, format_date
@@ -283,7 +301,7 @@ def validate_run(meta_path: str, merged_path: str, output_dir: str, filename: st
 #     table = str.maketrans({
 #         "қ": "к",
 #         "ұ": "у",
-#         "ү": "у", 
+#         "ү": "у",
 #         "ң": "н",
 #         "ғ": "г",
 #         "ө": "о",

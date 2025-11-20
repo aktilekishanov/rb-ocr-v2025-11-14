@@ -1,6 +1,7 @@
 import json
 import os
-from typing import Dict, Any
+from typing import Any, Dict
+
 from rbidp.core.config import MERGED_FILENAME
 
 
@@ -43,19 +44,6 @@ def merge_extractor_and_doc_type(
     with open(out_path, "w", encoding="utf-8") as mf:
         json.dump(merged, mf, ensure_ascii=False, indent=2)
     return out_path
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # CHECKPOINT 06.11.2025 12:10 -- RESTORE IF APP CRASHES

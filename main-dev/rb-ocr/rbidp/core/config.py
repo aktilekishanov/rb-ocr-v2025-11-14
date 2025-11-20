@@ -1,8 +1,10 @@
 import os
 
+
 def _env_bool(name: str, default: bool = False) -> bool:
     v = str(os.getenv(name, str(default))).strip().lower()
     return v in ("1", "true", "t", "yes", "y", "on")
+
 
 # Centralized filenames and constants used across the pipeline
 

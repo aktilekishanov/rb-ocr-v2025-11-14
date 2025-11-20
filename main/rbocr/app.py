@@ -1,13 +1,14 @@
+import json
 import os
 import re
-import json
 import tempfile
 from pathlib import Path
+
 import streamlit as st
 
-from rbidp.orchestrator import run_pipeline
 from rbidp.core.config import STAMP_ENABLED
 from rbidp.core.errors import message_for
+from rbidp.orchestrator import run_pipeline
 
 # --- Page setup ---
 st.set_page_config(page_title="RB Loan Deferment IDP", layout="centered")
@@ -28,7 +29,7 @@ st.markdown(
 .block-container{max-width:980px;padding-top:1.25rem;}
 .meta{color:#6b7280;font-size:0.92rem;margin:0.25rem 0 1rem 0;}
 .meta code{background:#f3f4f6;border:1px solid #e5e7eb;padding:2px 6px;border-radius:6px;}
-.card{border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,.04);} 
+.card{border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,.04);}
 .card.pad{padding:22px;}
 .result-card{border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fafafa;}
 .stButton>button{border-radius:10px;padding:.65rem 1rem;font-weight:600;}
@@ -76,9 +77,7 @@ reason = st.selectbox(
     key="reason",
 )
 
-doc_options = ["Выберите тип документа"] + (
-    reasons_map[reason] if reason in reasons_map else []
-)
+doc_options = ["Выберите тип документа"] + (reasons_map[reason] if reason in reasons_map else [])
 doc_type = st.selectbox(
     "Тип документа",
     options=doc_options,
@@ -109,7 +108,7 @@ def _count_pdf_pages(path: str):
     try:
         with open(path, "rb") as f:
             data = f.read()
-        return len(re.findall(br"/Type\s*/Page\b", data)) or None
+        return len(re.findall(rb"/Type\s*/Page\b", data)) or None
     except Exception:
         return None
 
@@ -188,17 +187,56 @@ if submitted:
                         rows = []
                         try:
                             rows = [
-                                {"Поле": "ФИО (заявка)", "Значение": str(side_by_side.get("fio", {}).get("meta"))},
-                                {"Поле": "ФИО (из документа)", "Значение": str(side_by_side.get("fio", {}).get("extracted"))},
-                                {"Поле": "Тип документа (заявка)", "Значение": str(side_by_side.get("doc_type", {}).get("meta"))},
-                                {"Поле": "Тип документа (из документа)", "Значение": str(side_by_side.get("doc_type", {}).get("extracted"))},
-                                {"Поле": "Дата (заявки)", "Значение": str(side_by_side.get("request_created_at"))},
-                                {"Поле": "Дата (из документа)", "Значение": str(side_by_side.get("doc_date", {}).get("extracted"))},
-                                {"Поле": "Действителен до", "Значение": str(side_by_side.get("doc_date", {}).get("valid_until"))},
-                                {"Поле": "Один тип документа", "Значение": str(side_by_side.get("single_doc_type", {}).get("extracted"))},
+                                {
+                                    "Поле": "ФИО (заявка)",
+                                    "Значение": str(side_by_side.get("fio", {}).get("meta")),
+                                },
+                                {
+                                    "Поле": "ФИО (из документа)",
+                                    "Значение": str(side_by_side.get("fio", {}).get("extracted")),
+                                },
+                                {
+                                    "Поле": "Тип документа (заявка)",
+                                    "Значение": str(side_by_side.get("doc_type", {}).get("meta")),
+                                },
+                                {
+                                    "Поле": "Тип документа (из документа)",
+                                    "Значение": str(
+                                        side_by_side.get("doc_type", {}).get("extracted")
+                                    ),
+                                },
+                                {
+                                    "Поле": "Дата (заявки)",
+                                    "Значение": str(side_by_side.get("request_created_at")),
+                                },
+                                {
+                                    "Поле": "Дата (из документа)",
+                                    "Значение": str(
+                                        side_by_side.get("doc_date", {}).get("extracted")
+                                    ),
+                                },
+                                {
+                                    "Поле": "Действителен до",
+                                    "Значение": str(
+                                        side_by_side.get("doc_date", {}).get("valid_until")
+                                    ),
+                                },
+                                {
+                                    "Поле": "Один тип документа",
+                                    "Значение": str(
+                                        side_by_side.get("single_doc_type", {}).get("extracted")
+                                    ),
+                                },
                             ]
                             if STAMP_ENABLED:
-                                rows.append({"Поле": "Печать обнаружена", "Значение": str(side_by_side.get("stamp_present", {}).get("extracted"))})
+                                rows.append(
+                                    {
+                                        "Поле": "Печать обнаружена",
+                                        "Значение": str(
+                                            side_by_side.get("stamp_present", {}).get("extracted")
+                                        ),
+                                    }
+                                )
                         except Exception:
                             rows = []
                         if rows:
@@ -216,7 +254,11 @@ if submitted:
                 if os.path.isdir(input_original_dir):
                     for name in os.listdir(input_original_dir):
                         lower = name.lower()
-                        if lower.endswith("_with_boxes.jpg") or lower.endswith("_with_boxes.jpeg") or lower.endswith("_with_boxes.png"):
+                        if (
+                            lower.endswith("_with_boxes.jpg")
+                            or lower.endswith("_with_boxes.jpeg")
+                            or lower.endswith("_with_boxes.png")
+                        ):
                             vis_path = os.path.join(input_original_dir, name)
                             break
                 if vis_path and os.path.exists(vis_path):
@@ -242,49 +284,38 @@ if submitted:
                         with st.expander("SLA и тайминги выполнения"):
                             if STAMP_ENABLED:
                                 cols = st.columns(4)
-                                cols[0].metric("Всего (сек)", f"{dur:.2f}" if isinstance(dur, (int, float)) else "-")
-                                cols[1].metric("Печать (сек)", f"{stamp_t:.2f}" if isinstance(stamp_t, (int, float)) else "-")
-                                cols[2].metric("OCR (сек)", f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-")
-                                cols[3].metric("GPT (сек)", f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-")
+                                cols[0].metric(
+                                    "Всего (сек)",
+                                    f"{dur:.2f}" if isinstance(dur, (int, float)) else "-",
+                                )
+                                cols[1].metric(
+                                    "Печать (сек)",
+                                    f"{stamp_t:.2f}" if isinstance(stamp_t, (int, float)) else "-",
+                                )
+                                cols[2].metric(
+                                    "OCR (сек)",
+                                    f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-",
+                                )
+                                cols[3].metric(
+                                    "GPT (сек)",
+                                    f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-",
+                                )
                             else:
                                 cols = st.columns(3)
-                                cols[0].metric("Всего (сек)", f"{dur:.2f}" if isinstance(dur, (int, float)) else "-")
-                                cols[1].metric("OCR (сек)", f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-")
-                                cols[2].metric("GPT (сек)", f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-")
+                                cols[0].metric(
+                                    "Всего (сек)",
+                                    f"{dur:.2f}" if isinstance(dur, (int, float)) else "-",
+                                )
+                                cols[1].metric(
+                                    "OCR (сек)",
+                                    f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-",
+                                )
+                                cols[2].metric(
+                                    "GPT (сек)",
+                                    f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-",
+                                )
             except Exception:
                 pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # CHECKPOINT 2025-11-14 STATE BEFORE SWITCHING TO ASYNC TESSERACT | RESTORE IF CRASHES
@@ -318,7 +349,7 @@ if submitted:
 # .block-container{max-width:980px;padding-top:1.25rem;}
 # .meta{color:#6b7280;font-size:0.92rem;margin:0.25rem 0 1rem 0;}
 # .meta code{background:#f3f4f6;border:1px solid #e5e7eb;padding:2px 6px;border-radius:6px;}
-# .card{border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,.04);} 
+# .card{border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,.04);}
 # .card.pad{padding:22px;}
 # .result-card{border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fafafa;}
 # .stButton>button{border-radius:10px;padding:.65rem 1rem;font-weight:600;}
@@ -540,62 +571,6 @@ if submitted:
 #                 pass
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # CHECKPOINT 06.11.2025 12:10 -- RESTORE IF APP CRASHES
 
 
@@ -628,7 +603,7 @@ if submitted:
 # .block-container{max-width:980px;padding-top:1.25rem;}
 # .meta{color:#6b7280;font-size:0.92rem;margin:0.25rem 0 1rem 0;}
 # .meta code{background:#f3f4f6;border:1px solid #e5e7eb;padding:2px 6px;border-radius:6px;}
-# .card{border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,.04);} 
+# .card{border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,.04);}
 # .card.pad{padding:22px;}
 # .result-card{border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fafafa;}
 # .stButton>button{border-radius:10px;padding:.65rem 1rem;font-weight:600;}

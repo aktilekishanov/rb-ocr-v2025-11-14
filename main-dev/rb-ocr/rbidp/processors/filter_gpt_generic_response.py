@@ -1,9 +1,9 @@
-import os
 import json
-from typing import Any, Dict, Optional
+import os
+from typing import Any
 
 
-def _try_parse_inner_json(text: str) -> Optional[Dict[str, Any]]:
+def _try_parse_inner_json(text: str) -> dict[str, Any] | None:
     try:
         obj = json.loads(text)
         if isinstance(obj, dict):
@@ -13,7 +13,7 @@ def _try_parse_inner_json(text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _extract_from_openai_like(obj: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _extract_from_openai_like(obj: dict[str, Any]) -> dict[str, Any] | None:
     choices = obj.get("choices")
     if isinstance(choices, list) and choices:
         c0 = choices[0]
@@ -48,10 +48,10 @@ def filter_gpt_generic_response(input_path: str, output_dir: str, filename: str)
       3) If string: try to parse it as JSON dict.
     The first successful dict is written as the filtered output. If none found, write {}.
     """
-    with open(input_path, "r", encoding="utf-8") as f:
+    with open(input_path, encoding="utf-8") as f:
         raw = f.read()
 
-    result_obj: Dict[str, Any] = {}
+    result_obj: dict[str, Any] = {}
 
     for line in raw.splitlines():
         line = line.strip()

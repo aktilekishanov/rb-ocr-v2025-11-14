@@ -1,5 +1,6 @@
-from rbidp.clients.gpt_client import ask_gpt
 import json
+
+from rbidp.clients.gpt_client import ask_gpt
 
 # PROMPT = """
 # SYSTEM INSTRUCTION:
@@ -10,20 +11,20 @@ import json
 # {"single_doc_type": boolean}
 
 # DEFINITIONS:
-# - A *document type* = the document’s purpose (e.g., order, certificate, medical form, ID, decree).  
-# - Different languages, duplicated headers, or OCR artifacts do NOT mean multiple documents.  
+# - A *document type* = the document’s purpose (e.g., order, certificate, medical form, ID, decree).
+# - Different languages, duplicated headers, or OCR artifacts do NOT mean multiple documents.
 # - Only count as multiple if content clearly shows distinct purposes, issuers, people, or form numbers.
 
 # DECISION RULES:
-# 1. Same form number, same organization, same person, same purpose → true.  
-# 2. Repeated headers, bilingual duplicates, or OCR noise → ignore → still true.  
-# 3. Two or more unrelated forms (different document names, people, or cases) → false.  
+# 1. Same form number, same organization, same person, same purpose → true.
+# 2. Repeated headers, bilingual duplicates, or OCR noise → ignore → still true.
+# 3. Two or more unrelated forms (different document names, people, or cases) → false.
 # 4. If unclear, but all content aligns with one document → default to true.
 
 # EXAMPLES:
-# - “БҰЙРЫҚ / ПРИКАЗ” bilingual with same signature → true  
-# - “ПРИКАЗ” + “СПРАВКА” → false  
-# - Header repeated due to OCR → true  
+# - “БҰЙРЫҚ / ПРИКАЗ” bilingual with same signature → true
+# - “ПРИКАЗ” + “СПРАВКА” → false
+# - Header repeated due to OCR → true
 # - Two different signatures for two people → false
 
 # OUTPUT:
@@ -116,19 +117,19 @@ You are a deterministic OCR document-type classifier. Your ONLY output must be:
 }
 
 ---
- 
+
 ### ALGORITHM (strict order)
- 
+
 1) **Noise filtering**
 
 Ignore:
 - OCR artifacts, random English words, repeated headers, translations, mixed languages, dates, and form numbers.
 These NEVER create new document types.
- 
+
 2) **Candidate title detection**
 Look for possible document titles in the first 15 non-empty lines.
 A title is any line containing words like "ПРИКАЗ", "СПРАВКА", "ЛИСТ", "ВЫПИСКА", "ЗАКЛЮЧЕНИЕ", "УВЕДОМЛЕНИЕ", or their Kazakh equivalents, or matching any of the known types below.
- 
+
 3) **Known document types (canonical list)**
 
 Match titles fuzzily (Levenshtein ≥ 0.7) to these canonical document types:
@@ -147,20 +148,20 @@ Match titles fuzzily (Levenshtein ≥ 0.7) to these canonical document types:
 - Справка о неполучении доходов
 - Уведомление о регистрации в качестве лица, ищущего работу
 - Лица, зарегистрированные в качестве безработных
- 
+
 4) **Normalization**
 If multiple detected titles correspond to the same canonical document type (even in different languages or partial forms) → treat as one → output true.
- 
+
 5) **Distinct document detection**
 If two or more *different canonical types* appear (e.g., “Приказ о расторжении трудового договора” and “Справка о расторжении трудового договора”) → output false.
- 
+
 6) **Issuer check**
 If two unrelated issuers (different organizations or ministries) are present and each is associated with a different canonical type → output false.
 Otherwise → ignore repetitions and translations.
- 
+
 7) **Default safety**
 If unclear, noisy, or ambiguous → default to {"single_doc_type": true}.
- 
+
 8) **Output**
 Output exactly one JSON object:
 {
@@ -172,6 +173,7 @@ Output exactly one JSON object:
 TEXT FOR ANALYSIS:
 {}
 """
+
 
 def check_single_doc_type(pages_obj: dict) -> str:
     pages_json_str = json.dumps(pages_obj, ensure_ascii=False)

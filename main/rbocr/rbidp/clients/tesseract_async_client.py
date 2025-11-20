@@ -1,15 +1,16 @@
 # CHECKPOINT 2025-11-14 NEW FILE CREATED AS PART OF THE SWITCHING TO ASYNC TESSERACT | DELETE IF CRASHES
 
-from typing import Any, Dict, Optional
 import asyncio
+import json
+import mimetypes
 import os
+from typing import Any, Dict, Optional
+
 import httpx
 
-import mimetypes
-import json
-
-from rbidp.processors.image_to_pdf_converter import convert_image_to_pdf
 from rbidp.core.config import OCR_RAW
+from rbidp.processors.image_to_pdf_converter import convert_image_to_pdf
+
 
 class TesseractAsyncClient:
     def __init__(
@@ -65,7 +66,10 @@ class TesseractAsyncClient:
         while True:
             last = await self.get_result(file_id)
             status = str(last.get("status", "")).lower()
-            if status in {"done", "completed", "success", "finished", "ready"} or last.get("result") is not None:
+            if (
+                status in {"done", "completed", "success", "finished", "ready"}
+                or last.get("result") is not None
+            ):
                 return last
             if status in {"failed", "error"}:
                 return last
@@ -84,7 +88,9 @@ async def ask_tesseract_async(
     client_timeout: float = 60.0,
     verify: bool = True,
 ) -> Dict[str, Any]:
-    async with TesseractAsyncClient(base_url=base_url, timeout=client_timeout, verify=verify) as client:
+    async with TesseractAsyncClient(
+        base_url=base_url, timeout=client_timeout, verify=verify
+    ) as client:
         upload_resp = await client.upload(file_path)
         file_id = upload_resp.get("id")
         result_obj: Optional[Dict[str, Any]] = None
@@ -128,7 +134,10 @@ def ask_tesseract(
     mt, _ = mimetypes.guess_type(pdf_path)
     is_pdf = bool(mt == "application/pdf" or pdf_path.lower().endswith(".pdf"))
     ext = os.path.splitext(pdf_path)[1].lower()
-    is_image = bool((mt and isinstance(mt, str) and mt.startswith("image/")) or ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"})
+    is_image = bool(
+        (mt and isinstance(mt, str) and mt.startswith("image/"))
+        or ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"}
+    )
     if not is_pdf and is_image:
         base_dir = os.path.dirname(pdf_path)
         base_name = os.path.splitext(os.path.basename(pdf_path))[0]

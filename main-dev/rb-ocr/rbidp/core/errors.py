@@ -1,30 +1,23 @@
-from typing import Optional, Dict
-
 # Minimal, stable error codes for MVP
-ERROR_MESSAGES_RU: Dict[str, str] = {
+ERROR_MESSAGES_RU: dict[str, str] = {
     # Acquisition/UI
     "PDF_TOO_MANY_PAGES": "PDF должен содержать не более 3 страниц",
     "FILE_SAVE_FAILED": "Не удалось сохранить файл",
-
     # OCR
     "OCR_FAILED": "Ошибка распознавания OCR",
     "OCR_FILTER_FAILED": "Ошибка обработки страниц OCR",
     "OCR_EMPTY_PAGES": "Не удалось получить текст страниц из OCR",
-
     # Doc-type check (GPT)
     "DTC_FAILED": "Ошибка проверки типа документа",
     "MULTIPLE_DOCUMENTS": "Файл содержит несколько типов документов",
     "DTC_PARSE_ERROR": "Некорректный ответ проверки типа документа",
-
     # Extraction (GPT)
     "EXTRACT_FAILED": "Ошибка извлечения данных GPT",
     "GPT_FILTER_PARSE_ERROR": "Ошибка фильтрации ответа GPT",
     "EXTRACT_SCHEMA_INVALID": "Некорректная схема данных извлечения",
-
     # Merge/Validation
     "MERGE_FAILED": "Ошибка при формировании итогового JSON",
     "VALIDATION_FAILED": "Ошибка валидации",
-
     # Check-derived
     "FIO_MISMATCH": "ФИО не совпадает",
     "FIO_MISSING": "Не удалось извлечь ФИО из документа",
@@ -40,11 +33,13 @@ ERROR_MESSAGES_RU: Dict[str, str] = {
 }
 
 
-def message_for(code: str) -> Optional[str]:
+def message_for(code: str) -> str | None:
     return ERROR_MESSAGES_RU.get(code)
 
 
-def make_error(code: str, message: Optional[str] = None, details: Optional[str] = None) -> Dict[str, Optional[str]]:
+def make_error(
+    code: str, message: str | None = None, details: str | None = None
+) -> dict[str, str | None]:
     return {
         "code": code,
         "message": message,

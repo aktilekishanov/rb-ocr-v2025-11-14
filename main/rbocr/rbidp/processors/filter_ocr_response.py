@@ -2,12 +2,15 @@
 
 from rbidp.core.config import OCR_PAGES
 
+
 def filter_ocr_response(obj: dict, output_dir: str, filename: str = OCR_PAGES) -> str:
     """
     Build per-page text and save to JSON file {"pages": [{"page_number", "text"}, ...]}.
     Returns the full path to the saved file.
     """
-    import os, json
+    import json
+    import os
+
     os.makedirs(output_dir, exist_ok=True)
 
     pages = []
@@ -21,15 +24,18 @@ def filter_ocr_response(obj: dict, output_dir: str, filename: str = OCR_PAGES) -
                     pn = int(pn) if pn is not None else None
                 except Exception:
                     pn = None
-                pages.append({
-                    "page_number": pn,
-                    "text": p.get("text", "") or "",
-                })
+                pages.append(
+                    {
+                        "page_number": pn,
+                        "text": p.get("text", "") or "",
+                    }
+                )
         if all(isinstance(x.get("page_number"), int) for x in pages):
-            pages.sort(key=lambda x: x["page_number"]) 
+            pages.sort(key=lambda x: x["page_number"])
     # Else, derive from Textract-like Blocks if present
     elif isinstance(obj.get("Blocks"), list):
         from collections import defaultdict
+
         blocks = obj["Blocks"]
         pages_map = defaultdict(list)
         has_line = any(isinstance(b, dict) and b.get("BlockType") == "LINE" for b in blocks)
@@ -45,15 +51,19 @@ def filter_ocr_response(obj: dict, output_dir: str, filename: str = OCR_PAGES) -
                 if isinstance(b, dict) and b.get("Text"):
                     pages_map[b.get("Page")].append(b.get("Text"))
         for pn in sorted((k for k in pages_map.keys() if isinstance(k, int))):
-            pages.append({
-                "page_number": pn,
-                "text": "\n".join(pages_map[pn]).strip(),
-            })
+            pages.append(
+                {
+                    "page_number": pn,
+                    "text": "\n".join(pages_map[pn]).strip(),
+                }
+            )
         if None in pages_map:
-            pages.append({
-                "page_number": None,
-                "text": "\n".join(pages_map[None]).strip(),
-            })
+            pages.append(
+                {
+                    "page_number": None,
+                    "text": "\n".join(pages_map[None]).strip(),
+                }
+            )
     else:
         # Fallback: nothing recognizable
         pages = [{"page_number": None, "text": ""}]

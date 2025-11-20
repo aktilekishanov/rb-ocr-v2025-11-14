@@ -75,7 +75,9 @@ def compute_valid_until(
         return d_local + timedelta(days=days), "fixed_days", days, None
 
 
-def is_within_validity(valid_until_dt: Optional[datetime], now_dt: Optional[datetime] = None) -> Optional[bool]:
+def is_within_validity(
+    valid_until_dt: Optional[datetime], now_dt: Optional[datetime] = None
+) -> Optional[bool]:
     if valid_until_dt is None:
         return None
     now = now_dt or datetime.now(_timezone())

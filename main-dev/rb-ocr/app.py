@@ -1,26 +1,27 @@
+import json
 import os
 import re
-import json
 import tempfile
 from pathlib import Path
+
 import streamlit as st
- 
-from rbidp.orchestrator import run_pipeline
+
 from rbidp.core.config import STAMP_ENABLED
 from rbidp.core.errors import message_for
- 
+from rbidp.orchestrator import run_pipeline
+
 # --- Page setup ---
 st.set_page_config(page_title="[DEV] RB Loan Deferment IDP", layout="centered")
- 
+
 st.write("")
 st.title("[DEV] RB Loan Deferment IDP")
 st.write("Загрузите один файл для распознавания (OCR (Tesseract async, Dev-OCR) & GPT (DMZ))")
- 
+
 # --- Basic paths ---
 BASE_DIR = Path(__file__).resolve().parent
 RUNS_DIR = BASE_DIR / "runs"
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
- 
+
 # --- Simple CSS tweaks ---
 st.markdown(
     """
@@ -37,7 +38,7 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
- 
+
 # --- Reason -> doc types mapping (example) ---
 reasons_map = {
     "Временная нетрудоспособность заемщика по причине болезни": [
@@ -66,10 +67,10 @@ reasons_map = {
         "Иные документы",
     ],
 }
- 
+
 # --- Inputs outside form for dynamic selects ---
 fio = st.text_input("ФИО", placeholder="Иванов Иван Иванович")
- 
+
 reason_options = ["Выберите причину"] + list(reasons_map.keys())
 reason = st.selectbox(
     "Причина отсрочки",
@@ -78,24 +79,22 @@ reason = st.selectbox(
     help="Сначала выберите причину, затем подходящий тип документа",
     key="reason",
 )
- 
-doc_options = ["Выберите тип документа"] + (
-    reasons_map[reason] if reason in reasons_map else []
-)
+
+doc_options = ["Выберите тип документа"] + (reasons_map[reason] if reason in reasons_map else [])
 doc_type = st.selectbox(
     "Тип документа",
     options=doc_options,
     index=0,
     key="doc_type",
 )
- 
- 
+
+
 def _safe_filename(name: str) -> str:
     name = re.sub(r"[^\w\-\.\s]", "_", name.strip())
     name = re.sub(r"\s+", "_", name)
     return name or "file"
- 
- 
+
+
 def _count_pdf_pages(path: str):
     try:
         if _pypdf is not None:
@@ -112,11 +111,11 @@ def _count_pdf_pages(path: str):
     try:
         with open(path, "rb") as f:
             data = f.read()
-        return len(re.findall(br"/Type\s*/Page\b", data)) or None
+        return len(re.findall(rb"/Type\s*/Page\b", data)) or None
     except Exception:
         return None
- 
- 
+
+
 # --- Upload form ---
 with st.form("upload_form", clear_on_submit=False):
     uploaded_file = st.file_uploader(
@@ -126,7 +125,7 @@ with st.form("upload_form", clear_on_submit=False):
         help="Поддержка: PDF, JPEG",
     )
     submitted = st.form_submit_button("Загрузить и распознать", type="primary")
- 
+
 if submitted:
     if not uploaded_file:
         st.warning("Пожалуйста, прикрепите файл")
@@ -140,7 +139,7 @@ if submitted:
             tmp_path = Path(tmp_dir) / _safe_filename(uploaded_file.name)
             with open(tmp_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
- 
+
             with st.spinner("Обрабатываем документ..."):
                 result = run_pipeline(
                     fio=fio or None,
@@ -151,65 +150,109 @@ if submitted:
                     content_type=getattr(uploaded_file, "type", None),
                     runs_root=RUNS_DIR,
                 )
- 
+
         st.subheader("Результат проверки")
         verdict = bool(result.get("verdict", False))
         errors = result.get("errors", []) or []
- 
+
         if verdict:
             st.success("Вердикт: True — документ прошел проверку")
         else:
             st.error("Вердикт: False — документ не прошел проверку")
- 
+
         if errors:
             st.markdown("**Ошибки**")
             for e in errors:
                 code = e.get("code")
                 msg = message_for(code) or e.get("message") or str(code)
                 st.write(f"- {msg}")
- 
+
         # Diagnostics: show final_result.json for full context
         final_result_path = result.get("final_result_path")
         if isinstance(final_result_path, str) and os.path.exists(final_result_path):
             try:
-                with open(final_result_path, "r", encoding="utf-8") as ff:
+                with open(final_result_path, encoding="utf-8") as ff:
                     final_obj = json.load(ff)
                 with st.expander("Диагностика: final_result.json"):
                     st.json(final_obj)
             except Exception:
                 pass
- 
+
         # Side-by-side comparison (if available)
         if isinstance(final_result_path, str):
             sbs_path = os.path.join(os.path.dirname(final_result_path), "side_by_side.json")
             if os.path.exists(sbs_path):
                 try:
-                    with open(sbs_path, "r", encoding="utf-8") as sbf:
+                    with open(sbs_path, encoding="utf-8") as sbf:
                         side_by_side = json.load(sbf)
                     with st.expander("Сравнение: side_by_side.json"):
                         # Compact table for quick review
                         rows = []
                         try:
                             rows = [
-                                {"Поле": "ФИО (заявка)", "Значение": str(side_by_side.get("fio", {}).get("meta"))},
-                                {"Поле": "ФИО (из документа)", "Значение": str(side_by_side.get("fio", {}).get("extracted"))},
-                                {"Поле": "Тип документа (заявка)", "Значение": str(side_by_side.get("doc_type", {}).get("meta"))},
-                                {"Поле": "Тип документа (из документа)", "Значение": str(side_by_side.get("doc_type", {}).get("extracted"))},
-                                {"Поле": "Дата (заявки)", "Значение": str(side_by_side.get("request_created_at"))},
-                                {"Поле": "Дата (из документа)", "Значение": str(side_by_side.get("doc_date", {}).get("extracted"))},
-                                {"Поле": "Действителен до", "Значение": str(side_by_side.get("doc_date", {}).get("valid_until"))},
-                                {"Поле": "Один тип документа", "Значение": str(side_by_side.get("single_doc_type", {}).get("extracted"))},
-                                {"Поле": "Тип документа имеется в справочнике", "Значение": str(side_by_side.get("doc_type_known", {}).get("extracted"))},
+                                {
+                                    "Поле": "ФИО (заявка)",
+                                    "Значение": str(side_by_side.get("fio", {}).get("meta")),
+                                },
+                                {
+                                    "Поле": "ФИО (из документа)",
+                                    "Значение": str(side_by_side.get("fio", {}).get("extracted")),
+                                },
+                                {
+                                    "Поле": "Тип документа (заявка)",
+                                    "Значение": str(side_by_side.get("doc_type", {}).get("meta")),
+                                },
+                                {
+                                    "Поле": "Тип документа (из документа)",
+                                    "Значение": str(
+                                        side_by_side.get("doc_type", {}).get("extracted")
+                                    ),
+                                },
+                                {
+                                    "Поле": "Дата (заявки)",
+                                    "Значение": str(side_by_side.get("request_created_at")),
+                                },
+                                {
+                                    "Поле": "Дата (из документа)",
+                                    "Значение": str(
+                                        side_by_side.get("doc_date", {}).get("extracted")
+                                    ),
+                                },
+                                {
+                                    "Поле": "Действителен до",
+                                    "Значение": str(
+                                        side_by_side.get("doc_date", {}).get("valid_until")
+                                    ),
+                                },
+                                {
+                                    "Поле": "Один тип документа",
+                                    "Значение": str(
+                                        side_by_side.get("single_doc_type", {}).get("extracted")
+                                    ),
+                                },
+                                {
+                                    "Поле": "Тип документа имеется в справочнике",
+                                    "Значение": str(
+                                        side_by_side.get("doc_type_known", {}).get("extracted")
+                                    ),
+                                },
                             ]
                             if STAMP_ENABLED:
-                                rows.append({"Поле": "Печать обнаружена", "Значение": str(side_by_side.get("stamp_present", {}).get("extracted"))})
+                                rows.append(
+                                    {
+                                        "Поле": "Печать обнаружена",
+                                        "Значение": str(
+                                            side_by_side.get("stamp_present", {}).get("extracted")
+                                        ),
+                                    }
+                                )
                         except Exception:
                             rows = []
                         if rows:
                             st.table(rows)
                 except Exception:
                     pass
- 
+
         # Preview visualization of stamp detector (if available)
         if STAMP_ENABLED and isinstance(final_result_path, str):
             try:
@@ -220,7 +263,11 @@ if submitted:
                 if os.path.isdir(input_original_dir):
                     for name in os.listdir(input_original_dir):
                         lower = name.lower()
-                        if lower.endswith("_with_boxes.jpg") or lower.endswith("_with_boxes.jpeg") or lower.endswith("_with_boxes.png"):
+                        if (
+                            lower.endswith("_with_boxes.jpg")
+                            or lower.endswith("_with_boxes.jpeg")
+                            or lower.endswith("_with_boxes.png")
+                        ):
                             vis_path = os.path.join(input_original_dir, name)
                             break
                 if vis_path and os.path.exists(vis_path):
@@ -228,14 +275,14 @@ if submitted:
                         st.image(vis_path, use_container_width=True)
             except Exception:
                 pass
- 
+
         # SLA & timings (displayed at the end) from manifest.timing
         if isinstance(final_result_path, str) and os.path.exists(final_result_path):
             try:
                 meta_dir = os.path.dirname(final_result_path)
                 manifest_path = os.path.join(meta_dir, "manifest.json")
                 if os.path.exists(manifest_path):
-                    with open(manifest_path, "r", encoding="utf-8") as mf:
+                    with open(manifest_path, encoding="utf-8") as mf:
                         manifest = json.load(mf)
                     timing = manifest.get("timing", {}) if isinstance(manifest, dict) else {}
                     if isinstance(timing, dict):
@@ -246,15 +293,35 @@ if submitted:
                         with st.expander("SLA и тайминги выполнения"):
                             if STAMP_ENABLED:
                                 cols = st.columns(4)
-                                cols[0].metric("Всего (сек)", f"{dur:.2f}" if isinstance(dur, (int, float)) else "-")
-                                cols[1].metric("Печать (сек)", f"{stamp_t:.2f}" if isinstance(stamp_t, (int, float)) else "-")
-                                cols[2].metric("OCR (сек)", f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-")
-                                cols[3].metric("GPT (сек)", f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-")
+                                cols[0].metric(
+                                    "Всего (сек)",
+                                    f"{dur:.2f}" if isinstance(dur, (int, float)) else "-",
+                                )
+                                cols[1].metric(
+                                    "Печать (сек)",
+                                    f"{stamp_t:.2f}" if isinstance(stamp_t, (int, float)) else "-",
+                                )
+                                cols[2].metric(
+                                    "OCR (сек)",
+                                    f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-",
+                                )
+                                cols[3].metric(
+                                    "GPT (сек)",
+                                    f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-",
+                                )
                             else:
                                 cols = st.columns(3)
-                                cols[0].metric("Всего (сек)", f"{dur:.2f}" if isinstance(dur, (int, float)) else "-")
-                                cols[1].metric("OCR (сек)", f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-")
-                                cols[2].metric("GPT (сек)", f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-")
+                                cols[0].metric(
+                                    "Всего (сек)",
+                                    f"{dur:.2f}" if isinstance(dur, (int, float)) else "-",
+                                )
+                                cols[1].metric(
+                                    "OCR (сек)",
+                                    f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-",
+                                )
+                                cols[2].metric(
+                                    "GPT (сек)",
+                                    f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-",
+                                )
             except Exception:
                 pass
- 

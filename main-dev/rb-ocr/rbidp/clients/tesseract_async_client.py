@@ -1,16 +1,16 @@
 # CHECKPOINT 2025-11-14 NEW FILE CREATED AS PART OF THE SWITCHING TO ASYNC TESSERACT | DELETE IF CRASHES
 
-from typing import Any, Dict, Optional
 import asyncio
+import json
+import mimetypes
 import os
+from typing import Any
+
 import httpx
 
-
-import mimetypes
-import json
-
-from rbidp.processors.image_to_pdf_converter import convert_image_to_pdf
 from rbidp.core.config import OCR_RAW
+from rbidp.processors.image_to_pdf_converter import convert_image_to_pdf
+
 
 class TesseractAsyncClient:
     def __init__(
@@ -22,7 +22,7 @@ class TesseractAsyncClient:
         self.base_url = base_url.rstrip("/")
         self._timeout = timeout
         self._verify = verify
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "TesseractAsyncClient":
         self._client = httpx.AsyncClient(timeout=self._timeout, verify=self._verify)
@@ -33,7 +33,7 @@ class TesseractAsyncClient:
             await self._client.aclose()
             self._client = None
 
-    async def upload(self, file_path: str) -> Dict[str, Any]:
+    async def upload(self, file_path: str) -> dict[str, Any]:
         if self._client is None:
             raise RuntimeError("Client is not started. Use 'async with TesseractAsyncClient()'.")
         url = f"{self.base_url}/pdf"
@@ -44,7 +44,7 @@ class TesseractAsyncClient:
         resp.raise_for_status()
         return resp.json()
 
-    async def get_result(self, file_id: str) -> Dict[str, Any]:
+    async def get_result(self, file_id: str) -> dict[str, Any]:
         if self._client is None:
             raise RuntimeError("Client is not started. Use 'async with TesseractAsyncClient()'.")
         url = f"{self.base_url}/result/{file_id}"
@@ -57,16 +57,19 @@ class TesseractAsyncClient:
         file_id: str,
         poll_interval: float = 2.0,
         timeout: float = 300.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if self._client is None:
             raise RuntimeError("Client is not started. Use 'async with TesseractAsyncClient()'.")
         loop = asyncio.get_event_loop()
         deadline = loop.time() + timeout
-        last: Dict[str, Any] = {}
+        last: dict[str, Any] = {}
         while True:
             last = await self.get_result(file_id)
             status = str(last.get("status", "")).lower()
-            if status in {"done", "completed", "success", "finished", "ready"} or last.get("result") is not None:
+            if (
+                status in {"done", "completed", "success", "finished", "ready"}
+                or last.get("result") is not None
+            ):
                 return last
             if status in {"failed", "error"}:
                 return last
@@ -84,13 +87,15 @@ async def ask_tesseract_async(
     timeout: float = 300.0,
     client_timeout: float = 60.0,
     verify: bool = True,
-) -> Dict[str, Any]:
-    async with TesseractAsyncClient(base_url=base_url, timeout=client_timeout, verify=verify) as client:
+) -> dict[str, Any]:
+    async with TesseractAsyncClient(
+        base_url=base_url, timeout=client_timeout, verify=verify
+    ) as client:
         upload_resp = await client.upload(file_path)
         file_id = upload_resp.get("id")
-        result_obj: Optional[Dict[str, Any]] = None
+        result_obj: dict[str, Any] | None = None
         success = False
-        error: Optional[str] = None
+        error: str | None = None
         if wait and file_id:
             result_obj = await client.wait_for_result(
                 file_id, poll_interval=poll_interval, timeout=timeout
@@ -123,13 +128,16 @@ def ask_tesseract(
     poll_interval: float = 2.0,
     timeout: float = 300.0,
     client_timeout: float = 60.0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     work_path = pdf_path
-    converted_pdf: Optional[str] = None
+    converted_pdf: str | None = None
     mt, _ = mimetypes.guess_type(pdf_path)
     is_pdf = bool(mt == "application/pdf" or pdf_path.lower().endswith(".pdf"))
     ext = os.path.splitext(pdf_path)[1].lower()
-    is_image = bool((mt and isinstance(mt, str) and mt.startswith("image/")) or ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"})
+    is_image = bool(
+        (mt and isinstance(mt, str) and mt.startswith("image/"))
+        or ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"}
+    )
     if not is_pdf and is_image:
         base_dir = os.path.dirname(pdf_path)
         base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -166,8 +174,8 @@ def ask_tesseract(
     )
 
     success = bool(async_result.get("success"))
-    error: Optional[str] = None
-    raw_obj: Dict[str, Any] = {}
+    error: str | None = None
+    raw_obj: dict[str, Any] = {}
 
     get_resp = async_result.get("result")
     if isinstance(get_resp, dict):
@@ -182,7 +190,7 @@ def ask_tesseract(
         if not error and isinstance(get_resp, dict):
             error = get_resp.get("error_message") or get_resp.get("error")
 
-    raw_path: Optional[str] = None
+    raw_path: str | None = None
     if save_json:
         try:
             os.makedirs(output_dir, exist_ok=True)

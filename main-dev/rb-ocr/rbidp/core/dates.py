@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any
 
 
-def parse_doc_date(s: Any) -> Optional[datetime]:
+def parse_doc_date(s: Any) -> datetime | None:
     if not isinstance(s, str):
         return None
     s2 = s.strip()

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import re
 import difflib
-from dataclasses import dataclass, asdict
-from typing import Optional, Dict, Tuple
+import re
+from dataclasses import asdict, dataclass
 
 try:
     from rapidfuzz import fuzz  # optional for fallback
@@ -13,55 +12,59 @@ except Exception:  # pragma: no cover
 
 @dataclass
 class NameParts:
-    last: Optional[str]
-    first: Optional[str]
-    patro: Optional[str]
+    last: str | None
+    first: str | None
+    patro: str | None
 
 
 # Normalization utilities mirror validator.py behavior
-_KZ_TO_RU = str.maketrans({
-    "қ": "к",
-    "ұ": "у",
-    "ү": "у",
-    "ң": "н",
-    "ғ": "г",
-    "ө": "о",
-    "Қ": "К",
-    "Ұ": "У",
-    "Ү": "У",
-    "Ң": "Н",
-    "Ғ": "Г",
-    "Ө": "О",
-})
+_KZ_TO_RU = str.maketrans(
+    {
+        "қ": "к",
+        "ұ": "у",
+        "ү": "у",
+        "ң": "н",
+        "ғ": "г",
+        "ө": "о",
+        "Қ": "К",
+        "Ұ": "У",
+        "Ү": "У",
+        "Ң": "Н",
+        "Ғ": "Г",
+        "Ө": "О",
+    }
+)
 
-_LATIN_TO_CYR = str.maketrans({
-    "a": "а",
-    "e": "е",
-    "o": "о",
-    "p": "р",
-    "c": "с",
-    "y": "у",
-    "x": "х",
-    "k": "к",
-    "h": "н",
-    "b": "в",
-    "m": "м",
-    "t": "т",
-    "i": "и",
-    "A": "А",
-    "E": "Е",
-    "O": "О",
-    "P": "Р",
-    "C": "С",
-    "Y": "У",
-    "X": "Х",
-    "K": "К",
-    "H": "Н",
-    "B": "В",
-    "M": "М",
-    "T": "Т",
-    "I": "И",
-})
+_LATIN_TO_CYR = str.maketrans(
+    {
+        "a": "а",
+        "e": "е",
+        "o": "о",
+        "p": "р",
+        "c": "с",
+        "y": "у",
+        "x": "х",
+        "k": "к",
+        "h": "н",
+        "b": "в",
+        "m": "м",
+        "t": "т",
+        "i": "и",
+        "A": "А",
+        "E": "Е",
+        "O": "О",
+        "P": "Р",
+        "C": "С",
+        "Y": "У",
+        "X": "Х",
+        "K": "К",
+        "H": "Н",
+        "B": "В",
+        "M": "М",
+        "T": "Т",
+        "I": "И",
+    }
+)
 
 
 def _collapse_ws_and_case(s: str) -> str:
@@ -114,8 +117,18 @@ def parse_fio(raw: str) -> NameParts:
         else:
             # heuristics for FIRST+PATRONYMIC
             patro_suf = (
-                "ович", "евич", "ич", "овна", "евна", "ична",
-                "қызы", "углы", "улы", "уулу", "кызы", "қызы",
+                "ович",
+                "евич",
+                "ич",
+                "овна",
+                "евна",
+                "ична",
+                "қызы",
+                "углы",
+                "улы",
+                "уулу",
+                "кызы",
+                "қызы",
             )
             if any(t2.endswith(s) for s in patro_suf):
                 last, first, patro = None, _strip_trailing_dot(t1), _strip_trailing_dot(t2)
@@ -128,7 +141,7 @@ def parse_fio(raw: str) -> NameParts:
     return NameParts(last or None, first or None, patro or None)
 
 
-def build_variants(p: NameParts) -> Dict[str, str]:
+def build_variants(p: NameParts) -> dict[str, str]:
     """Return canonical strings per variant: FULL, LF, FP, L_I, L_IO, L.
     Canonicalization rules:
     - FULL/LF/FP: single space between tokens, lowercased.
@@ -136,7 +149,7 @@ def build_variants(p: NameParts) -> Dict[str, str]:
     - L_IO: f"{last} {F}{P}" (no dot and no space between initials stored).
     - L: f"{last}" (surname only) for edge cases where both sides only provide last name.
     """
-    variants: Dict[str, str] = {}
+    variants: dict[str, str] = {}
     last, first, patro = p.last, p.first, p.patro
 
     def _canon(*parts: str) -> str:
@@ -188,8 +201,18 @@ def detect_variant(raw: str) -> str:
     if len(t2c) == 1 and t2c.isalpha():
         return "L_I"
     patro_suf = (
-        "ович", "евич", "ич", "овна", "евна", "ична",
-        "қызы", "углы", "улы", "уулу", "кызы", "қызы",
+        "ович",
+        "евич",
+        "ич",
+        "овна",
+        "евна",
+        "ична",
+        "қызы",
+        "углы",
+        "улы",
+        "уулу",
+        "кызы",
+        "қызы",
     )
     if any(t2.endswith(s) for s in patro_suf):
         return "FP"
@@ -220,7 +243,9 @@ def equals_canonical(a: str, b: str) -> bool:
     return _normalize_initials_form(a_std) == _normalize_initials_form(b_std)
 
 
-def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = True, fuzzy_threshold: int = 85) -> Tuple[bool, Dict[str, object]]:
+def fio_match(
+    app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = True, fuzzy_threshold: int = 85
+) -> tuple[bool, dict[str, object]]:
     """Return (match_bool, diagnostics).
     Strategy: parse BOTH application and document FIO, build canonical variants for both, and
     compare same-variant types (FULL, LF, FP, L_I, L_IO) using `equals_canonical`.
@@ -273,7 +298,7 @@ def fio_match(app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = True,
             }
 
     # Variant-level fuzzy comparison (preferred)
-    def _score(a: str, b: str) -> Optional[int]:
+    def _score(a: str, b: str) -> int | None:
         try:
             if fuzz is not None:
                 return int(fuzz.ratio(a, b))

@@ -1,16 +1,19 @@
 import os
-import tempfile
-from typing import Optional
 
 try:
-    from PIL import Image, ImageSequence, ImageOps
+    from PIL import Image, ImageOps, ImageSequence
 except Exception:
     Image = None
     ImageSequence = None
     ImageOps = None
 
 
-def convert_image_to_pdf(image_path: str, output_dir: Optional[str] = None, output_path: Optional[str] = None, overwrite: bool = False) -> str:
+def convert_image_to_pdf(
+    image_path: str,
+    output_dir: str | None = None,
+    output_path: str | None = None,
+    overwrite: bool = False,
+) -> str:
     if Image is None:
         raise RuntimeError("Pillow is required for image to PDF conversion")
     if not os.path.isfile(image_path):

@@ -6,7 +6,11 @@ from rbidp.processors.fio_matching import fio_match
 class TestFioMatching(unittest.TestCase):
     def assertMatch(self, app_fio, doc_fio, expected=True):
         matched, diag = fio_match(app_fio, doc_fio, enable_fuzzy_fallback=False)
-        self.assertEqual(matched, expected, msg=f"Expected {expected} for app='{app_fio}' vs doc='{doc_fio}', diag={diag}")
+        self.assertEqual(
+            matched,
+            expected,
+            msg=f"Expected {expected} for app='{app_fio}' vs doc='{doc_fio}', diag={diag}",
+        )
 
     def test_full_full(self):
         self.assertMatch("Иванов Иван Иванович", "Иванов Иван Иванович", True)

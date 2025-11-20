@@ -6,7 +6,16 @@
 - **As-Is Score**: 6.5 / 10
 - **To-Be Score**: 9.0 / 10
 
----
+
+## Offline Debian (no‑internet) implications
+- **Air‑gapped runtime**: Production server (Debian) has no outbound internet. All external dependencies must be internalized.
+- **Service endpoints**: OCR and GPT must point to internal, reachable services (cluster DNS/IP). No fallback to public APIs.
+- **Dependency management**: Use pinned wheels from an internal PyPI mirror or a vendored wheelhouse. Avoid build‑from‑source in prod.
+- **Certificates/SSL**: Use the corporate internal CA. System trust store must include CA; clients must verify SSL with that CA.
+- **Container/system packages**: Preinstall OS packages (e.g., tesseract, poppler, fonts) via internal apt mirror; pin versions.
+- **Artifacts and logs**: Ship to internal storage only (shared FS, S3‑compatible internal object store). No telemetry to the internet.
+- **Time/locale**: Ensure NTP to internal time source; set `TZ`, locales (ru_RU.UTF-8, kk_KZ.UTF-8) on server.
+- **No dynamic downloads at runtime**: Disable any on‑the‑fly model/download logic. All resources must be present at deploy time.
 
 ## How the system works (current)
 - **UI (Streamlit)**: `main-dev/rb-ocr/app.py`
@@ -87,7 +96,9 @@
   - Reasons/doc-type mapping loaded from JSON/YAML config for UI.
 - **Security**
   - Restore SSL verification by default; allow toggle only in dev via env.
-  - Add timeouts/retries/backoff for external calls.
+  - Trust chain: load internal corporate CA from system trust store; no `_create_unverified_context()`.
+  - Add timeouts/retries/backoff for internal calls only; explicitly disallow outbound to public Internet.
+  - Dependencies: use internal PyPI/apt mirrors; pin hashes; provide an offline wheelhouse.
 
 ### Phase 4 — Prompts & NLP Layer
 - **Prompt templates**
@@ -108,6 +119,21 @@
 - **Structured logging** with context (run_id, stage, duration, status).
 - **Metrics** for stage durations, error counts, GPT/OCR latencies.
 - **Feature flags** to reduce artifact I/O in prod (keep in dev/QA).
+
+### Phase 7 — Packaging & Deployment (Debian, offline)
+- **Packaging**
+  - Build a reproducible artifact: container image (preferred) or `.deb` with vendored wheelhouse.
+  - Include all runtime assets (prompts, configs, fonts, locales if needed) inside the artifact.
+- **System integration**
+  - Provide `systemd` unit files for app and workers. Set `EnvironmentFile=/etc/rb-idp.env`.
+  - Health endpoints (local): `/healthz`, `/readyz`.
+- **Dependencies**
+  - Document OS packages (tesseract, language packs) and provide install script for internal apt mirror.
+  - Strict version pinning; SBOM for compliance.
+- **Networking**
+  - Configure endpoints via env to internal OCR/GPT URLs; block egress by default.
+- **Install/run**
+  - Zero‑internet install guide: import internal mirrors, preload wheelhouse, run smoke tests without network.
 
 ---
 
@@ -135,8 +161,9 @@
 - Orchestrator split into composable, tested stages with typed inputs/outputs.
 - Pydantic models validate cross-stage contracts.
 - Prompts externalized and versioned.
-- Configured endpoints and toggles via env; SSL verify on.
+- Configured endpoints and toggles via env; SSL verify on with internal CA; no outbound Internet dependency.
 - CI with lint, type-check, tests; baseline coverage on core/validators.
+- Debian offline package/install guide; artifact runs fully air‑gapped using only internal services.
 
 ---
 

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from rbidp.core.config import UTC_OFFSET_HOURS
 from rbidp.core.dates import parse_doc_date
@@ -14,7 +14,7 @@ DOC_LOSS_OF_WORK_CAPACITY = "Справка о степени утраты об�
 # Default and overrides
 DEFAULT_FIXED_DAYS = 40
 
-VALIDITY_OVERRIDES: Dict[str, Dict[str, Any]] = {
+VALIDITY_OVERRIDES: dict[str, dict[str, Any]] = {
     DOC_VKK: {"type": "fixed_days", "days": 180},
     DOC_DISABILITY_CERT: {"type": "fixed_days", "days": 360},
     DOC_LOSS_OF_WORK_CAPACITY: {"type": "fixed_days", "days": 360},
@@ -27,13 +27,13 @@ def _timezone() -> timezone:
     return timezone(timedelta(hours=UTC_OFFSET_HOURS))
 
 
-def _format_date(dt: Optional[datetime]) -> Optional[str]:
+def _format_date(dt: datetime | None) -> str | None:
     if dt is None:
         return None
     return dt.strftime("%d.%m.%Y")
 
 
-def resolve_policy(doc_type: Any) -> Dict[str, Any]:
+def resolve_policy(doc_type: Any) -> dict[str, Any]:
     if isinstance(doc_type, str):
         dt = doc_type.strip()
         if dt in VALIDITY_OVERRIDES:
@@ -44,7 +44,7 @@ def resolve_policy(doc_type: Any) -> Dict[str, Any]:
 def compute_valid_until(
     doc_type: Any,
     doc_date_str: Any,
-) -> Tuple[Optional[datetime], str, Optional[int], Optional[str]]:
+) -> tuple[datetime | None, str, int | None, str | None]:
     """
     Returns (valid_until_dt_with_tz, policy_type, window_days_if_fixed, error)
     - fixed_days: requires doc_date; computes doc_date + days
@@ -70,12 +70,14 @@ def compute_valid_until(
         return d_local + timedelta(days=days), "fixed_days", days, None
 
 
-def is_within_validity(valid_until_dt: Optional[datetime], now_dt: Optional[datetime] = None) -> Optional[bool]:
+def is_within_validity(
+    valid_until_dt: datetime | None, now_dt: datetime | None = None
+) -> bool | None:
     if valid_until_dt is None:
         return None
     now = now_dt or datetime.now(_timezone())
     return now <= valid_until_dt
 
 
-def format_date(dt: Optional[datetime]) -> Optional[str]:
+def format_date(dt: datetime | None) -> str | None:
     return _format_date(dt)
