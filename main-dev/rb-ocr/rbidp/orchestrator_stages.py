@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -43,7 +45,6 @@ from rbidp.utils.io_utils import (
     write_json as util_write_json,
 )
 from rbidp.utils.timing import StageTimers, stage_timer
-
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +209,8 @@ def finalize_success(verdict: bool, checks: dict[str, Any] | None, ctx: Pipeline
     )
     return result
 
+
+# Stages
 
 def stage_acquire(ctx: PipelineContext) -> dict[str, Any] | None:
     base_name = util_safe_filename(ctx.original_filename or os.path.basename(ctx.source_file_path))
@@ -420,6 +423,7 @@ def run_pipeline(
         dirs=dirs,
     )
 
+    # Stage flow
     for stage in (
         stage_acquire,
         stage_ocr,
@@ -432,4 +436,5 @@ def run_pipeline(
         if res is not None:
             return res
 
+    # Fallback (should not happen): finalize with generic failure
     return fail_and_finalize("UNKNOWN_ERROR", None, ctx)
