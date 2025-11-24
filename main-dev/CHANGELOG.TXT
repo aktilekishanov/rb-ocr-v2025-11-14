@@ -1,0 +1,59 @@
+RB-OCR (main-dev) — Refactor Changelog
+
+Scope: structural refactor to align with best practices, improve maintainability, and prepare for offline readiness while keeping run_pipeline signature stable.
+
+1) Utilities and staging (early)
+- Added shared utilities under package:
+  - utils/io_utils.py (safe file ops: write_json/read_json/copy_file, mkdirs)
+  - utils/timing.py (StageTimers and stage_timer)
+  - utils/artifacts.py (build_final_result, write_manifest, build_side_by_side)
+- Refactored orchestrator to staged pipeline with PipelineContext and centralized fail_and_finalize/finalize_success.
+- Consolidated two-file detour back into a single orchestrator.py.
+
+2) Package rename
+- Renamed package directory rbidp/ -> pipeline/.
+- Updated all imports across codebase from rbidp.* to pipeline.*.
+
+3) Settings and runs path
+- Introduced pipeline/core/settings.py exposing RUNS_DIR.
+  - Default: ./rb-ocr/runs (computed relative to settings.py)
+  - Env override: RB_IDP_RUNS_DIR
+- Updated rb-ocr/app.py to import RUNS_DIR from settings and ensure directory exists.
+
+4) Artifacts folder rename (provider-agnostic)
+- On-disk artifacts folder changed from gpt/ -> llm/ in orchestrator _mk_run_dirs.
+- Kept PipelineContext.gpt_dir mapping to llm/ to avoid breaking call sites.
+
+5) Function-oriented JSON filenames
+- Standardized filenames in core/config.py:
+  - doc_type_check.raw.json, doc_type_check.filtered.json
+  - extractor.raw.json, extractor.filtered.json
+  - merged.json (unchanged), validation.json (unchanged)
+- All orchestrator/processors reading these use the constants; no call-site changes.
+
+6) Typed contracts
+- Added pipeline/models/dto.py with DTOs: DocTypeCheck, ExtractorResult, OCRPage, OCRPages.
+- Orchestrator validates filtered JSONs into DTOs; robust field checks; fallback Mini-BaseModel if pydantic not installed.
+
+7) Versioned prompts
+- Externalized prompts to files:
+  - pipeline/prompts/dtc/v1.prompt.txt
+  - pipeline/prompts/extractor/v1.prompt.txt
+- Updated processors to load prompts from files; removed inline PROMPT strings.
+
+8) Misc improvements
+- Renamed local variable textract_result -> ocr_result in stage_ocr.
+- Updated validators/processors imports to pipeline.core.* and pipeline.processors.*.
+- Fixed pipeline/utils/artifacts imports to pipeline.core.config.
+
+9) Documentation updates
+- Updated REFACTOR_PROJECT_STRUCTURE.md to reflect current layout:
+  - pipeline/ package name
+  - runs under rb-ocr/runs
+  - llm/ replaces gpt/
+  - standardized filenames
+  - clarified migration plan and removed legacy-run compatibility note.
+
+Notes / future (not part of this refactor scope)
+- .DS_Store and __pycache__/ present; add .gitignore and pyproject tooling later.
+- tests/CI/packaging/env docs intentionally deferred.

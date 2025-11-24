@@ -1,3 +1,11 @@
+"""
+Streamlit UI for the RB loan deferment IDP (main-dev).
+
+Provides a single-page interface for uploading a document, collecting
+contextual metadata (FIO, deferment reason, doc type), invoking the
+pipeline orchestrator, and rendering results, diagnostics, and timings.
+"""
+
 import json
 import os
 import re
@@ -6,20 +14,19 @@ from pathlib import Path
 
 import streamlit as st
 
-from rbidp.core.config import STAMP_ENABLED
-from rbidp.core.errors import message_for
-from rbidp.orchestrator import run_pipeline
+from pipeline.core.config import STAMP_ENABLED
+from pipeline.core.errors import message_for
+from pipeline.orchestrator import run_pipeline
+from pipeline.core.settings import RUNS_DIR
 
 # --- Page setup ---
 st.set_page_config(page_title="[DEV] RB Loan Deferment IDP", layout="centered")
 
 st.write("")
 st.title("[DEV] RB Loan Deferment IDP")
-st.write("Загрузите один файл для распознавания (OCR (Tesseract async, Dev-OCR) & GPT (DMZ))")
+st.write("Загрузите один файл для распознавания (OCR (Tesseract async, Dev-OCR) & LLM (DMZ))")
 
 # --- Basic paths ---
-BASE_DIR = Path(__file__).resolve().parent
-RUNS_DIR = BASE_DIR / "runs"
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- Simple CSS tweaks ---
@@ -289,7 +296,7 @@ if submitted:
                         dur = timing.get("duration_seconds")
                         stamp_t = timing.get("stamp_seconds")
                         ocr_t = timing.get("ocr_seconds")
-                        gpt_t = timing.get("gpt_seconds")
+                        llm_t = timing.get("llm_seconds")
                         with st.expander("SLA и тайминги выполнения"):
                             if STAMP_ENABLED:
                                 cols = st.columns(4)
@@ -306,8 +313,8 @@ if submitted:
                                     f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-",
                                 )
                                 cols[3].metric(
-                                    "GPT (сек)",
-                                    f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-",
+                                    "LLM (сек)",
+                                    f"{llm_t:.2f}" if isinstance(llm_t, (int, float)) else "-",
                                 )
                             else:
                                 cols = st.columns(3)
@@ -320,8 +327,8 @@ if submitted:
                                     f"{ocr_t:.2f}" if isinstance(ocr_t, (int, float)) else "-",
                                 )
                                 cols[2].metric(
-                                    "GPT (сек)",
-                                    f"{gpt_t:.2f}" if isinstance(gpt_t, (int, float)) else "-",
+                                    "LLM (сек)",
+                                    f"{llm_t:.2f}" if isinstance(llm_t, (int, float)) else "-",
                                 )
             except Exception:
                 pass
