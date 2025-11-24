@@ -25,6 +25,7 @@ STEP 2 — EXTRACTION RULES
 
 NOTE:
 - for "Справка об инвалидности" doc_date appears at the bottom of the document with format YY DD month-string (e.g. 18 30 январь → 30.01.2018)
+- for "Заключение врачебно-консультативной комиссии (ВКК)" doc_date appears at after the text "Форма № 026/у Заключение врачебно — консультационной комиссии".
 
 STEP 3 — THINK BEFORE ANSWERING
 Double-check:
