@@ -1,33 +1,59 @@
-2025-11-19
-Scope: apps/main-dev/rb-ocr only (no changes in apps/main)
+RB-OCR (main-dev) — Refactor Changelog
 
-- Extractor (agent_extractor.py)
-  - Removed doc_type from output schema and prompt.
-  - Now outputs only: fio, doc_date, valid_until.
+Scope: structural refactor to align with best practices, improve maintainability, and prepare for offline readiness while keeping run_pipeline signature stable.
 
-- Doc Type Checker (agent_doc_type_checker.py)
-  - New output contract: detected_doc_types[], single_doc_type, confidence, reasoning, doc_type_known.
-  - Prompt updated with canonical Dictionary and explicit algorithm.
+1) Utilities and staging (early)
+- Added shared utilities under package:
+  - utils/io_utils.py (safe file ops: write_json/read_json/copy_file, mkdirs)
+  - utils/timing.py (StageTimers and stage_timer)
+  - utils/artifacts.py (build_final_result, write_manifest, build_side_by_side)
+- Refactored orchestrator to staged pipeline with PipelineContext and centralized fail_and_finalize/finalize_success.
+- Consolidated two-file detour back into a single orchestrator.py.
 
-- Merge (processors/merge_outputs.py)
-  - Curated merged.json keys: fio, doc_date, valid_until, single_doc_type, doc_type, doc_type_known.
-  - doc_type is taken as detected_doc_types[0] (or null).
-  - Optionally merges stamp_present if produced by detector.
+2) Package rename
+- Renamed package directory rbidp/ -> pipeline/.
+- Updated all imports across codebase from rbidp.* to pipeline.*.
 
-- Validator (processors/validator.py)
-  - Replaced doc_type_match with doc_type_known in checks, messages, and verdict.
-  - Verdict requires: fio_match AND doc_type_known AND doc_date_valid AND single_doc_type_valid (and stamp_present when enabled).
+3) Settings and runs path
+- Introduced pipeline/core/settings.py exposing RUNS_DIR.
+  - Default: ./rb-ocr/runs (computed relative to settings.py)
+  - Env override: RB_IDP_RUNS_DIR
+- Updated rb-ocr/app.py to import RUNS_DIR from settings and ensure directory exists.
 
-- Orchestrator (rbidp/orchestrator.py)
-  - Updated extractor schema validation (no doc_type required; valid_until optional).
-  - Kept early exit on single_doc_type=false (MULTIPLE_DOCUMENTS).
-  - Added doc_type_known to side_by_side.json.
-  - Validation error mapping: doc_type_known false/none -> DOC_TYPE_UNKNOWN.
+4) Artifacts folder rename (provider-agnostic)
+- On-disk artifacts folder changed from gpt/ -> llm/ in orchestrator _mk_run_dirs.
+- Kept PipelineContext.gpt_dir mapping to llm/ to avoid breaking call sites.
 
-- Errors (core/errors.py)
-  - Added DOC_TYPE_UNKNOWN: "Не удалось определить тип документа".
+5) Function-oriented JSON filenames
+- Standardized filenames in core/config.py:
+  - doc_type_check.raw.json, doc_type_check.filtered.json
+  - extractor.raw.json, extractor.filtered.json
+  - merged.json (unchanged), validation.json (unchanged)
+- All orchestrator/processors reading these use the constants; no call-site changes.
 
-- Notes
-  - Filenames in core/config.py unchanged.
-  - Prompts for both GPT processors updated.
-  - merged.json is now the sole source of doc_type (from checker), extractor no longer emits doc_type.
+6) Typed contracts
+- Added pipeline/models/dto.py with DTOs: DocTypeCheck, ExtractorResult, OCRPage, OCRPages.
+- Orchestrator validates filtered JSONs into DTOs; robust field checks; fallback Mini-BaseModel if pydantic not installed.
+
+7) Versioned prompts
+- Externalized prompts to files:
+  - pipeline/prompts/dtc/v1.prompt.txt
+  - pipeline/prompts/extractor/v1.prompt.txt
+- Updated processors to load prompts from files; removed inline PROMPT strings.
+
+8) Misc improvements
+- Renamed local variable textract_result -> ocr_result in stage_ocr.
+- Updated validators/processors imports to pipeline.core.* and pipeline.processors.*.
+- Fixed pipeline/utils/artifacts imports to pipeline.core.config.
+
+9) Documentation updates
+- Updated REFACTOR_PROJECT_STRUCTURE.md to reflect current layout:
+  - pipeline/ package name
+  - runs under rb-ocr/runs
+  - llm/ replaces gpt/
+  - standardized filenames
+  - clarified migration plan and removed legacy-run compatibility note.
+
+Notes / future (not part of this refactor scope)
+- .DS_Store and __pycache__/ present; add .gitignore and pyproject tooling later.
+- tests/CI/packaging/env docs intentionally deferred.
