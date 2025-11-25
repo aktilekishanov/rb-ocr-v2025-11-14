@@ -21,6 +21,20 @@ try:
         RUNS_DIR: Path = Field(default_factory=_default_runs_dir)
         TRACING_ENABLED: bool = Field(default=False)
 
+        # OCR client configuration (Phase 0: not yet wired into runtime logic)
+        OCR_BASE_URL: str | None = Field(default=None)
+        OCR_TIMEOUT_SECONDS: int = Field(default=60)
+        OCR_VERIFY_SSL: bool = Field(default=True)
+
+        # LLM client configuration (Phase 0: not yet wired into runtime logic)
+        LLM_BASE_URL: str | None = Field(default=None)
+        LLM_TIMEOUT_SECONDS: int = Field(default=60)
+        LLM_VERIFY_SSL: bool = Field(default=True)
+
+        # Pipeline limits and feature flags (Phase 0: not yet wired into runtime logic)
+        MAX_PDF_PAGES: int = Field(default=200)
+        STAMP_ENABLED: bool = Field(default=False)
+
 except Exception:  # pragma: no cover
 
     class Settings:  # minimal fallback, no pydantic dependency
@@ -34,6 +48,20 @@ except Exception:  # pragma: no cover
                 else (Path(__file__).resolve().parents[2] / "runs").resolve()
             )
             self.TRACING_ENABLED: bool = os.getenv("IDP_TRACING_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
+
+            # OCR client configuration (Phase 0: not yet wired into runtime logic)
+            self.OCR_BASE_URL: str | None = os.getenv("IDP_OCR_BASE_URL") or None
+            self.OCR_TIMEOUT_SECONDS: int = int(os.getenv("IDP_OCR_TIMEOUT_SECONDS", "60"))
+            self.OCR_VERIFY_SSL: bool = os.getenv("IDP_OCR_VERIFY_SSL", "true").lower() in {"1", "true", "yes", "on"}
+
+            # LLM client configuration (Phase 0: not yet wired into runtime logic)
+            self.LLM_BASE_URL: str | None = os.getenv("IDP_LLM_BASE_URL") or None
+            self.LLM_TIMEOUT_SECONDS: int = int(os.getenv("IDP_LLM_TIMEOUT_SECONDS", "60"))
+            self.LLM_VERIFY_SSL: bool = os.getenv("IDP_LLM_VERIFY_SSL", "true").lower() in {"1", "true", "yes", "on"}
+
+            # Pipeline limits and feature flags (Phase 0: not yet wired into runtime logic)
+            self.MAX_PDF_PAGES: int = int(os.getenv("IDP_MAX_PDF_PAGES", "200"))
+            self.STAMP_ENABLED: bool = os.getenv("IDP_STAMP_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
 
 
 @lru_cache(maxsize=1)

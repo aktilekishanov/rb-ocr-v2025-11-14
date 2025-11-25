@@ -11,7 +11,7 @@ from fastapi import BackgroundTasks
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.services.pipeline_runner import run_sync_pipeline
+from app.application.services.pipeline_runner import run_sync_pipeline_app
 from app.services.storage.local_disk import LocalStorage
 from app.observability.metrics import (
     inc_job_submitted,
@@ -98,7 +98,7 @@ def process_job_sync(run_id: str, file_temp_path: str, fio: str) -> None:
 async def _process_job_async(run_id: str, file_temp_path: str, fio: str) -> None:
     try:
         set_running(run_id)
-        result = await run_sync_pipeline(fio=fio, source_file_path=file_temp_path, run_id=run_id)
+        result = await run_sync_pipeline_app(run_id=run_id, input_path=Path(file_temp_path), meta={"fio": fio})
         verdict = bool(result.get("verdict"))
         errors = list(result.get("errors", [])) if isinstance(result.get("errors"), list) else []
         set_completed(run_id, verdict=verdict, errors=errors)

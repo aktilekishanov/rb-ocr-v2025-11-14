@@ -1,0 +1,7 @@
+{
+  "run_id": "eaebbd7e-0bb1-4279-aa5f-cd294d4c742e",
+  "verdict": false,
+  "errors": [
+    "Missing required field: fio"
+  ]
+}

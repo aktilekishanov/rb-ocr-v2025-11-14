@@ -8,7 +8,7 @@ from fastapi import APIRouter, File, Form, Request, UploadFile, HTTPException
 
 from app.core.logging import get_logger
 from app.models.schemas import ProcessResponse
-from app.services.pipeline_runner import run_sync_pipeline
+from app.application.services.pipeline_runner import run_sync_pipeline_app
 from app.observability.errors import to_http_error
 
 router = APIRouter(prefix="/v1", tags=["process"])
@@ -51,7 +51,7 @@ async def process_document(
             pass
 
     try:
-        result = await run_sync_pipeline(fio=fio, source_file_path=temp_path)
+        result = await run_sync_pipeline_app(run_id=None, input_path=Path(temp_path), meta={"fio": fio})
         return ProcessResponse(**result)
     except Exception as e:
         logger.error("process_failed", extra={"error": str(e)})
