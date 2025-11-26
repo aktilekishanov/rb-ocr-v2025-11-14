@@ -10,3 +10,6 @@ __pycache__/
 
 # OS
 .DS_Store
+
+.main-dev-old
+.main-dev-backup-20251126
