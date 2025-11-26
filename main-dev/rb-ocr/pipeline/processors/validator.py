@@ -144,10 +144,8 @@ def validate_run(
         return {"success": False, "error": f"IO error: {e}", "validation_path": "", "result": None}
 
     fio_meta_raw = meta.get("fio") if isinstance(meta, dict) else None
-    doc_type_meta_raw = meta.get("doc_type") if isinstance(meta, dict) else None
 
     fio_meta = _norm_text(fio_meta_raw)
-    doc_type_meta = _norm_text(doc_type_meta_raw)
 
     fio_meta_ru = kz_to_ru(fio_meta)
     fio_meta_norm = latin_to_cyrillic(fio_meta_ru)
@@ -235,7 +233,6 @@ def validate_run(
         "inputs": {
             "fio_meta": fio_meta_raw,
             "fio": fio_raw,
-            "doc_type_meta": doc_type_meta_raw,
             "doc_type": doc_class_raw,
             "doc_date": doc_date_raw,
             "single_doc_type": single_doc_type_raw,
@@ -243,7 +240,6 @@ def validate_run(
         "normalization": {
             "fio_meta_norm": fio_meta_norm,
             "fio_norm": fio_norm,
-            "doc_type_meta_norm": doc_type_meta,
             "doc_type_norm": doc_class,
         },
         "scores": {

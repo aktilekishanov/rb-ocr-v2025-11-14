@@ -118,8 +118,6 @@ def _mk_run_dirs(runs_root: Path, run_id: str) -> dict[str, Path]:
 @dataclass
 class PipelineContext:
     fio: str | None
-    reason: str | None
-    doc_type: str
     source_file_path: str
     original_filename: str
     content_type: str | None
@@ -216,7 +214,7 @@ def finalize_success(verdict: bool, checks: dict[str, Any] | None, ctx: Pipeline
     util_write_manifest(
         meta_dir=ctx.meta_dir,
         run_id=ctx.run_id,
-        user_input={"fio": ctx.fio or None, "reason": ctx.reason, "doc_type": ctx.doc_type},
+        user_input={"fio": ctx.fio or None},
         file_info={
             "original_filename": ctx.original_filename,
             "saved_path": str(ctx.saved_path) if ctx.saved_path is not None else None,
@@ -244,7 +242,7 @@ def stage_acquire(ctx: PipelineContext) -> dict[str, Any] | None:
     except Exception:
         ctx.size_bytes = None
 
-    metadata = {"fio": ctx.fio or None, "reason": ctx.reason, "doc_type": ctx.doc_type}
+    metadata = {"fio": ctx.fio or None}
     util_write_json(ctx.meta_dir / METADATA_FILENAME, metadata)
 
     if ctx.saved_path.suffix.lower() == ".pdf":
@@ -433,8 +431,6 @@ def stage_validate_and_finalize(ctx: PipelineContext) -> dict[str, Any] | None:
 
 def run_pipeline(
     fio: str | None,
-    reason: str | None,
-    doc_type: str,
     source_file_path: str,
     original_filename: str,
     content_type: str | None,
@@ -445,8 +441,6 @@ def run_pipeline(
 
     Args:
       fio: Optional FIO string from the request context.
-      reason: Optional deferment reason from the request context.
-      doc_type: Declared document type from the request context.
       source_file_path: Path to the uploaded file on disk.
       original_filename: Original filename as provided by the client.
       content_type: Optional MIME type of the uploaded file.
@@ -464,8 +458,6 @@ def run_pipeline(
 
     ctx = PipelineContext(
         fio=fio,
-        reason=reason,
-        doc_type=doc_type,
         source_file_path=source_file_path,
         original_filename=original_filename,
         content_type=content_type,

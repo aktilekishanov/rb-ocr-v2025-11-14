@@ -161,7 +161,6 @@ def build_side_by_side(
     fio_meta_raw = meta_obj.get("fio") if isinstance(meta_obj, dict) else None
     fio_extracted_raw = merged_obj.get("fio") if isinstance(merged_obj, dict) else None
 
-    doc_type_meta_raw = meta_obj.get("doc_type") if isinstance(meta_obj, dict) else None
     doc_type_extracted_raw = (
         merged_obj.get("doc_type") if isinstance(merged_obj, dict) else None
     )
@@ -176,7 +175,7 @@ def build_side_by_side(
     side_by_side: dict[str, Any] = {
         "request_created_at": request_created_at,
         "fio": {"meta": fio_meta_raw, "extracted": fio_extracted_raw},
-        "doc_type": {"meta": doc_type_meta_raw, "extracted": doc_type_extracted_raw},
+        "doc_type": {"extracted": doc_type_extracted_raw},
         "doc_date": {"extracted": doc_date_extracted, "valid_until": valid_until_str},
         "single_doc_type": {"extracted": single_doc_type_raw},
         "doc_type_known": {

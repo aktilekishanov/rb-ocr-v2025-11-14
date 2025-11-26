@@ -2,7 +2,7 @@
 Streamlit UI for the RB loan deferment IDP (main-dev).
 
 Provides a single-page interface for uploading a document, collecting
-contextual metadata (FIO, deferment reason, doc type), invoking the
+contextual metadata (FIO), invoking the
 pipeline orchestrator, and rendering results, diagnostics, and timings.
 """
 
@@ -46,54 +46,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- Reason -> doc types mapping (example) ---
-reasons_map = {
-    "Временная нетрудоспособность заемщика по причине болезни": [
-        "Лист временной нетрудоспособности (больничный лист)",
-        "Выписка из стационара (выписной эпикриз)",
-        "Больничный лист на сопровождающего (если предусмотрено)",
-        "Заключение врачебно-консультативной комиссии (ВКК)",
-        "Справка об инвалидности",
-        "Справка о степени утраты общей трудоспособности",
-    ],
-    "Уход заемщика в декретный отпуск": [
-        "Лист временной нетрудоспособности (больничный лист)",
-        "Приказ о выходе в декретный отпуск по уходу за ребенком",
-        "Справка о выходе в декретный отпуск по уходу за ребенком",
-    ],
-    "Потеря дохода заемщика (увольнение, сокращение, отпуск без содержания и т.д.)": [
-        "Приказ о расторжении трудового договора",
-        "Справка о расторжении трудового договора",
-        "Справка о регистрации в качестве безработного",
-        "Приказ работодателя о предоставлении отпуска без сохранения заработной платы",
-        "Справка о неполучении доходов",
-        "Уведомление о регистрации в качестве лица, ищущего работу",
-        "Лица, зарегистрированные в качестве безработных",
-    ],
-    "Иные причины": [
-        "Иные документы",
-    ],
-}
-
 # --- Inputs outside form for dynamic selects ---
 fio = st.text_input("ФИО", placeholder="Иванов Иван Иванович")
-
-reason_options = ["Выберите причину"] + list(reasons_map.keys())
-reason = st.selectbox(
-    "Причина отсрочки",
-    options=reason_options,
-    index=0,
-    help="Сначала выберите причину, затем подходящий тип документа",
-    key="reason",
-)
-
-doc_options = ["Выберите тип документа"] + (reasons_map[reason] if reason in reasons_map else [])
-doc_type = st.selectbox(
-    "Тип документа",
-    options=doc_options,
-    index=0,
-    key="doc_type",
-)
 
 
 def _safe_filename(name: str) -> str:
@@ -136,10 +90,6 @@ with st.form("upload_form", clear_on_submit=False):
 if submitted:
     if not uploaded_file:
         st.warning("Пожалуйста, прикрепите файл")
-    elif reason == "Выберите причину":
-        st.warning("Пожалуйста, выберите причину отсрочки")
-    elif doc_type == "Выберите тип документа":
-        st.warning("Пожалуйста, выберите тип документа")
     else:
         # Save uploaded file to a temporary location (auto-cleaned) and call orchestrator once
         with tempfile.TemporaryDirectory(prefix="upload_") as tmp_dir:
@@ -150,8 +100,6 @@ if submitted:
             with st.spinner("Обрабатываем документ..."):
                 result = run_pipeline(
                     fio=fio or None,
-                    reason=reason,
-                    doc_type=doc_type,
                     source_file_path=str(tmp_path),
                     original_filename=uploaded_file.name,
                     content_type=getattr(uploaded_file, "type", None),
@@ -204,10 +152,6 @@ if submitted:
                                 {
                                     "Поле": "ФИО (из документа)",
                                     "Значение": str(side_by_side.get("fio", {}).get("extracted")),
-                                },
-                                {
-                                    "Поле": "Тип документа (заявка)",
-                                    "Значение": str(side_by_side.get("doc_type", {}).get("meta")),
                                 },
                                 {
                                     "Поле": "Тип документа (из документа)",
