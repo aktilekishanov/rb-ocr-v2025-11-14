@@ -1,0 +1,9 @@
+{
+  "single_doc_type": true,
+  "confidence": 95,
+  "detected_doc_types": [
+    "Заключение врачебно-консультативной комиссии (ВКК)"
+  ],
+  "reasoning": "The document contains the title 'Заключение врачебно-консультативной комиссии', which matches a known canonical type.",
+  "doc_type_known": true
+}

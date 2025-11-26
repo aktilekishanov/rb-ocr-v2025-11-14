@@ -1,0 +1,24 @@
+{
+  "request_created_at": "25.11.2025",
+  "fio": {
+    "meta": "БАЙБОСЫНОВ РАУАН АДАСКАНОВИЧ",
+    "extracted": "Байбосынов Рауан Адасканович"
+  },
+  "doc_type": {
+    "meta": "Лист временной нетрудоспособности (больничный лист)",
+    "extracted": "Лист временной нетрудоспособности (больничный лист)"
+  },
+  "doc_date": {
+    "extracted": "02.11.2025",
+    "valid_until": "12.12.2025"
+  },
+  "single_doc_type": {
+    "extracted": true
+  },
+  "doc_type_known": {
+    "extracted": true
+  },
+  "stamp_present": {
+    "extracted": null
+  }
+}

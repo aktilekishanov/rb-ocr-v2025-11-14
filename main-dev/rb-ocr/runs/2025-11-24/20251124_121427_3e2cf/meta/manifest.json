@@ -1,0 +1,28 @@
+{
+  "run_id": "20251124_121427_3e2cf",
+  "created_at": "24.11.2025",
+  "timing": {
+    "duration_seconds": 18.962774427607656,
+    "stamp_seconds": null,
+    "ocr_seconds": 16.217575632035732,
+    "llm_seconds": 2.70886402297765
+  },
+  "user_input": {
+    "fio": "Беспаева Галия Дженисовна",
+    "reason": "Иные причины",
+    "doc_type": "Иные документы"
+  },
+  "file": {
+    "original_filename": "Лист временной нетрудоспособности - Беспаева.pdf",
+    "saved_path": "/home/rb_admin2/apps/main-dev/rb-ocr/runs/2025-11-24/20251124_121427_3e2cf/input/original/Лист_временной_нетрудоспособности_-_Беспаева.pdf",
+    "content_type": "application/pdf",
+    "size_bytes": 472799
+  },
+  "artifacts": {
+    "final_result_path": "/home/rb_admin2/apps/main-dev/rb-ocr/runs/2025-11-24/20251124_121427_3e2cf/meta/final_result.json",
+    "side_by_side_path": "/home/rb_admin2/apps/main-dev/rb-ocr/runs/2025-11-24/20251124_121427_3e2cf/meta/side_by_side.json",
+    "merged_path": "/home/rb_admin2/apps/main-dev/rb-ocr/runs/2025-11-24/20251124_121427_3e2cf/llm/merged.json"
+  },
+  "status": "success",
+  "error": null
+}

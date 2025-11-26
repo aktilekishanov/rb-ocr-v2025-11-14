@@ -1,0 +1,28 @@
+{
+  "run_id": "20251124_121242_ea264",
+  "created_at": "24.11.2025",
+  "timing": {
+    "duration_seconds": 9.696618363261223,
+    "stamp_seconds": null,
+    "ocr_seconds": 6.1095131086185575,
+    "llm_seconds": 3.5642286855727434
+  },
+  "user_input": {
+    "fio": "Мейірбек Арайлым Бердібайқызы",
+    "reason": "Иные причины",
+    "doc_type": "Иные документы"
+  },
+  "file": {
+    "original_filename": "Лица, зарегистрированные в качестве безработных - Мейірбек.pdf",
+    "saved_path": "/home/rb_admin2/apps/main-dev/rb-ocr/runs/2025-11-24/20251124_121242_ea264/input/original/Лица__зарегистрированные_в_качестве_безработных_-_Мейірбек.pdf",
+    "content_type": "application/pdf",
+    "size_bytes": 114949
+  },
+  "artifacts": {
+    "final_result_path": "/home/rb_admin2/apps/main-dev/rb-ocr/runs/2025-11-24/20251124_121242_ea264/meta/final_result.json",
+    "side_by_side_path": "/home/rb_admin2/apps/main-dev/rb-ocr/runs/2025-11-24/20251124_121242_ea264/meta/side_by_side.json",
+    "merged_path": "/home/rb_admin2/apps/main-dev/rb-ocr/runs/2025-11-24/20251124_121242_ea264/llm/merged.json"
+  },
+  "status": "success",
+  "error": null
+}

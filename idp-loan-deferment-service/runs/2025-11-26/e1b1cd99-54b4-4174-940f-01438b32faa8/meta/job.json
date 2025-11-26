@@ -1,8 +1,0 @@
-{
-  "run_id": "e1b1cd99-54b4-4174-940f-01438b32faa8",
-  "status": "completed",
-  "verdict": false,
-  "errors": [
-    "Missing required field: fio"
-  ]
-}

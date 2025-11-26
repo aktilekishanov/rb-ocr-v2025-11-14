@@ -1,0 +1,24 @@
+{
+  "request_created_at": "24.11.2025",
+  "fio": {
+    "meta": "СИТКАЗИЕВ ГУМАР НУРЛАНОВИЧ",
+    "extracted": "Ситказиев Гумар Нурланович"
+  },
+  "doc_type": {
+    "meta": "Справка о регистрации в качестве безработного",
+    "extracted": "Справка о регистрации в качестве безработного"
+  },
+  "doc_date": {
+    "extracted": "24.11.2025",
+    "valid_until": "03.01.2026"
+  },
+  "single_doc_type": {
+    "extracted": true
+  },
+  "doc_type_known": {
+    "extracted": true
+  },
+  "stamp_present": {
+    "extracted": null
+  }
+}

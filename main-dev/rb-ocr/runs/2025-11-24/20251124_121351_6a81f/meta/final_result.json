@@ -1,0 +1,9 @@
+{
+  "run_id": "20251124_121351_6a81f",
+  "verdict": false,
+  "errors": [
+    {
+      "code": "DOC_DATE_TOO_OLD"
+    }
+  ]
+}

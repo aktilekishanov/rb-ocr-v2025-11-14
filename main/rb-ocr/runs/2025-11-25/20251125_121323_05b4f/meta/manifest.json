@@ -1,0 +1,28 @@
+{
+  "run_id": "20251125_121323_05b4f",
+  "created_at": "25.11.2025",
+  "timing": {
+    "duration_seconds": 18.922335031442344,
+    "stamp_seconds": null,
+    "ocr_seconds": 14.426474344916642,
+    "llm_seconds": 4.440160999074578
+  },
+  "user_input": {
+    "fio": "Байбосынов Рауан Адасканович",
+    "reason": "Временная нетрудоспособность заемщика по причине болезни",
+    "doc_type": "Лист временной нетрудоспособности (больничный лист)"
+  },
+  "file": {
+    "original_filename": "Лист временной нетрудоспособности.pdf",
+    "saved_path": "/home/rb_admin2/apps/main/rb-ocr/runs/2025-11-25/20251125_121323_05b4f/input/original/Лист_временной_нетрудоспособности.pdf",
+    "content_type": "application/pdf",
+    "size_bytes": 942098
+  },
+  "artifacts": {
+    "final_result_path": "/home/rb_admin2/apps/main/rb-ocr/runs/2025-11-25/20251125_121323_05b4f/meta/final_result.json",
+    "side_by_side_path": "/home/rb_admin2/apps/main/rb-ocr/runs/2025-11-25/20251125_121323_05b4f/meta/side_by_side.json",
+    "merged_path": "/home/rb_admin2/apps/main/rb-ocr/runs/2025-11-25/20251125_121323_05b4f/llm/merged.json"
+  },
+  "status": "success",
+  "error": null
+}

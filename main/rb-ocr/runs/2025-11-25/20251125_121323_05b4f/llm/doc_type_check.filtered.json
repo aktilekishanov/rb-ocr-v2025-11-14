@@ -1,0 +1,9 @@
+{
+  "single_doc_type": true,
+  "confidence": 95,
+  "detected_doc_types": [
+    "Лист временной нетрудоспособности (больничный лист)"
+  ],
+  "reasoning": "The document contains the title 'Лист о временной нетрудоспособности', which matches the canonical type 'Лист временной нетрудоспособности (больничный лист)'. No other document types are detected.",
+  "doc_type_known": true
+}

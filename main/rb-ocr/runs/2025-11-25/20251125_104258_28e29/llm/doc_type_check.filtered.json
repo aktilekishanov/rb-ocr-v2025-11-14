@@ -1,0 +1,9 @@
+{
+  "single_doc_type": true,
+  "confidence": 95,
+  "detected_doc_types": [
+    "Лист временной нетрудоспособности (больничный лист)"
+  ],
+  "reasoning": "The document contains multiple mentions of 'Лист временной нетрудоспособности', indicating a single document type related to temporary disability leave.",
+  "doc_type_known": true
+}

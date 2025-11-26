@@ -1,0 +1,9 @@
+{
+  "single_doc_type": true,
+  "confidence": 95,
+  "detected_doc_types": [
+    "Справка о регистрации в качестве безработного"
+  ],
+  "reasoning": "The document contains a clear title 'СПРАВКА О РЕГИСТРАЦИИ В КАЧЕСТВЕ БЕЗРАБОТНОГО', which matches a known canonical document type.",
+  "doc_type_known": true
+}

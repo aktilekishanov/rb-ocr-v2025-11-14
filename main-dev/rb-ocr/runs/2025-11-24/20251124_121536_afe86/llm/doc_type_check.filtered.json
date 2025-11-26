@@ -1,0 +1,9 @@
+{
+  "single_doc_type": true,
+  "confidence": 95,
+  "detected_doc_types": [
+    "Выписка из стационара (выписной эпикриз)"
+  ],
+  "reasoning": "The document contains the title 'ВЫПИСНОЙ ЭПИКРИЗ' which matches the canonical type 'Выписка из стационара (выписной эпикриз)'.",
+  "doc_type_known": true
+}
