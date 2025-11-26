@@ -13,21 +13,30 @@ sudo systemctl restart streamlit-dev
 
 ---
 
-## Maintenance
+###     how to install dependencies offline:
 
-### Issue: Git repository cluttered with `__pycache__` and `.pyc` files
-**Symptoms**: `git status` shows many untracked or modified `*.pyc` files, or they keep reappearing after deletion.
-**Cause**: Python automatically generates bytecode cache files. If these are not ignored in `.gitignore`, they get committed or show up as untracked files.
-**Fix**:
-1.  Ensure `.gitignore` includes:
-    ```gitignore
-    __pycache__/
-    *.py[cod]
-    *$py.class
-    ```
-2.  Remove already tracked cache files from the index (without deleting them from disk, though you usually want to delete them too):
-    ```bash
-    git rm -r --cached .
-    git add .
-    git commit -m "Fix: remove tracked cache files"
-    ```
+cd /home/rb_admin2/apps/fastapi-service/
+
+# Create Python virtual environment
+python3 -m venv .venv
+
+# Activate it
+source .venv/bin/activate
+
+# Install from offline wheels
+pip install --no-index --find-links /home/rb_admin2/.rb-ocr-dependencies/ -r /home/rb_admin2/.rb-ocr-dependencies/requirements.txt
+
+###     how to verify that dependencies are installed:
+
+# On server (make sure venv is activated):
+cd /home/rb_admin2/apps/fastapi-service/
+source .venv/bin/activate
+
+# Test imports
+python3 << 'EOF'
+import sys
+sys.path.insert(0, '.')
+from pipeline.orchestrator import run_pipeline
+from pipeline.core.config import MAX_PDF_PAGES
+print(f"✅ Pipeline imports OK. MAX_PDF_PAGES={MAX_PDF_PAGES}")
+EOF
