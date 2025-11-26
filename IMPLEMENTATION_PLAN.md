@@ -236,7 +236,13 @@ python3 -c "from pipeline.orchestrator import run_pipeline; print('OK')"
 
 **✅ Phase 1 Complete**: Pipeline code copied, imports functional
 
---- (personal comment: the above is fully implemented and tested on server)
+
+
+
+
+
+
+----------- (personal comment: the above is fully implemented and tested on server) ---------------
 
 
 
@@ -546,13 +552,12 @@ Expected: ✅
 
 
 
+----------- (personal comment: the above is fully implemented and tested on server) ---------------
 
 
 
 
 
-
----
 
 ## PHASE 3: Local Testing (MacBook)
 
@@ -620,7 +625,14 @@ If errors occur:
 
 **✅ Phase 3 Complete**: FastAPI running locally, endpoints tested
 
----
+
+
+
+----------- (personal comment: phase 3 is skipped) ---------------
+
+
+
+
 
 ## PHASE 4: Deployment Configuration
 
@@ -747,7 +759,22 @@ rsync -av \
 
 **✅ Phase 4 Complete**: Deployment configuration ready
 
+
+
+
+
+
+
+
+
 ---
+
+
+
+
+
+
+
 
 ## PHASE 5: Server Deployment
 
