@@ -3,7 +3,9 @@ from __future__ import annotations
 from app.core.config import get_settings
 from app.infrastructure.storage.local_disk_adapter import LocalDiskStorageAdapter
 from app.infrastructure.clients.ocr_http import OcrHttpClient
-from app.infrastructure.clients.llm_http import LlmHttpClient
+from app.infrastructure.clients.completions_http import CompletionsHttpClient
+from app.application.llm.adapters.llm_openai_adapter import LlmOpenAIAdapter
+from app.domain.ports.llm_port import LLMPort
 
 
 def build_storage_adapter() -> LocalDiskStorageAdapter:
@@ -20,10 +22,13 @@ def build_ocr_client() -> OcrHttpClient:
     )
 
 
-def build_llm_client() -> LlmHttpClient:
+def build_llm_client() -> LLMPort:
     s = get_settings()
-    return LlmHttpClient(
+    transport = None
+    client = CompletionsHttpClient(
         base_url=s.LLM_BASE_URL,
         timeout_seconds=s.LLM_TIMEOUT_SECONDS,
         verify_ssl=s.LLM_VERIFY_SSL,
+        transport=transport,
     )
+    return LlmOpenAIAdapter(client)

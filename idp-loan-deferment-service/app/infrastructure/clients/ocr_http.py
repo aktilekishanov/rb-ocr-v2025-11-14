@@ -51,12 +51,12 @@ class OcrHttpClient(OCRPort):  # pragma: no cover - adapter impl (unused by runt
         with self._client() as client:
             with pdf_path.open("rb") as f:
                 files = {"file": (pdf_path.name, f, "application/pdf")}
-                resp = client.post("/upload", files=files)
+                resp = client.post("/pdf", files=files)
             resp.raise_for_status()
             data = resp.json()
-            job_id = data.get("job_id")
+            job_id = data.get("id") or data.get("job_id")
             if not isinstance(job_id, str) or not job_id:
-                raise RuntimeError("OCR upload response missing job_id")
+                raise RuntimeError("OCR upload response missing id")
             return job_id
 
     def wait_result(self, job_id: str, timeout: float, poll_interval: float) -> OcrResult:
@@ -67,28 +67,36 @@ class OcrHttpClient(OCRPort):  # pragma: no cover - adapter impl (unused by runt
                 resp.raise_for_status()
                 data = resp.json()
                 status = str(data.get("status", "")).lower()
-                if status in {"pending", "processing"}:
+                waiting = {"pending", "processing", "queued", "accepted"}
+                success = {"completed", "succeeded", "done"}
+                failure = {"failed", "error"}
+                if status in waiting or (status == "" and not data.get("result")):
                     if time.time() >= deadline:
                         raise RuntimeError("OCR wait_result timed out")
                     time.sleep(max(poll_interval, 0.01))
                     continue
-                if status == "succeeded":
+                if status in success or data.get("success") is True:
                     pages_data = data.get("pages")
                     if pages_data is None and isinstance(data.get("result"), dict):
-                        pages_data = data["result"].get("pages")
+                        res = data["result"]
+                        pages_data = res.get("pages")
+                        if pages_data is None and isinstance(res.get("data"), dict):
+                            pages_data = res["data"].get("pages")
                     if not isinstance(pages_data, list):
                         raise RuntimeError("OCR result missing pages list")
                     pages = []
-                    for p in pages_data:
+                    for idx, p in enumerate(pages_data, start=1):
                         try:
-                            page_number = int(p.get("page_number"))
+                            pn_raw = p.get("page_number")
+                            page_number = int(pn_raw) if pn_raw is not None else int(idx)
                             text = str(p.get("text", ""))
                         except Exception as e:  # pragma: no cover - defensive
                             raise RuntimeError("Invalid page entry in OCR result") from e
                         pages.append(OcrPage(page_number=page_number, text=text))
                     return OcrResult(pages=pages, raw=data)
-                if status == "failed":
-                    raise RuntimeError("OCR job failed")
+                if status in failure:
+                    err_msg = data.get("error_message") or data.get("error") or "OCR job failed"
+                    raise RuntimeError(err_msg)
                 # Unknown status: treat as pending
                 if time.time() >= deadline:
                     raise RuntimeError("OCR wait_result timed out (unknown status)")

@@ -12,15 +12,19 @@ from app.domain.pipeline.models import OcrResult
 
 def test_ocr_adapter_upload_and_wait_success(tmp_path: Path) -> None:
     def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
-        if request.method == "POST" and request.url.path == "/upload":
-            return httpx.Response(200, json={"job_id": "job-123"})
+        if request.method == "POST" and request.url.path == "/pdf":
+            return httpx.Response(201, json={"id": "job-123"})
         if request.method == "GET" and request.url.path == "/result/job-123":
             payload = {
-                "status": "succeeded",
-                "pages": [
-                    {"page_number": 1, "text": "hello"},
-                    {"page_number": 2, "text": "world"},
-                ],
+                "status": "completed",
+                "result": {
+                    "data": {
+                        "pages": [
+                            {"page_number": 1, "text": "hello"},
+                            {"page_number": 2, "text": "world"},
+                        ]
+                    }
+                },
             }
             return httpx.Response(200, json=payload)
         return httpx.Response(404, json={"detail": "not found"})
@@ -44,8 +48,8 @@ def test_ocr_adapter_upload_and_wait_success(tmp_path: Path) -> None:
 
 def test_ocr_adapter_wait_failed_raises(tmp_path: Path) -> None:
     def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
-        if request.method == "POST" and request.url.path == "/upload":
-            return httpx.Response(200, json={"job_id": "job-err"})
+        if request.method == "POST" and request.url.path == "/pdf":
+            return httpx.Response(201, json={"id": "job-err"})
         if request.method == "GET" and request.url.path == "/result/job-err":
             return httpx.Response(200, json={"status": "failed", "error": "bad ocr"})
         return httpx.Response(404, json={"detail": "not found"})
