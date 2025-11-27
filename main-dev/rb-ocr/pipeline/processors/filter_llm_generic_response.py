@@ -66,36 +66,54 @@ def filter_llm_generic_response(input_path: str, output_dir: str, filename: str)
 
     result_obj: dict[str, Any] = {}
 
-    for line in raw.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            obj = json.loads(line)
-        except Exception:
-            # maybe a JSON string
-            inner = _try_parse_inner_json(line)
-            if isinstance(inner, dict):
-                result_obj = inner
-                break
-            continue
-
+    # First, try to parse the entire file as a single JSON object (handles pretty-printed JSON)
+    try:
+        obj = json.loads(raw)
         if isinstance(obj, dict):
+            # Check for OpenAI-like envelope
             inner = _extract_from_openai_like(obj)
             if isinstance(inner, dict):
                 result_obj = inner
-                break
-            # Skip provider prompt-echo dicts (they usually contain 'Model' and 'Content')
-            if "Model" in obj and "Content" in obj:
-                continue
-            # Otherwise, accept the dict as-is
-            result_obj = obj
-            break
+            # Skip provider prompt-echo dicts
+            elif not ("Model" in obj and "Content" in obj):
+                result_obj = obj
         elif isinstance(obj, str):
+            # The whole file is a JSON string, try to parse it
             inner = _try_parse_inner_json(obj)
             if isinstance(inner, dict):
                 result_obj = inner
+    except json.JSONDecodeError:
+        # Not a single JSON, try line-by-line (JSONL format)
+        for line in raw.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except Exception:
+                # maybe a JSON string
+                inner = _try_parse_inner_json(line)
+                if isinstance(inner, dict):
+                    result_obj = inner
+                    break
+                continue
+
+            if isinstance(obj, dict):
+                inner = _extract_from_openai_like(obj)
+                if isinstance(inner, dict):
+                    result_obj = inner
+                    break
+                # Skip provider prompt-echo dicts (they usually contain 'Model' and 'Content')
+                if "Model" in obj and "Content" in obj:
+                    continue
+                # Otherwise, accept the dict as-is
+                result_obj = obj
                 break
+            elif isinstance(obj, str):
+                inner = _try_parse_inner_json(obj)
+                if isinstance(inner, dict):
+                    result_obj = inner
+                    break
 
     os.makedirs(output_dir, exist_ok=True)
     out_path = os.path.join(output_dir, filename)
