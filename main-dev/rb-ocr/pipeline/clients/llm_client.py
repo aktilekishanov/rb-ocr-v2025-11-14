@@ -40,25 +40,23 @@ def call_fortebank_llm(
 def ask_llm(
     prompt: str, model: str = "gpt-4o", temperature: float = 0, max_tokens: int = 500
 ) -> str:
+    """
+    Calls the LLM and returns the full raw API response (pretty-printed JSON).
+    
+    The response includes metadata like usage stats, model version, and timing,
+    which is valuable for debugging, monitoring, and cost tracking.
+    
+    The downstream filter (filter_llm_generic_response) will extract the actual
+    content from choices[0].message.content.
+    
+    Returns:
+        Pretty-printed JSON string of the full API response.
+    """
     raw = call_fortebank_llm(prompt, model=model, temperature=temperature, max_tokens=max_tokens)
     try:
+        # Parse to validate it's JSON, then pretty-print it
         obj = json.loads(raw)
-        if isinstance(obj, dict):
-            choices = obj.get("choices")
-            if isinstance(choices, list) and choices:
-                c0 = choices[0]
-                if isinstance(c0, dict):
-                    msg = c0.get("message")
-                    if isinstance(msg, dict):
-                        content = msg.get("content")
-                        if isinstance(content, str):
-                            return content
-                    text = c0.get("text")
-                    if isinstance(text, str):
-                        return text
-            content = obj.get("content")
-            if isinstance(content, str):
-                return content
-        return raw
+        return json.dumps(obj, ensure_ascii=False, indent=2)
     except Exception:
+        # If parsing fails, return raw string as-is
         return raw
