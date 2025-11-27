@@ -184,7 +184,7 @@ def fail_and_finalize(code: str, details: str | None, ctx: PipelineContext) -> d
     util_write_manifest(
         meta_dir=ctx.meta_dir,
         run_id=ctx.run_id,
-        user_input={"fio": ctx.fio or None, "reason": ctx.reason, "doc_type": ctx.doc_type},
+        user_input={"fio": ctx.fio or None},
         file_info={
             "original_filename": ctx.original_filename,
             "saved_path": saved_path_str,
