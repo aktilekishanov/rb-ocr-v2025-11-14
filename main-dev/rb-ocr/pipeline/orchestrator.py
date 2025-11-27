@@ -316,10 +316,8 @@ def stage_extract_and_stamp(ctx: PipelineContext) -> dict[str, Any] | None:
                 )
             except Exception as e:
                 return fail_and_finalize("LLM_FILTER_PARSE_ERROR", str(e), ctx)
-        try:
-            os.remove(llm_raw_path)
-        except Exception as e:
-            logger.debug("Failed to remove llm_raw_path: %s", e, exc_info=True)
+        # Keep the raw file for debugging (contains usage stats and metadata)
+        ctx.artifacts["llm_extractor_raw_path"] = str(llm_raw_path)
         ctx.artifacts["llm_extractor_filtered_path"] = str(filtered_path)
         try:
             filtered_obj = util_read_json(filtered_path)
