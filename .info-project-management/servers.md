@@ -46,7 +46,7 @@ ENDPOINT:
 
 EXTERNAL SERVER FOR LLM SERVICE:
 IP:         10.0.84.144
-DOMAIN:     llm.fortebank.com
+DOMAIN:     dl-ai-dev-app01-uv01.fortebank.com
 
 ENDPOINT:
 1. POST    https://dl-ai-dev-app01-uv01.fortebank.com/openai/payment/out/completions

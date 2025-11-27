@@ -14,7 +14,7 @@ def call_fortebank_llm(
     Calls the internal ForteBank LLM endpoint and returns the model's response as a string.
     """
 
-    url = "https://dl-ai-dev-app01-uv01.fortebank.com/openai/v1/completions/v2"
+    url = "https://dl-ai-dev-app01-uv01.fortebank.com/openai/payment/out/completions"
     payload = {
         "Model": model,
         "Content": prompt,
