@@ -1,0 +1,105 @@
+# Nginx configuration for rb-ocr-dev-app-uv01.fortebank.com
+# Multi-project support with path-based routing
+
+server {
+    listen 80;
+    server_name rb-ocr-dev-app-uv01.fortebank.com;
+
+    client_max_body_size 100M;  # Allow large file uploads
+
+    access_log /var/log/nginx/rb-ocr-dev.access.log;
+    error_log /var/log/nginx/rb-ocr-dev.error.log;
+
+    # ============================================
+    # PROJECT: RB-OCR (Document Verification)
+    # ============================================
+    
+    # RB-OCR FastAPI Service (PRODUCTION - for mobile app)
+    # Access: http://rb-ocr-dev-app-uv01.fortebank.com/rb-ocr/api/
+    location /rb-ocr/api/ {
+        proxy_pass http://127.0.0.1:8000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts for long-running OCR requests
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 600s;
+    }
+
+    # RB-OCR Streamlit UI (TEMPORARY - for business testing only)
+    # Access: http://rb-ocr-dev-app-uv01.fortebank.com/rb-ocr/ui/
+    # NOTE: This will be removed once mobile app integration is complete
+    location /rb-ocr/ui/ {
+        proxy_pass http://127.0.0.1:8501/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Streamlit-specific settings
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 600s;
+
+        # WebSocket support for Streamlit
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
+
+        # Disable buffering for streaming responses
+        proxy_buffering off;
+    }
+
+    # RB-OCR Health Check
+    # Access: http://rb-ocr-dev-app-uv01.fortebank.com/rb-ocr/health
+    location /rb-ocr/health {
+        proxy_pass http://127.0.0.1:8000/health;
+        proxy_set_header Host $host;
+    }
+
+    # RB-OCR API Documentation
+    # Access: http://rb-ocr-dev-app-uv01.fortebank.com/rb-ocr/docs
+    location /rb-ocr/docs {
+        proxy_pass http://127.0.0.1:8000/docs;
+        proxy_set_header Host $host;
+    }
+
+    # ============================================
+    # FUTURE PROJECTS - Add below
+    # ============================================
+    
+    # Example for future project:
+    # location /project2/ {
+    #     proxy_pass http://127.0.0.1:8502/;
+    #     # ... same Streamlit config as above
+    # }
+    #
+    # location /project2/api/ {
+    #     proxy_pass http://127.0.0.1:8001/;
+    #     # ... same FastAPI config as above
+    # }
+
+    # ============================================
+    # DEFAULT / ROOT - Landing page (optional)
+    # ============================================
+    
+    # Redirect root to RB-OCR UI for now
+    location = / {
+        return 301 /rb-ocr/ui/;
+    }
+}
+
+# ============================================
+# PORT ALLOCATION REFERENCE
+# ============================================
+# 8000 - RB-OCR FastAPI
+# 8001 - Project 2 FastAPI (future)
+# 8002 - Project 3 FastAPI (future)
+# ...
+# 8501 - RB-OCR Streamlit
+# 8502 - Project 2 Streamlit (future)
+# 8503 - Project 3 Streamlit (future)

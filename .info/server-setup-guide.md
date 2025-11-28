@@ -20,12 +20,71 @@ rb_admin/rb-loan-deferment-idp/
     └── streamlit/
 ```
 
+## Step 0: Install Prerequisites (First Time Only)
+
+If this is your first time setting up a virtual environment on this server, you need to install the `python3-venv` package.
+
+### Option A: Server with Internet Access
+
+```bash
+sudo apt update
+sudo apt install python3.11-venv -y
+```
+
+### Option B: Offline Server (No Internet Access)
+
+If your server has no internet access, you need to download the `.deb` package on a machine with internet and transfer it to the server.
+
+#### On a Machine with Internet (same Ubuntu version):
+
+1. Download the package and its dependencies:
+
+```bash
+# Create a directory for packages
+mkdir python-venv-packages
+cd python-venv-packages
+
+# Download python3.11-venv and dependencies
+apt-get download python3.11-venv
+apt-get download python3-pip-whl python3-setuptools-whl
+
+# Or download all at once
+apt-get download python3.11-venv python3-pip-whl python3-setuptools-whl
+```
+
+2. Transfer the entire `python-venv-packages` directory to the server using `scp`:
+
+```bash
+scp -r python-venv-packages rb_admin@<server-ip>:~/
+```
+
+#### On the Offline Server:
+
+3. Install the packages:
+
+```bash
+cd ~/python-venv-packages
+sudo dpkg -i *.deb
+```
+
+If you get dependency errors, run:
+
+```bash
+sudo apt-get install -f
+```
+
+> [!IMPORTANT]
+> The `.deb` packages must match the Ubuntu version on your server. Check your Ubuntu version with `lsb_release -a`.
+
+> [!NOTE]
+> This step only needs to be done once per server. If you've already installed `python3-venv`, you can skip this step.
+
 ## Step 1: Create Virtual Environment
 
 SSH into the server and navigate to the fastapi-service directory:
 
 ```bash
-cd ~/rb_admin/rb-loan-deferment-idp/fastapi-service
+cd ~/rb-loan-deferment-idp/fastapi-service
 ```
 
 Create a Python virtual environment:
@@ -188,6 +247,41 @@ Install a specific wheel:
 pip install ../unified-wheels/core-server/package-name.whl
 ```
 
+### Virtual Environment Creation Failed
+
+If you get an error like:
+```
+The virtual environment was not created successfully because ensurepip is not available.
+On Debian/Ubuntu systems, you need to install the python3-venv package...
+```
+
+This means `python3-venv` is not installed. Follow **Step 0** above to install it:
+
+**With Internet:**
+```bash
+sudo apt update
+sudo apt install python3.11-venv -y
+```
+
+**Without Internet (Offline):**
+1. Download `.deb` packages on a machine with internet (same Ubuntu version):
+   ```bash
+   mkdir python-venv-packages
+   cd python-venv-packages
+   apt-get download python3.11-venv python3-pip-whl python3-setuptools-whl
+   ```
+
+2. Transfer to server:
+   ```bash
+   scp -r python-venv-packages rb_admin@<server-ip>:~/
+   ```
+
+3. Install on server:
+   ```bash
+   cd ~/python-venv-packages
+   sudo dpkg -i *.deb
+   ```
+
 ### Permission Issues
 
 If you get permission errors, ensure you have write access to the directory:
@@ -265,8 +359,12 @@ Stop the service: Reattach and press `Ctrl+C`
 ## Quick Reference Commands
 
 ```bash
+# Prerequisites (First Time Only)
+sudo apt update
+sudo apt install python3.11-venv -y
+
 # Setup
-cd ~/rb_admin/rb-loan-deferment-idp/fastapi-service
+cd ~/rb-loan-deferment-idp/fastapi-service
 python3 -m venv venv
 source venv/bin/activate
 pip install --no-index --find-links=../unified-wheels/core-server -r requirements.txt
