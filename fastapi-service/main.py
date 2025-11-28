@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="RB-OCR Document Verification API",
+    title="[DEV] RB-OCR Document Verification API",
     version="1.0.0",
     description="Validates loan deferment documents",
     docs_url="/docs",
@@ -35,11 +35,11 @@ async def verify_document(
     """
     Verify a loan deferment document.
     
-    **Returns**:
-    - `verdict`: True if all checks pass, False otherwise
-    - `errors`: List of failed checks (empty if verdict=True)
-    - `run_id`: Unique identifier for this request
-    - `processing_time_seconds`: Total processing duration
+    Returns:
+    - verdict: True if all checks pass, False otherwise
+    - errors: List of failed checks (empty if verdict=True)
+    - run_id: Unique identifier for this request
+    - processing_time_seconds: Total processing duration
     """
     start_time = time.time()
     logger.info(f"[NEW REQUEST] FIO={fio}, file={file.filename}")
@@ -99,7 +99,7 @@ async def health_check():
 async def root():
     """Root endpoint with API info."""
     return {
-        "service": "RB-OCR Document Verification API",
+        "service": "[DEV] RB-OCR Document Verification API",
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/health",
