@@ -18,6 +18,7 @@ DOMAIN:     rb-ocr-dev-app-uv01.fortebank.com
 
 ACCOUNT:    rb_admin
 PASSWORD:   Qw12er34
+NEW PASS:   Ret_ban_ocr1
 
 ------------------------------------------------------------------------------------
 

@@ -1,0 +1,5 @@
+- [x] Merge dependencies into `unified-wheels` <!-- id: 0 -->
+- [x] Update `MIGRATION_PLAN.md` to use `unified-wheels` <!-- id: 1 -->
+- [ ] Build Docker image locally <!-- id: 2 -->
+- [ ] Transfer artifacts to server <!-- id: 3 -->
+- [ ] Deploy and verify on server <!-- id: 4 -->

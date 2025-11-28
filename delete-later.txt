@@ -1,0 +1,142 @@
+(.venv) rb_admin2@cfo-prod-llm-uv01:~/apps/fastapi-service$ sudo journalctl -u rb-ocr-fastapi --since "5 minutes ago" | grep -E "Exception|Error|Traceback"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,495 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/c801fe66-497c-44a9-98bf-24ad28b3784d "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,496 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/c801fe66-497c-44a9-98bf-24ad28b3784d'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/c801fe66-497c-44a9-98bf-24ad28b3784d'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,515 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/2306b643-f32d-4b2b-8cdc-19143af2b07f "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,516 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/2306b643-f32d-4b2b-8cdc-19143af2b07f'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/2306b643-f32d-4b2b-8cdc-19143af2b07f'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]: 2025-11-27 13:42:12,537 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/d3074f25-3268-49c1-9a9d-d834195e51c0 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]: 2025-11-27 13:42:12,538 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/d3074f25-3268-49c1-9a9d-d834195e51c0'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]: Traceback (most recent call last):
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/d3074f25-3268-49c1-9a9d-d834195e51c0'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:12,600 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/ea1fe5b8-dd6e-4e28-953a-9fcc4ce364fd "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:12,601 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/ea1fe5b8-dd6e-4e28-953a-9fcc4ce364fd'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: Traceback (most recent call last):
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/ea1fe5b8-dd6e-4e28-953a-9fcc4ce364fd'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:12,785 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/82d2943b-accc-445a-89ba-cb929a83ceff "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:12,787 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/82d2943b-accc-445a-89ba-cb929a83ceff'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: Traceback (most recent call last):
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/82d2943b-accc-445a-89ba-cb929a83ceff'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,813 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/b9fb3933-e29e-4bae-97a5-2a8c4910e139 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,814 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/b9fb3933-e29e-4bae-97a5-2a8c4910e139'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/b9fb3933-e29e-4bae-97a5-2a8c4910e139'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,867 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/b9e69156-48ae-4ad2-b931-66e8cd5c6f9d "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,869 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/b9e69156-48ae-4ad2-b931-66e8cd5c6f9d'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/b9e69156-48ae-4ad2-b931-66e8cd5c6f9d'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:12,995 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/858c594f-a63b-4dea-8957-bc8269d43994 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,995 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/71dd510d-c90b-48b2-8b11-e46e2bdee896 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:12,996 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/829cf946-e094-4b31-9c5c-640c7dd04e1b "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:12,997 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/858c594f-a63b-4dea-8957-bc8269d43994'
+Nov 27 13:42:12 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/858c594f-a63b-4dea-8957-bc8269d43994'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:12,999 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/71dd510d-c90b-48b2-8b11-e46e2bdee896'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/71dd510d-c90b-48b2-8b11-e46e2bdee896'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:12,998 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/829cf946-e094-4b31-9c5c-640c7dd04e1b'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/829cf946-e094-4b31-9c5c-640c7dd04e1b'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:13,099 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/1d470e54-1fde-4caf-84ef-12cd78d8267e "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,101 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/7afe4535-bde4-4a2f-b4ad-04e6bdb379dd "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:13,101 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/1d470e54-1fde-4caf-84ef-12cd78d8267e'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/1d470e54-1fde-4caf-84ef-12cd78d8267e'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,102 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/7afe4535-bde4-4a2f-b4ad-04e6bdb379dd'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/7afe4535-bde4-4a2f-b4ad-04e6bdb379dd'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,128 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/4e4f7815-fd4a-456a-ab6a-894745a0f32f "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,129 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/4e4f7815-fd4a-456a-ab6a-894745a0f32f'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/4e4f7815-fd4a-456a-ab6a-894745a0f32f'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,208 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/c05aa95c-bfde-4309-afcc-03ca42fc2416 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:13,210 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/711f16e2-5c7a-4ab9-83a3-701b371ea488 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:13,210 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/f9913f81-4788-4119-af3a-ec51c7aba95f "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,211 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/c05aa95c-bfde-4309-afcc-03ca42fc2416'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/c05aa95c-bfde-4309-afcc-03ca42fc2416'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:13,213 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/f9913f81-4788-4119-af3a-ec51c7aba95f'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/f9913f81-4788-4119-af3a-ec51c7aba95f'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:13,212 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/711f16e2-5c7a-4ab9-83a3-701b371ea488'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/711f16e2-5c7a-4ab9-83a3-701b371ea488'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,267 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/cd4253ba-9c94-4d79-8e29-31812d9a8bc5 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,268 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/cd4253ba-9c94-4d79-8e29-31812d9a8bc5'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/cd4253ba-9c94-4d79-8e29-31812d9a8bc5'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,290 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/adad4fdc-938b-442e-9c0e-bcef769ffe17 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,292 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/adad4fdc-938b-442e-9c0e-bcef769ffe17'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/adad4fdc-938b-442e-9c0e-bcef769ffe17'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]: 2025-11-27 13:42:13,382 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/30ecfe7b-d450-4767-bf63-60716ccfb456 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:13,384 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/9adc53b2-6119-452c-837f-99da96c2a0b3 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]: 2025-11-27 13:42:13,384 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/30ecfe7b-d450-4767-bf63-60716ccfb456'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933846]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/30ecfe7b-d450-4767-bf63-60716ccfb456'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:13,386 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/9adc53b2-6119-452c-837f-99da96c2a0b3'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/9adc53b2-6119-452c-837f-99da96c2a0b3'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,805 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/18179291-0785-4fdc-828c-61a9eede6ac5 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,806 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/d8e2865f-7986-4c88-8619-c959ab7f3c0c "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,808 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/18179291-0785-4fdc-828c-61a9eede6ac5'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/18179291-0785-4fdc-828c-61a9eede6ac5'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,808 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/440af644-76cd-475f-968a-1719d839a16b "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,811 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/d8e2865f-7986-4c88-8619-c959ab7f3c0c'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/d8e2865f-7986-4c88-8619-c959ab7f3c0c'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:13,813 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/440af644-76cd-475f-968a-1719d839a16b'
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:13 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/440af644-76cd-475f-968a-1719d839a16b'
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:14,190 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/f8e1b358-ad9b-4310-b815-4ee995dc4301 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:14,191 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/f8e1b358-ad9b-4310-b815-4ee995dc4301'
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: Traceback (most recent call last):
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/f8e1b358-ad9b-4310-b815-4ee995dc4301'
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:14,276 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/b5c9388b-351d-40a6-b735-55ff02d7df59 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: 2025-11-27 13:42:14,278 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/b5c9388b-351d-40a6-b735-55ff02d7df59'
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: Traceback (most recent call last):
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:14 cfo-prod-llm-uv01.fortebank.com gunicorn[3933847]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/b5c9388b-351d-40a6-b735-55ff02d7df59'
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:15,249 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/037eba42-7d45-4192-9fb3-7821f23aa0c7 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:15,249 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/183e8818-d3e2-4410-a748-311e0e20a85e "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:15,250 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/037eba42-7d45-4192-9fb3-7821f23aa0c7'
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/037eba42-7d45-4192-9fb3-7821f23aa0c7'
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: 2025-11-27 13:42:15,251 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/183e8818-d3e2-4410-a748-311e0e20a85e'
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: Traceback (most recent call last):
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933848]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/183e8818-d3e2-4410-a748-311e0e20a85e'
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:15,406 - httpx - INFO - HTTP Request: GET https://ocr.fortebank.com/v2/result/0390fe84-e47d-4625-b322-581983e99cf3 "HTTP/1.1 500 Internal Server Error"
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: 2025-11-27 13:42:15,407 - main - ERROR - [ERROR] Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/0390fe84-e47d-4625-b322-581983e99cf3'
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: Traceback (most recent call last):
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]:     raise HTTPStatusError(message, request=request, response=self)
+Nov 27 13:42:15 cfo-prod-llm-uv01.fortebank.com gunicorn[3933849]: httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'https://ocr.fortebank.com/v2/result/0390fe84-e47d-4625-b322-581983e99cf3'
+(.venv) rb_admin2@cfo-prod-llm-uv01:~/apps/fastapi-service$ 
