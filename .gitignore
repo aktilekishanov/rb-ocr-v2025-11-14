@@ -13,3 +13,6 @@ __pycache__/
 
 .main-dev-old
 .main-dev-backup-20251126
+
+.packages
+.vscode-server
