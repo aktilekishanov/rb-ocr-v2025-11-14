@@ -91,6 +91,16 @@ server {
     # }
 
     # ============================================
+    # ROOT-LEVEL ROUTES (for Swagger UI compatibility)
+    # ============================================
+    
+    # OpenAPI JSON at root (Swagger UI looks here by default)
+    location = /openapi.json {
+        proxy_pass http://127.0.0.1:8000/openapi.json;
+        proxy_set_header Host $host;
+    }
+
+    # ============================================
     # DEFAULT / ROOT - Landing page (optional)
     # ============================================
     
