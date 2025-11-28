@@ -133,17 +133,28 @@ if submitted:
         else:
             st.error("Вердикт: False — документ не прошел проверку")
 
+        # Error Code Mapping
+        ERROR_MESSAGES = {
+            "DOC_DATE_TOO_OLD": "Документ просрочен",
+            "DOC_TYPE_UNKNOWN": "Неизвестный тип документа",
+            "MULTIPLE_DOC_TYPES": "Обнаружено несколько типов документов",
+            "FIO_MISMATCH": "ФИО в документе не совпадает с заявкой",
+            "STAMP_NOT_FOUND": "Печать не найдена",
+            "OCR_FAILED": "Ошибка распознавания текста",
+            "LLM_FAILED": "Ошибка обработки LLM",
+            "NO_FILE": "Файл не загружен",
+            "INVALID_FILE": "Некорректный формат файла"
+        }
+
         if errors:
             st.markdown("**Ошибки**")
             for e in errors:
                 # Handle both string errors and dict errors
                 if isinstance(e, dict):
                     code = e.get("code")
-                    msg = e.get("message") or str(code)
+                    # Use mapped message if available, otherwise use API message or code
+                    msg = ERROR_MESSAGES.get(code) or e.get("message") or str(code)
                     st.write(f"- {msg}")
                 else:
                     st.write(f"- {str(e)}")
-
-        # Note about missing diagnostics
-        st.info("ℹ️ Примечание: Детальная диагностика (JSON, сравнение полей) доступна только в логах сервера, так как UI работает в режиме API-клиента.")
 
