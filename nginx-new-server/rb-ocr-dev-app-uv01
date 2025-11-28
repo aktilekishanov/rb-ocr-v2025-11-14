@@ -68,13 +68,6 @@ server {
         proxy_set_header Host $host;
     }
 
-    # RB-OCR OpenAPI JSON Schema (required for Swagger UI)
-    # Access: http://rb-ocr-dev-app-uv01.fortebank.com/rb-ocr/openapi.json
-    location /rb-ocr/openapi.json {
-        proxy_pass http://127.0.0.1:8000/openapi.json;
-        proxy_set_header Host $host;
-    }
-
     # ============================================
     # FUTURE PROJECTS - Add below
     # ============================================
