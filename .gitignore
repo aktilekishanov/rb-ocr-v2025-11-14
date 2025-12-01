@@ -17,3 +17,4 @@ __pycache__/
 .packages
 .vscode-server
 .main-dev-copy
+*.tar.gz
