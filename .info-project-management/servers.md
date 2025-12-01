@@ -10,6 +10,9 @@ nginx/sites-enabled/:
 - main:     8004
 - main-dev: 8006
 
+- Docker version 28.5.1, build e180ab8
+- Docker Compose version v2.40.2
+
 ------------------------------------------------------------------------------------
 
 OWN SERVER FOR FASTAPI SERVICE:

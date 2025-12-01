@@ -3,6 +3,7 @@ version: '3.8'
 services:
   backend:
     build: ./fastapi-service
+    platform: linux/amd64
     image: rb-ocr-backend:latest
     container_name: rb-ocr-backend
     restart: always
@@ -21,6 +22,7 @@ services:
 
   ui:
     build: ./ui
+    platform: linux/amd64
     image: rb-ocr-ui:latest
     container_name: rb-ocr-ui
     restart: always
