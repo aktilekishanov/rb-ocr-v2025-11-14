@@ -21,6 +21,7 @@ app = FastAPI(
     description="Validates loan deferment documents",
     docs_url="/docs",
     redoc_url="/redoc",
+    root_path="/rb-ocr/api",
 )
 
 # Initialize processor
