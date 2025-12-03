@@ -1,9 +1,9 @@
 """
 Run-level validation of merged extractor/doc-type results.
 
-Computes FIO match, doc-type knowledge, doc-date validity, single-doc
-constraints, and optional stamp presence, producing a structured
-``validation.json`` plus diagnostics used by the UI.
+Computes FIO match, doc-type knowledge, doc-date validity, and single-doc
+constraints, producing a structured ``validation.json`` plus diagnostics 
+used by the UI.
 """
 
 import json
@@ -13,7 +13,7 @@ from typing import Any
 
 from rapidfuzz import fuzz
 
-from pipeline.core.config import STAMP_ENABLED, VALIDATION_FILENAME
+from pipeline.core.config import VALIDATION_FILENAME
 from pipeline.core.dates import now_utc_plus
 from pipeline.core.validity import compute_valid_until, format_date, is_within_validity
 from pipeline.processors.fio_matching import fio_match as det_fio_match
@@ -35,10 +35,6 @@ VALIDATION_MESSAGES = {
         "single_doc_type_valid": {
             True: "Файл содержит один тип документа",
             False: "Файл содержит несколько типов документов",
-        },
-        "stamp_present": {
-            True: "Печать обнаружена",
-            False: "Печать не обнаружена",
         },
     },
     "verdict": {
@@ -158,7 +154,6 @@ def validate_run(
     doc_class = _norm_text(doc_class_raw)
     doc_date_raw = merged.get("doc_date") if isinstance(merged, dict) else None
     single_doc_type_raw = merged.get("single_doc_type") if isinstance(merged, dict) else None
-    stamp_present_raw = merged.get("stamp_present") if isinstance(merged, dict) else None
     doc_type_known_raw = merged.get("doc_type_known") if isinstance(merged, dict) else None
 
     score_before = None
@@ -207,18 +202,11 @@ def validate_run(
     else:
         single_doc_type_valid = None
 
-    # stamp_present comes from detector; treat as tri-state and honor toggle
-    if STAMP_ENABLED and isinstance(stamp_present_raw, bool):
-        stamp_present = stamp_present_raw
-    else:
-        stamp_present = None
-
     checks = {
         "fio_match": fio_match,
         "doc_type_known": doc_type_known,
         "doc_date_valid": doc_date_valid,
         "single_doc_type_valid": single_doc_type_valid,
-        "stamp_present": stamp_present,
     }
 
     verdict = (
@@ -226,7 +214,6 @@ def validate_run(
         and checks.get("doc_type_known") is True
         and checks.get("doc_date_valid") is True
         and checks.get("single_doc_type_valid") is True
-        and (checks.get("stamp_present") is True if STAMP_ENABLED else True)
     )
 
     diagnostics = {

@@ -60,8 +60,7 @@ CREATE TABLE verification_runs (
     -- Performance Metrics
     duration_seconds NUMERIC(10, 3),
     ocr_seconds NUMERIC(10, 3),
-    llm_seconds NUMERIC(10, 3),
-    stamp_seconds NUMERIC(10, 3)
+    llm_seconds NUMERIC(10, 3)
 );
 
 -- Basic indexes for common queries
@@ -94,7 +93,6 @@ CREATE TABLE extracted_data (
     -- Document Characteristics
     single_doc_type BOOLEAN,           -- True if only one doc in image
     doc_type_known BOOLEAN,            -- True if we recognize the type
-    stamp_present BOOLEAN,             -- True if stamp detected
     
     -- OCR Text (for debugging/search)
     ocr_text TEXT,                     -- Full extracted text
@@ -126,7 +124,6 @@ CREATE TABLE validation_checks (
     doc_type_known BOOLEAN,            -- Is doc type recognized?
     doc_date_valid BOOLEAN,            -- Is date within valid range?
     single_doc_type_valid BOOLEAN,     -- Is it a single document?
-    stamp_present BOOLEAN,             -- Is stamp present? (if enabled)
     
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -224,7 +221,6 @@ INSERT INTO extracted_data (
     extracted_doc_type,
     single_doc_type,
     doc_type_known,
-    stamp_present,
     ocr_text
 ) VALUES (
     '20251202_162540_abc12',
@@ -233,7 +229,6 @@ INSERT INTO extracted_data (
     'Справка о расторжении',     -- from merged.json
     true,                        -- from merged.json
     true,                        -- from merged.json
-    false,                       -- from stamp check
     'Full OCR text here...'      -- from ocr_pages.json
 );
 ```
@@ -247,15 +242,13 @@ INSERT INTO validation_checks (
     fio_match,
     doc_type_known,
     doc_date_valid,
-    single_doc_type_valid,
-    stamp_present
+    single_doc_type_valid
 ) VALUES (
     '20251202_162540_abc12',
     false,                       -- from validation.json
     true,
     true,
-    true,
-    false
+    true
 );
 
 # INSERT into errors (for each failed check)
@@ -269,8 +262,7 @@ UPDATE verification_runs SET
     completed_at = NOW(),
     duration_seconds = 4.51,
     ocr_seconds = 0.25,
-    llm_seconds = 4.23,
-    stamp_seconds = NULL
+    llm_seconds = 4.23
 WHERE run_id = '20251202_162540_abc12';
 ```
 
@@ -425,8 +417,7 @@ CREATE TABLE verification_runs (
     -- Performance metrics
     duration_seconds NUMERIC(10, 3),
     ocr_seconds NUMERIC(10, 3),
-    llm_seconds NUMERIC(10, 3),
-    stamp_seconds NUMERIC(10, 3)
+    llm_seconds NUMERIC(10, 3)
 );
 
 -- Extracted data from OCR/LLM
@@ -439,7 +430,6 @@ CREATE TABLE extracted_data (
     extracted_doc_type VARCHAR(100),
     single_doc_type BOOLEAN,
     doc_type_known BOOLEAN,
-    stamp_present BOOLEAN,
     ocr_text TEXT,
     
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
@@ -454,7 +444,6 @@ CREATE TABLE validation_checks (
     doc_type_known BOOLEAN,
     doc_date_valid BOOLEAN,
     single_doc_type_valid BOOLEAN,
-    stamp_present BOOLEAN,
     
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );

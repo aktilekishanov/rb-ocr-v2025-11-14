@@ -34,9 +34,6 @@ ERROR_MESSAGES_RU: dict[str, str] = {
     "DOC_DATE_TOO_OLD": "Устаревшая дата документа",
     "DOC_DATE_MISSING": "Не удалось распознать дату документа",
     "SINGLE_DOC_TYPE_INVALID": "Файл содержит несколько типов документов",
-    # Stamp detector derived
-    "STAMP_NOT_PRESENT": "Печать не обнаружена",
-    "STAMP_CHECK_MISSING": "Не удалось выполнить проверку печати",
 }
 
 

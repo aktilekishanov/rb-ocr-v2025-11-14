@@ -12,7 +12,7 @@ This document provides a comprehensive analysis of all stamp detection-related c
 
 ### Current State
 
-Stamp detection is currently **DISABLED by default** via the environment variable `RB_IDP_STAMP_ENABLED=False`. However, the code infrastructure remains in place throughout the pipeline.
+Stamp detection has been **REMOVED** from the codebase.
 
 ### Scope
 
@@ -122,246 +122,42 @@ The following files are **generated at runtime** when stamp detection is enabled
 #### Step 1.1: Remove Stamp Processor Module
 **File**: [`pipeline/processors/stamp_check.py`](file:///Users/aktilekishanov/Documents/career/forte/ds/rb_ocr/2025-11-14-apps-from-server-RBOCR/apps/fastapi-service/pipeline/processors/stamp_check.py)
 
-**Action**: Delete entire file (173 lines)
+**Status**: [x] COMPLETED
 
 ---
 
 #### Step 1.2: Update Pipeline Orchestrator
 **File**: [`pipeline/orchestrator.py`](file:///Users/aktilekishanov/Documents/career/forte/ds/rb_ocr/2025-11-14-apps-from-server-RBOCR/apps/fastapi-service/pipeline/orchestrator.py)
 
-**Changes**:
-
-1. **Remove imports** (lines 31, 41):
-   ```python
-   # DELETE
-   STAMP_ENABLED,
-   from pipeline.processors.stamp_check import stamp_present_for_source
-   ```
-
-2. **Remove timing artifact** (line 163):
-   ```python
-   # DELETE
-   ctx.artifacts["stamp_seconds"] = ctx.timers.totals.get("stamp", 0.0) if STAMP_ENABLED else None
-   ```
-
-3. **Rename function** (line 306):
-   ```python
-   # CHANGE FROM:
-   def stage_extract_and_stamp(ctx: PipelineContext) -> dict[str, Any] | None:
-   
-   # CHANGE TO:
-   def stage_extract(ctx: PipelineContext) -> dict[str, Any] | None:
-   ```
-
-4. **Remove stamp detection logic** (lines 339-353):
-   ```python
-   # DELETE entire block:
-   if STAMP_ENABLED:
-       stamp_flag = None
-       try:
-           suffix = ctx.saved_path.suffix.lower() if ctx.saved_path else ""
-           if suffix in {".jpg", ".jpeg", ".png", ".pdf"}:
-               with stage_timer(ctx, "stamp"):
-                   stamp_flag = stamp_present_for_source(
-                       str(ctx.saved_path), vis_dest_dir=str(ctx.input_dir)
-                   )
-       except Exception:
-           stamp_flag = None
-       if stamp_flag is not None:
-           scr_path = ctx.meta_dir / "stamp_check_response.json"
-           util_write_json(scr_path, {"stamp_present": bool(stamp_flag)})
-           ctx.artifacts["stamp_check_response_path"] = str(scr_path)
-   ```
-
-5. **Remove stamp parameter from merge call** (line 369):
-   ```python
-   # CHANGE FROM:
-   merged_path = merge_extractor_and_doc_type(
-       extractor_filtered_path=ctx.artifacts.get("llm_extractor_filtered_path", ""),
-       doc_type_filtered_path=ctx.artifacts.get("llm_doc_type_check_filtered_path", ""),
-       output_dir=str(ctx.llm_dir),
-       filename=MERGED_FILENAME,
-       stamp_check_response_path=ctx.artifacts.get("stamp_check_response_path", ""),
-   )
-   
-   # CHANGE TO:
-   merged_path = merge_extractor_and_doc_type(
-       extractor_filtered_path=ctx.artifacts.get("llm_extractor_filtered_path", ""),
-       doc_type_filtered_path=ctx.artifacts.get("llm_doc_type_check_filtered_path", ""),
-       output_dir=str(ctx.llm_dir),
-       filename=MERGED_FILENAME,
-   )
-   ```
-
-6. **Remove stamp validation checks** (lines 420-425):
-   ```python
-   # DELETE:
-   if STAMP_ENABLED:
-       sp = checks.get("stamp_present")
-       if sp is False:
-           check_errors.append(make_error("STAMP_NOT_PRESENT"))
-       elif sp is None:
-           check_errors.append(make_error("STAMP_CHECK_MISSING"))
-   ```
-
-7. **Update stage list** (line 474):
-   ```python
-   # CHANGE FROM:
-   for stage in (
-       stage_acquire,
-       stage_ocr,
-       stage_doc_type_check,
-       stage_extract_and_stamp,
-       stage_merge,
-       stage_validate_and_finalize,
-   ):
-   
-   # CHANGE TO:
-   for stage in (
-       stage_acquire,
-       stage_ocr,
-       stage_doc_type_check,
-       stage_extract,
-       stage_merge,
-       stage_validate_and_finalize,
-   ):
-   ```
+**Status**: [x] COMPLETED
 
 ---
 
 #### Step 1.3: Update Merge Outputs Processor
 **File**: [`pipeline/processors/merge_outputs.py`](file:///Users/aktilekishanov/Documents/career/forte/ds/rb_ocr/2025-11-14-apps-from-server-RBOCR/apps/fastapi-service/pipeline/processors/merge_outputs.py)
 
-**Changes**:
-
-1. **Remove parameter** (line 13):
-   ```python
-   # CHANGE FROM:
-   def merge_extractor_and_doc_type(
-       extractor_filtered_path: str,
-       doc_type_filtered_path: str,
-       output_dir: str,
-       filename: str = MERGED_FILENAME,
-       stamp_check_response_path: str = "",
-   ) -> str:
-   
-   # CHANGE TO:
-   def merge_extractor_and_doc_type(
-       extractor_filtered_path: str,
-       doc_type_filtered_path: str,
-       output_dir: str,
-       filename: str = MERGED_FILENAME,
-   ) -> str:
-   ```
-
-2. **Update docstring** (line 20):
-   ```python
-   # CHANGE FROM:
-   """
-   Merge two JSON objects from given file paths and save to output_dir/filename.
-   - extractor_filtered_path: file with extractor result (dict) with keys: fio, doc_date
-   - doc_type_filtered_path: file with doc-type check result (dict) with keys: detected_doc_types, single_doc_type, doc_type_known
-   The curated merged.json will contain only: fio, doc_date, single_doc_type, doc_type, doc_type_known
-   Optionally, stamp_present is merged from stamp_check_response_path if provided.
-   """
-   
-   # CHANGE TO:
-   """
-   Merge two JSON objects from given file paths and save to output_dir/filename.
-   - extractor_filtered_path: file with extractor result (dict) with keys: fio, doc_date
-   - doc_type_filtered_path: file with doc-type check result (dict) with keys: detected_doc_types, single_doc_type, doc_type_known
-   The curated merged.json will contain only: fio, doc_date, single_doc_type, doc_type, doc_type_known
-   """
-   ```
-
-3. **Remove stamp merging logic** (lines 57-65):
-   ```python
-   # DELETE:
-   # Optionally merge stamp_check_response (e.g., {"stamp_present": true|false})
-   if stamp_check_response_path:
-       try:
-           with open(stamp_check_response_path, encoding="utf-8") as sf:
-               stamp_obj: dict[str, Any] = json.load(sf)
-           if isinstance(stamp_obj, dict):
-               merged.update(stamp_obj)
-       except Exception:
-           pass
-   ```
+**Status**: [x] COMPLETED
 
 ---
 
 #### Step 1.4: Update Artifacts Utilities
 **File**: [`pipeline/utils/artifacts.py`](file:///Users/aktilekishanov/Documents/career/forte/ds/rb_ocr/2025-11-14-apps-from-server-RBOCR/apps/fastapi-service/pipeline/utils/artifacts.py)
 
-**Changes**:
-
-1. **Remove stamp_present from final_result** (lines 64-65):
-   ```python
-   # DELETE in build_final_result():
-   if isinstance(mo, dict) and "stamp_present" in mo:
-       file_result["stamp_present"] = bool(mo.get("stamp_present"))
-   ```
-
-2. **Remove stamp_seconds from manifest** (line 125):
-   ```python
-   # CHANGE FROM:
-   "timing": {
-       "duration_seconds": duration_seconds,
-       "stamp_seconds": artifacts.get("stamp_seconds"),
-       "ocr_seconds": artifacts.get("ocr_seconds"),
-       "llm_seconds": artifacts.get("llm_seconds"),
-   },
-   
-   # CHANGE TO:
-   "timing": {
-       "duration_seconds": duration_seconds,
-       "ocr_seconds": artifacts.get("ocr_seconds"),
-       "llm_seconds": artifacts.get("llm_seconds"),
-   },
-   ```
-
-3. **Remove stamp_present from side_by_side** (lines 187-195):
-   ```python
-   # DELETE at end of build_side_by_side():
-   try:
-       scr_path = meta_dir / "stamp_check_response.json"
-       sp_val = None
-       if scr_path.exists():
-           scr = read_json(scr_path)
-           if isinstance(scr, dict) and "stamp_present" in scr:
-               sp_val = bool(scr.get("stamp_present"))
-       side_by_side["stamp_present"] = {"extracted": (sp_val if sp_val is not None else None)}
-   except Exception:
-       pass
-   ```
+**Status**: [x] COMPLETED
 
 ---
 
 #### Step 1.5: Update Error Codes
 **File**: [`pipeline/core/errors.py`](file:///Users/aktilekishanov/Documents/career/forte/ds/rb_ocr/2025-11-14-apps-from-server-RBOCR/apps/fastapi-service/pipeline/core/errors.py)
 
-**Changes**:
-
-Remove stamp error codes (lines 37-39):
-```python
-# DELETE:
-# Stamp detector derived
-"STAMP_NOT_PRESENT": "Печать не обнаружена",
-"STAMP_CHECK_MISSING": "Не удалось выполнить проверку печати",
-```
+**Status**: [x] COMPLETED
 
 ---
 
 #### Step 1.6: Update Configuration
 **File**: [`pipeline/core/config.py`](file:///Users/aktilekishanov/Documents/career/forte/ds/rb_ocr/2025-11-14-apps-from-server-RBOCR/apps/fastapi-service/pipeline/core/config.py)
 
-**Changes**:
-
-Remove STAMP_ENABLED flag (line 41):
-```python
-# DELETE:
-STAMP_ENABLED = _env_bool("RB_IDP_STAMP_ENABLED", False)
-```
+**Status**: [x] COMPLETED
 
 ---
 
@@ -370,13 +166,7 @@ STAMP_ENABLED = _env_bool("RB_IDP_STAMP_ENABLED", False)
 #### Step 2.1: Update Streamlit UI
 **File**: [`ui/app.py`](file:///Users/aktilekishanov/Documents/career/forte/ds/rb_ocr/2025-11-14-apps-from-server-RBOCR/apps/ui/app.py)
 
-**Changes**:
-
-Remove stamp error mapping (line 142):
-```python
-# DELETE from ERROR_MESSAGES dict:
-"STAMP_NOT_FOUND": "Печать не найдена",
-```
+**Status**: [x] COMPLETED
 
 ---
 
@@ -385,27 +175,7 @@ Remove stamp error mapping (line 142):
 #### Step 3.1: Update Database Schema Documentation
 **File**: [`DB_SCHEMA.md`](file:///Users/aktilekishanov/Documents/career/forte/ds/rb_ocr/2025-11-14-apps-from-server-RBOCR/apps/DB_SCHEMA.md)
 
-**Changes**:
-
-1. **Remove from `verification_runs` table** (line 64, 429):
-   ```sql
-   -- DELETE:
-   stamp_seconds NUMERIC(10, 3)
-   ```
-
-2. **Remove from `extracted_data` table** (line 97, 442):
-   ```sql
-   -- DELETE:
-   stamp_present BOOLEAN,
-   ```
-
-3. **Remove from `validation_checks` table** (line 129, 457):
-   ```sql
-   -- DELETE:
-   stamp_present BOOLEAN,
-   ```
-
-4. **Update example SQL queries** to remove stamp references (lines 236, 251, 258, 273)
+**Status**: [x] COMPLETED
 
 ---
 
@@ -526,26 +296,26 @@ If issues arise:
 
 ## 7. Summary
 
-### Files to Modify: 7
-1. ✅ `pipeline/processors/stamp_check.py` - **DELETE**
-2. ✅ `pipeline/orchestrator.py` - **MODIFY** (7 changes)
-3. ✅ `pipeline/processors/merge_outputs.py` - **MODIFY** (3 changes)
-4. ✅ `pipeline/utils/artifacts.py` - **MODIFY** (3 changes)
-5. ✅ `pipeline/core/errors.py` - **MODIFY** (remove 2 error codes)
-6. ✅ `pipeline/core/config.py` - **MODIFY** (remove 1 constant)
-7. ✅ `ui/app.py` - **MODIFY** (remove 1 error mapping)
+### Files Modified: 7
+1. ✅ `pipeline/processors/stamp_check.py` - **DELETED**
+2. ✅ `pipeline/orchestrator.py` - **MODIFIED**
+3. ✅ `pipeline/processors/merge_outputs.py` - **MODIFIED**
+4. ✅ `pipeline/utils/artifacts.py` - **MODIFIED**
+5. ✅ `pipeline/core/errors.py` - **MODIFIED**
+6. ✅ `pipeline/core/config.py` - **MODIFIED**
+7. ✅ `ui/app.py` - **MODIFIED**
 
-### Files to Update (Documentation): 1
-1. ✅ `DB_SCHEMA.md` - **MODIFY** (remove stamp columns from schema)
+### Files Updated (Documentation): 1
+1. ✅ `DB_SCHEMA.md` - **MODIFIED**
 
 ### Database Migrations: 1
 1. ✅ Create migration to drop stamp columns (if DB exists)
 
 ### Total Changes
-- **Lines to delete**: ~200+
-- **Lines to modify**: ~30
-- **Modules to remove**: 1 complete file
-- **Database columns to drop**: 3
+- **Lines deleted**: ~200+
+- **Lines modified**: ~30
+- **Modules removed**: 1 complete file
+- **Database columns dropped**: 3
 
 ---
 
@@ -567,19 +337,6 @@ If issues arise:
 - **Database migration**: 30 minutes
 - **Documentation**: 30 minutes
 - **Total**: **4-6 hours**
-
----
-
-## 10. Approval Checklist
-
-Before proceeding:
-
-- [ ] Confirm stamp detection is not needed for MVP
-- [ ] Verify no external systems depend on stamp data
-- [ ] Backup production database (if exists)
-- [ ] Review all changes with team
-- [ ] Plan deployment window
-- [ ] Prepare rollback procedure
 
 ---
 

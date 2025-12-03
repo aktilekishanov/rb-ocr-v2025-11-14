@@ -57,15 +57,6 @@ def build_final_result(
         "errors": file_errors,
     }
 
-    try:
-        meta_path = Path(meta_dir) / METADATA_FILENAME
-        if meta_path.exists():
-            mo = read_json(meta_path)
-            if isinstance(mo, dict) and "stamp_present" in mo:
-                file_result["stamp_present"] = bool(mo.get("stamp_present"))
-    except Exception:
-        pass
-
     write_json(final_path, file_result)
 
     return {
@@ -122,7 +113,6 @@ def write_manifest(
         "created_at": created_at,
         "timing": {
             "duration_seconds": duration_seconds,
-            "stamp_seconds": artifacts.get("stamp_seconds"),
             "ocr_seconds": artifacts.get("ocr_seconds"),
             "llm_seconds": artifacts.get("llm_seconds"),
         },
@@ -146,11 +136,11 @@ def build_side_by_side(
     Build a side-by-side JSON view of meta vs extracted fields.
 
     This artifact is used for manual inspection and QA: it surfaces the
-    key comparison points (FIO, doc type, doc date, validity window and
-    stamp presence) in a single, easy-to-read structure.
+    key comparison points (FIO, doc type, doc date, validity window)
+    in a single, easy-to-read structure.
 
     Args:
-      meta_dir: Directory containing `metadata.json` and stamp results.
+      meta_dir: Directory containing `metadata.json`.
       merged_path: Path to `merged.json` produced by the merge stage.
       request_created_at: Original request creation timestamp.
     """
@@ -182,16 +172,5 @@ def build_side_by_side(
             "extracted": (doc_type_known_raw if isinstance(doc_type_known_raw, bool) else None)
         },
     }
-
-    try:
-        scr_path = meta_dir / "stamp_check_response.json"
-        sp_val = None
-        if scr_path.exists():
-            scr = read_json(scr_path)
-            if isinstance(scr, dict) and "stamp_present" in scr:
-                sp_val = bool(scr.get("stamp_present"))
-        side_by_side["stamp_present"] = {"extracted": (sp_val if sp_val is not None else None)}
-    except Exception:
-        pass
 
     write_json(meta_dir / "side_by_side.json", side_by_side)

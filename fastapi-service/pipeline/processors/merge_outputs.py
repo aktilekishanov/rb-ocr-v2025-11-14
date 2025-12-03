@@ -10,14 +10,12 @@ def merge_extractor_and_doc_type(
     doc_type_filtered_path: str,
     output_dir: str,
     filename: str = MERGED_FILENAME,
-    stamp_check_response_path: str = "",
 ) -> str:
     """
     Merge two JSON objects from given file paths and save to output_dir/filename.
     - extractor_filtered_path: file with extractor result (dict) with keys: fio, doc_date
     - doc_type_filtered_path: file with doc-type check result (dict) with keys: detected_doc_types, single_doc_type, doc_type_known
     The curated merged.json will contain only: fio, doc_date, single_doc_type, doc_type, doc_type_known
-    Optionally, stamp_present is merged from stamp_check_response_path if provided.
     """
     with open(extractor_filtered_path, encoding="utf-8") as ef:
         extractor_obj: dict[str, Any] = json.load(ef)
@@ -53,16 +51,6 @@ def merge_extractor_and_doc_type(
     merged["single_doc_type"] = single_doc_type_val
     merged["doc_type_known"] = doc_type_known_val
     merged["doc_type"] = top_doc_type if isinstance(top_doc_type, str) else None
-
-    # Optionally merge stamp_check_response (e.g., {"stamp_present": true|false})
-    if stamp_check_response_path:
-        try:
-            with open(stamp_check_response_path, encoding="utf-8") as sf:
-                stamp_obj: dict[str, Any] = json.load(sf)
-            if isinstance(stamp_obj, dict):
-                merged.update(stamp_obj)
-        except Exception:
-            pass
 
     os.makedirs(output_dir, exist_ok=True)
     out_path = os.path.join(output_dir, filename)

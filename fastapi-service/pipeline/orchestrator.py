@@ -28,7 +28,6 @@ from pipeline.core.config import (
     MERGED_FILENAME,
     METADATA_FILENAME,
     OCR_PAGES,
-    STAMP_ENABLED,
     UTC_OFFSET_HOURS,
     VALIDATION_FILENAME,
 )
@@ -38,7 +37,6 @@ from pipeline.processors.agent_extractor import extract_doc_data
 from pipeline.processors.filter_llm_generic_response import filter_llm_generic_response
 from pipeline.processors.filter_ocr_response import filter_ocr_response
 from pipeline.processors.merge_outputs import merge_extractor_and_doc_type
-from pipeline.processors.stamp_check import stamp_present_for_source
 from pipeline.processors.validator import validate_run
 from pipeline.utils.artifacts import (
     build_final_result as util_build_final_result,
@@ -160,7 +158,6 @@ class PipelineContext:
 
 def _finalize_timing_artifacts(ctx: PipelineContext) -> None:
     ctx.artifacts["duration_seconds"] = time.perf_counter() - ctx.t0
-    ctx.artifacts["stamp_seconds"] = ctx.timers.totals.get("stamp", 0.0) if STAMP_ENABLED else None
     ctx.artifacts["ocr_seconds"] = ctx.timers.totals.get("ocr", 0.0)
     ctx.artifacts["llm_seconds"] = ctx.timers.totals.get("llm", 0.0)
 
@@ -303,7 +300,7 @@ def stage_doc_type_check(ctx: PipelineContext) -> dict[str, Any] | None:
         return fail_and_finalize("DTC_FAILED", str(e), ctx)
 
 
-def stage_extract_and_stamp(ctx: PipelineContext) -> dict[str, Any] | None:
+def stage_extract(ctx: PipelineContext) -> dict[str, Any] | None:
     try:
         with stage_timer(ctx, "llm"):
             llm_raw = extract_doc_data(ctx.pages_obj)
@@ -335,22 +332,6 @@ def stage_extract_and_stamp(ctx: PipelineContext) -> dict[str, Any] | None:
             raise ValueError("Key fio has invalid type")
         if ext.doc_date is not None and not isinstance(ext.doc_date, str):
             raise ValueError("Key doc_date has invalid type")
-        
-        if STAMP_ENABLED:
-            stamp_flag = None
-            try:
-                suffix = ctx.saved_path.suffix.lower() if ctx.saved_path else ""
-                if suffix in {".jpg", ".jpeg", ".png", ".pdf"}:
-                    with stage_timer(ctx, "stamp"):
-                        stamp_flag = stamp_present_for_source(
-                            str(ctx.saved_path), vis_dest_dir=str(ctx.input_dir)
-                        )
-            except Exception:
-                stamp_flag = None
-            if stamp_flag is not None:
-                scr_path = ctx.meta_dir / "stamp_check_response.json"
-                util_write_json(scr_path, {"stamp_present": bool(stamp_flag)})
-                ctx.artifacts["stamp_check_response_path"] = str(scr_path)
         return None
     except ValueError as ve:
         return fail_and_finalize("EXTRACT_SCHEMA_INVALID", str(ve), ctx)
@@ -366,7 +347,6 @@ def stage_merge(ctx: PipelineContext) -> dict[str, Any] | None:
                 doc_type_filtered_path=ctx.artifacts.get("llm_doc_type_check_filtered_path", ""),
                 output_dir=str(ctx.llm_dir),
                 filename=MERGED_FILENAME,
-                stamp_check_response_path=ctx.artifacts.get("stamp_check_response_path", ""),
             )
         ctx.artifacts["llm_merged_path"] = str(merged_path)
         try:
@@ -417,12 +397,6 @@ def stage_validate_and_finalize(ctx: PipelineContext) -> dict[str, Any] | None:
                 check_errors.append(make_error("DOC_DATE_MISSING"))
             if checks.get("single_doc_type_valid") is False:
                 check_errors.append(make_error("SINGLE_DOC_TYPE_INVALID"))
-            if STAMP_ENABLED:
-                sp = checks.get("stamp_present")
-                if sp is False:
-                    check_errors.append(make_error("STAMP_NOT_PRESENT"))
-                elif sp is None:
-                    check_errors.append(make_error("STAMP_CHECK_MISSING"))
         ctx.errors.extend(check_errors)
         return finalize_success(verdict=verdict, checks=checks, ctx=ctx)
     except Exception as e:
@@ -471,7 +445,7 @@ def run_pipeline(
         stage_acquire,
         stage_ocr,
         stage_doc_type_check,
-        stage_extract_and_stamp,
+        stage_extract,
         stage_merge,
         stage_validate_and_finalize,
     ):

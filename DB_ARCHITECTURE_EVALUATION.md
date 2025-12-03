@@ -181,7 +181,6 @@ CREATE TABLE verification_runs (
     extracted_doc_type VARCHAR(100),
     single_doc_type BOOLEAN,
     doc_type_known BOOLEAN,
-    stamp_present BOOLEAN,
     
     -- Validation checks (JSON for flexibility)
     validation_checks JSONB,
@@ -190,7 +189,6 @@ CREATE TABLE verification_runs (
     duration_seconds NUMERIC(10, 3),
     ocr_seconds NUMERIC(10, 3),
     llm_seconds NUMERIC(10, 3),
-    stamp_seconds NUMERIC(10, 3),
     
     -- Audit
     created_by VARCHAR(100),  -- Future: username/API key
@@ -491,12 +489,10 @@ class VerificationRun(Base):
     extracted_fio = Column(String(255))
     extracted_doc_date = Column(String(50))  # Store as string, parse as needed
     extracted_doc_type = Column(String(100))
-    stamp_present = Column(Boolean)
     validation_checks = Column(JSONB)
     duration_seconds = Column(Numeric(10, 3))
     ocr_seconds = Column(Numeric(10, 3))
     llm_seconds = Column(Numeric(10, 3))
-    # ... more fields
 
 # database/connection.py
 from sqlalchemy import create_engine

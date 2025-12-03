@@ -38,4 +38,3 @@ METADATA_FILENAME = "metadata.json"
 # Global settings
 MAX_PDF_PAGES = 3
 UTC_OFFSET_HOURS = 5
-STAMP_ENABLED = _env_bool("RB_IDP_STAMP_ENABLED", False)
