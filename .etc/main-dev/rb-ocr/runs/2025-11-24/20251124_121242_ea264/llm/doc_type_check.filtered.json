@@ -1,9 +1,0 @@
-{
-  "single_doc_type": true,
-  "confidence": 95,
-  "detected_doc_types": [
-    "Лица, зарегистрированные в качестве безработных"
-  ],
-  "reasoning": "The text contains a clear mention of 'Лица, зарегистрированные в качестве безработных', which matches a canonical document type.",
-  "doc_type_known": true
-}

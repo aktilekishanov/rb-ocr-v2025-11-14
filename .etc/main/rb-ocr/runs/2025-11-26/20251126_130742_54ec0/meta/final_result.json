@@ -1,9 +1,0 @@
-{
-  "run_id": "20251126_130742_54ec0",
-  "verdict": false,
-  "errors": [
-    {
-      "code": "FIO_MISMATCH"
-    }
-  ]
-}
