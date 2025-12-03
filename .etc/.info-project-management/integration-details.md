@@ -20,6 +20,12 @@ FLOW:
 
 ------------------------------------------------------------------------------------
 
+10.0.94.86:9092
+10.0.94.87:9092
+10.0.94.88:9092
+
+group id: nohd_MSB
+
 KAFKA TOPIC: dl-loan-delay.event.docs-uploaded
 EVENT BODY:
 {
@@ -36,7 +42,7 @@ EVENT BODY:
 
 DEV MINIO:
 IP:         10.0.99.212
-DOMAIN:     s3-dev.fortebank.com:9000
+DOMAIN:     s3-dev.fortebank.com:9443
 BUCKET:     loan-statements-dev
 ACCESS KEY: fyz13d2czRW7l4sBW8gD
 SECRET KEY: 1ixYVVoZKSnG0rwfvTy0vnqQplupXOOn8DF9gS1A
