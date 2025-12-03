@@ -2,11 +2,21 @@
 FLOW:
 1. USER uploads a file on mobile app
 2. Mobile app sends a request to Kafka topic `dl-loan-delay.event.docs-uploaded`
-3. Kafka topic is consumed by `RB Loan Deferment IDP` service
-4. `RB Loan Deferment IDP` service downloads the file from MinIO
-5. `RB Loan Deferment IDP` service sends a POST request to fastapi service `v1/verify` endpoint
-6. `v1/verify` endpoint processes the file and returns a response and stores it in Database
-7. `RB Loan Deferment IDP` service sends a POST request to UNKNOWN
+3. Kafka topic is consumed by `RB Loan Deferment IDP` (us):
+    the event body is:
+    {
+        "request_id": 123123,
+        "document_type": 4,
+        "s3_path": "some_s3_address",
+        "iin": 960125000000,
+        "first_name": "Иван",
+        "last_name": "Иванов",
+        "second_name": "Иванович",  
+    }
+4. `RB Loan Deferment IDP` (us) take the `s3_path` and downloads the file from their MinIO
+5. `RB Loan Deferment IDP` (us) passes the file with fio via sending a POST request to our fastapi service `v1/verify` endpoint
+6.  Our fastapi service `v1/verify` endpoint processes the file and returns a response and stores it in our Database
+7. `RB Loan Deferment IDP` (us) service takes the response from our fastapi service and sends a POST request to them (currently unknown which api endpoint)
 
 ------------------------------------------------------------------------------------
 
