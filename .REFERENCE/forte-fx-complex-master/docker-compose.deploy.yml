@@ -1,0 +1,82 @@
+services:
+  redis:
+    image: redis:alpine
+    container_name: redis_exchange_control
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_exchange_control:/data
+    command: sh -c "redis-server --requirepass \"$REDIS_PASSWORD\""
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    image: exchange-control
+    container_name: app_exchange_control
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_SECURE: ${MINIO_SECURE}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_VERIFY_SSL: ${MINIO_VERIFY_SSL}
+      VERIFY_SSL: ${VERIFY_SSL}
+      FRONTEND_URL: ${FRONTEND_URL}
+      CALLBACK_URL: ${CALLBACK_URL}
+      CALLBACK_PRIVATE_KEY: ${CALLBACK_PRIVATE_KEY}
+      DMZ_URL: ${DMZ_URL}
+      COMPLIANCE_CONTROL_URL: ${COMPLIANCE_CONTROL_URL}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ${CERT_SSL_PATH}:/etc/ssl/certs/public.pem:ro
+    depends_on:
+      - redis
+
+  worker:
+    image: exchange-control
+    container_name: worker_exchange_control
+    command: celery -A src.core.celery_app.celery_app worker --loglevel=info -Q contracts
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_SECURE: ${MINIO_SECURE}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_VERIFY_SSL: ${MINIO_VERIFY_SSL}
+      VERIFY_SSL: ${VERIFY_SSL}
+      FRONTEND_URL: ${FRONTEND_URL}
+      CALLBACK_URL: ${CALLBACK_URL}
+      CALLBACK_PRIVATE_KEY: ${CALLBACK_PRIVATE_KEY}
+      DMZ_URL: ${DMZ_URL}
+      COMPLIANCE_CONTROL_URL: ${COMPLIANCE_CONTROL_URL}
+    volumes:
+      - ${CERT_SSL_PATH}:/etc/ssl/certs/public.pem:ro
+    depends_on:
+      - redis
+
+volumes:
+  redis_exchange_control:

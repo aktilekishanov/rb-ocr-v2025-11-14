@@ -1,0 +1,11 @@
+docker-compose.*
+README.md
+.idea
+.vscode
+.gitignore
+Dockerfile
+.venv
+.env-example
+.git
+alembic/README
+.env

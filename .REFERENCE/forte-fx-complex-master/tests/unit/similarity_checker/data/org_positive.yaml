@@ -1,0 +1,164 @@
+#  ============================= Positive alias/normalization cases (should be identical)
+- label: too_vs_full_ru
+  left: 'ТОО "Ашан Ойл"'
+  right: 'Товарищество с ограниченной ответственностью "Ашан Ойл"'
+
+- label: ooo_vs_full_ru
+  left: 'ООО "Ашан Ойл"'
+  right: 'Общество с ограниченной ответственностью "Ашан Ойл"'
+
+- label: ooo_engtype_vs_full_ru
+  left: 'OOO "Ашан Ойл"'
+  right: 'Общество с ограниченной ответственностью "Ашан Ойл"'
+
+- label: ip_vs_full_ru
+  left: 'ИП Иванов Иван'
+  right: 'Индивидуальный предприниматель Иванов Иван'
+
+- label: ao_vs_jsc
+  left: 'АО "ABC"'
+  right: 'JSC "ABC"'
+
+- label: ao_quotes_vs_jsc
+  left: 'АО «ABC»'
+  right: 'JSC "ABC"'
+
+- label: order_suffix_prefix
+  left: '"ABC" АО'
+  right: '"ABC" JSC'
+
+- label: ao_full_ru_vs_jsc
+  left: 'Акционерное общество "ABC"'
+  right: 'JSC "ABC"'
+
+- label: jsc_vs_ao_full_ru
+  left: 'JSC "ABC"'
+  right: 'Акционерное общество «ABC»'
+
+- label: ao_with_comma_vs_jsc
+  left: 'АО, "ABC"'
+  right: '"ABC" JSC'
+
+- label: jsc_with_comma_vs_ao
+  left: '"ABC", JSC'
+  right: 'АО "ABC"'
+
+- label: eng_full_vs_ru_full_ao
+  left: '"ABC", Joint Stock Company'
+  right: 'Акционерное общество "ABC"'
+
+- label: zao_eng_mix_rus
+  left: 'ЗAO CCT'
+  right: 'ЗАО "ССТ"'
+
+- label: too_vs_full_case_sensitivity
+  left: 'Товарищество с ограниченной ответственностью "Reimann plus"'
+  right: 'ТОО "Reimann Plus"'
+
+- label: ooo_pre_vs_post
+  left: 'МИЛФОРД ООО'
+  right: 'ООО "МИЛФОРД"'
+
+
+- label: ooo_vs_ooo_postfix
+  left: 'МИЛФОРД ООО'
+  right: 'ООО "МИЛФОРД"'
+
+- label: ltd_with_dot_vs_ltd
+  left: 'Alasankou Beidou Trading Co., Ltd.'
+  right: 'Alasankou Beidou Trading Co.Ltd'
+
+- label: llp_postfix_dots_vs_too_prefix
+  left: 'Evia media L.L.P.'
+  right: 'ТОО "Evia media"'
+
+- label: ooo_full_vs_ooo_with_quotes
+  left: 'Общество с ограниченной ответственностью Пекинская компания по международному культурному обмену Шанс'
+  right: 'ООО "Пекинская компания по Международному культурному обмену ШАНС"'
+
+# =============================  Mixed casing / spacing / quotes
+- label: noise_case_space_quotes_ao_jsc
+  left: 'Dongguan Huayicai Landscape Technology co.,Ltd'
+  right: 'Dongguan Huayicai Landscape Technology co., Ltd.'
+
+- label: ru_quotes_vs_eng_jsc
+  left: '«ABC»  АО'
+  right: '"ABC"   jsc'
+
+- label: too_vs_full_ru_casing
+  left: 'ТОО "Ашан Ойл"'
+  right: 'Товарищество с Ограниченной Ответственностью "Ашан Ойл"'
+
+- label: ip_vs_full_ru_casing
+  left: 'ИП Иванов Иван'
+  right: 'Индивидуальный Предприниматель Иванов Иван'
+
+- label: ooo_vs_full_mixed_casing_and_braces
+  left: 'Общество с ограниченной ответственностью Пекинская компания по международному культурному обмену Шанс'
+  right: 'ООО "Пекинская компания по Международному культурному обмену ШАНС"'
+
+- label: full_plus_brackets_too_vs_short_too_no_brackets
+  left: 'ТОО "ИНТЕРМАРИ ЛОГИСТИКС СЕНТРАЛ ЭЙЖА"'
+  right: 'Товарищество с ограниченной ответственностью "Intermari Logistics Central Asia (ИНТЕРМАРИ ЛОГИСТИКС СЕНТРАЛ ЭЙЖА)"'
+
+- label: bracket_inside_cyrillic_vs_outside_latin
+  left:  'АО "Romashka (Ромашка)"'
+  right: 'Акционерное общество "Ромашка"'
+
+- label: bracket_outside_text_matches
+  left:  'АО "Ромашка"'
+  right: 'Акционерное общество "Ромашка (ГК)"'
+
+- label: bracket_inside_equivalence_variation
+  left:  'АО "KazBuild (КазБилд)"'
+  right: 'АО "КазБилд"'
+
+- label: one_side_has_brackets_only_for_translation
+  left:  'LLP "Global Agro (Глобал Агро)"'
+  right: 'ТОО "Глобал Агро"'
+
+# ============================= Order/commas shouldn’t matter
+- label: ltd_with_comma_equiv
+  left: '"ABC", LTD'
+  right: '"ABC" LTD'
+
+- label: ltd_no_comma_equiv
+  left: '"ABC" LTD'
+  right: '"ABC", LTD'
+
+- label: ao_with_comma_equiv
+  left: 'АО,  "ABC"'
+  right: 'АО "ABC"'
+
+- label: too_symmetry
+  left: '"Авимком" ТОО'
+  right: 'ТОО "Авимком"'
+
+- label: llc_too_symmetry
+  left: 'LUTRACO LLC'
+  right: 'ТОО "Lutraco"'
+
+- label: llp_postfix_vs_too_quotes
+  left: 'MANSURY LLP'
+  right: 'ТОО "MANSURY"'
+
+- label: llp_postfix_vs_too_quotes_symmetry
+  left: 'GUIBAO KZ LLP'
+  right: 'ТОО "Guibao KZ"'
+
+- label: llp_vs_too_quotes_symmetrys
+  left: 'LLP ALFA RADIOLOGY'
+  right: 'ТОО "Alfa Radiology"'
+# ================================ Homoglyphs
+- label: llc_too_symmetry
+  left: 'ТОО "MKM Lubricants"'
+  right: 'ТОО "МКМ lubricants"'
+
+# =============================== Dots, commas
+- label: ao_with_dots_vs_without_dots
+  left: 'АО Завод им. Кирова.'
+  right: 'АО Завод им Кирова'
+
+- label: unknown_but_same_core_after_punct_fold
+  left:  '"MKM"'
+  right: 'MKM'
