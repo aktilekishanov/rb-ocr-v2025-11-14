@@ -1,5 +1,5 @@
 CURRENTLY: This project is on my personal MacBook. 
-BUT: I am syncing it to the server. 
+BUT: I am syncing it to the server by manually copying files to work pc first, later to server via vscode ssh connection.
 
 Server details:
 - company server 

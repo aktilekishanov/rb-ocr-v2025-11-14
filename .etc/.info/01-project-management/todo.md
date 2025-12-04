@@ -1,3 +1,5 @@
+&lt;!-- STATUS: KEEP - ACTIVE TODO LIST. Contains upcoming work items: database schema design, testing, Kafka integration, and S3 file fetcher implementation. This is your project roadmap. --&gt;
+
 # **План работ по проекту OCR**
 
 ## **1. Работа с базой данных (БД)**

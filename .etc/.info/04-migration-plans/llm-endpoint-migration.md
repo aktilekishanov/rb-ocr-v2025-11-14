@@ -1,3 +1,5 @@
+&lt;!-- STATUS: KEEP - REFERENCE DOCUMENTATION. Documents the LLM endpoint migration from old to new ForteBank endpoint. Useful for understanding LLM integration architecture and troubleshooting. Likely completed but valuable as reference. --&gt;
+
 # LLM Endpoint Migration Plan
 
 ## Overview

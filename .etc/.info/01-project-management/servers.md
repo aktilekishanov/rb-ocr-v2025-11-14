@@ -1,3 +1,5 @@
+&lt;!-- STATUS: KEEP - CRITICAL REFERENCE. Contains server credentials, IP addresses, domain names, and API endpoint details for OCR, LLM, and database servers. Essential for deployment and troubleshooting. --&gt;
+
 [Note: we are utilizing the server of a colleague for now]
 
 ------------------------------------------------------------------------------------

@@ -1,3 +1,5 @@
+&lt;!-- STATUS: KEEP - This guide documents the UI-to-API integration architecture and is still relevant for understanding how the Streamlit UI calls the FastAPI service. Useful for onboarding and troubleshooting. --&gt;
+
 # UI to API Integration Guide
 
 ## Overview

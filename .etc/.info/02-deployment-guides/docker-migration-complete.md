@@ -1,3 +1,5 @@
+&lt;!-- STATUS: KEEP - CRITICAL DOCUMENTATION. This is the complete Docker migration guide covering the entire containerization journey (Nov 28 - Dec 02, 2025). Essential reference for understanding the current Docker deployment architecture. --&gt;
+
 # ULTIMATE GUIDE: Docker Migration for RB-OCR Services
 ## Complete Implementation from Start to Finish
 

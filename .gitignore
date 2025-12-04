@@ -1,5 +1,4 @@
 idp-loan-deferment-service/idp-loan-deferment-service-amd64.tar
-.trash
 .extra
 .packages
 
@@ -22,3 +21,5 @@ __pycache__/
 .main-dev
 .main
 .rb-ocr-dependencies
+
+.REFERENCE # Reference project for S3 connection implementation

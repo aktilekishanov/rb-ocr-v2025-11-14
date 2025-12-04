@@ -1,3 +1,4 @@
+&lt;!-- STATUS: KEEP - CRITICAL REFERENCE. Contains Kafka integration details, MinIO S3 credentials, and event body schema. Required for upcoming Kafka integration work (see todo.md). --&gt;
 
 FLOW:
 1. USER uploads a file on mobile app
