@@ -10,3 +10,4 @@ httpx==0.25.1
 rapidfuzz==3.5.2
 pypdf==3.17.1
 pillow==10.1.0
+minio>=7.2.0

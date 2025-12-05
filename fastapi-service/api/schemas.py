@@ -28,3 +28,25 @@ class VerifyResponse(BaseModel):
                 "processing_time_seconds": 12.4
             }
         }
+
+
+class KafkaEventRequest(BaseModel):
+    """Request schema for Kafka event processing endpoint."""
+    request_id: int = Field(..., description="Unique request identifier from Kafka event")
+    s3_path: str = Field(..., description="S3 object key/path to the document")
+    iin: int = Field(..., description="Individual Identification Number (12 digits)")
+    first_name: str = Field(..., description="Applicant's first name")
+    last_name: str = Field(..., description="Applicant's last name")
+    second_name: str | None = Field(None, description="Applicant's patronymic/middle name (optional)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "request_id": 123123,
+                "s3_path": "documents/2024/sample.pdf",
+                "iin": 960125000000,
+                "first_name": "Иван",
+                "last_name": "Иванов",
+                "second_name": "Иванович"
+            }
+        }

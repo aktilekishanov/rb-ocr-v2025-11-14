@@ -38,3 +38,18 @@ METADATA_FILENAME = "metadata.json"
 # Global settings
 MAX_PDF_PAGES = 3
 UTC_OFFSET_HOURS = 5
+
+
+# S3/MinIO Configuration
+class S3Config:
+    """S3/MinIO hardcoded configuration for DEV."""
+    
+    ENDPOINT: str = "s3-dev.fortebank.com:9443"
+    ACCESS_KEY: str = "fyz13d2czRW7l4sBW8gD"
+    SECRET_KEY: str = "1ixYVVoZKSnG0rwfvTy0vnqQplupXOOn8DF9gS1A"
+    BUCKET: str = "loan-statements-dev"
+    SECURE: bool = True
+
+
+# Export singleton config
+s3_config = S3Config()
