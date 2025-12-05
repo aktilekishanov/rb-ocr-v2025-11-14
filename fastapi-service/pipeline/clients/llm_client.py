@@ -72,27 +72,79 @@ def call_fortebank_llm(
             raw = response.read().decode("utf-8")
             return raw
     except urllib.error.HTTPError as e:
+        # Read error body for context
         error_body = ""
         try:
             error_body = e.read().decode("utf-8")
         except Exception:
             pass
-        raise LLMHTTPError(
-            f"HTTP {e.code} error from LLM endpoint: {e.reason}. Body: {error_body}"
-        ) from e
+        
+        # Use new exception hierarchy for proper HTTP status code mapping
+        from pipeline.core.exceptions import ExternalServiceError
+        
+        if e.code == 429:
+            # Rate limiting
+            raise ExternalServiceError(
+                service_name="LLM",
+                error_type="rate_limit",
+                details={
+                    "http_code": e.code,
+                    "reason": str(e.reason),
+                    "body": error_body[:200],  # Truncate body
+                }
+            ) from e
+        elif 500 <= e.code < 600:
+            # Server error
+            raise ExternalServiceError(
+                service_name="LLM",
+                error_type="error",
+                details={
+                    "http_code": e.code,
+                    "reason": str(e.reason),
+                    "body": error_body[:200],
+                }
+            ) from e
+        else:
+            # Client error (4xx)
+            raise LLMHTTPError(
+                f"HTTP {e.code} error from LLM endpoint: {e.reason}. Body: {error_body[:200]}"
+            ) from e
+            
     except urllib.error.URLError as e:
-        raise LLMNetworkError(
-            f"Network error connecting to LLM endpoint: {e.reason}"
-        ) from e
+        # Network/connection errors
+        from pipeline.core.exceptions import ExternalServiceError
+        
+        error_str = str(e.reason) if hasattr(e, 'reason') else str(e)
+        
+        if "timeout" in error_str.lower() or "timed out" in error_str.lower():
+            raise ExternalServiceError(
+                service_name="LLM",
+                error_type="timeout",
+                details={"reason": error_str, "timeout_seconds": 30}
+            ) from e
+        else:
+            raise ExternalServiceError(
+                service_name="LLM",
+                error_type="unavailable",
+                details={"reason": error_str}
+            ) from e
+            
     except ssl.SSLError as e:
-        raise LLMNetworkError(
-            f"SSL error connecting to LLM endpoint: {e}"
+        # SSL errors
+        from pipeline.core.exceptions import ExternalServiceError
+        raise ExternalServiceError(
+            service_name="LLM",
+            error_type="error",
+            details={"reason": f"SSL error: {str(e)}"}
         ) from e
+        
     except UnicodeDecodeError as e:
         raise LLMResponseError(
             f"Failed to decode LLM response as UTF-8: {e}"
         ) from e
+        
     except Exception as e:
+        # Catch-all for unexpected errors
         raise LLMClientError(
             f"Unexpected error calling LLM endpoint: {e}"
         ) from e
