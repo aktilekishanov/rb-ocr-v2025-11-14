@@ -7,7 +7,6 @@ FLOW:
     the event body is:
     {
         "request_id": 123123,
-        "document_type": 4,
         "s3_path": "some_s3_address",
         "iin": 960125000000,
         "first_name": "Иван",
@@ -31,7 +30,6 @@ KAFKA TOPIC: dl-loan-delay.event.docs-uploaded
 EVENT BODY:
 {
     "request_id": 123123,
-    "document_type": 4,
     "s3_path": "some_s3_address",
     "iin": 960125000000,
     "first_name": "Иван",
