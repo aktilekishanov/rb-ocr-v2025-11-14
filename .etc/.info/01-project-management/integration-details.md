@@ -20,11 +20,7 @@ FLOW:
 
 ------------------------------------------------------------------------------------
 
-10.0.94.86:9092
-10.0.94.87:9092
-10.0.94.88:9092
-
-group id: nohd_MSB
+10.0.94.86:9092,10.0.94.87:9092,10.0.94.88:9092
 
 KAFKA TOPIC: dl-loan-delay.event.docs-uploaded
 EVENT BODY:
@@ -50,3 +46,33 @@ PATH:       auto
 
 ------------------------------------------------------------------------------------
 
+
+POST https://dev-loan-api.fortebank.com/api/v1/delay/document-scan/result
+Auth:
+- Username: bank
+- Password: bank
+
+Request:
+{
+    "request_id": 123123,
+    "status": "success,error",
+    "err_code": 12,
+    "err_message": "some-error-description"
+}
+
+Response:
+{
+    "code": "LOAN.loan-api.400",
+    "developer_message": "example developer message",
+    "message": "example message",
+    "more_info": "string",
+    "request_id": "b1a6cdb7-72a2-11ec-aa02-52e3aeb58ffa",
+    "request_url": "/api/v1/example",
+    "service": "loan-api",
+    "status": 200,
+    "subsystem": "string",
+    "system": "LOAN",
+    "timestamp": "2019-08-24T14:15:22Z",
+    "version": "0.0.1"
+}
+ 
