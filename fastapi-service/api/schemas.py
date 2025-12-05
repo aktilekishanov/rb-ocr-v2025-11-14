@@ -22,7 +22,7 @@ class VerifyResponse(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "run_id": "20251126_140523_abc12",
+                "run_id": "550e8400-e29b-41d4-a716-446655440000",
                 "verdict": True,
                 "errors": [],
                 "processing_time_seconds": 12.4

@@ -87,10 +87,13 @@ def _count_pdf_pages(path: str) -> int | None:
         return None
 
 
-def _now_id() -> str:
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    short_id = uuid.uuid4().hex[:5]
-    return f"{ts}_{short_id}"
+def _generate_run_id() -> str:
+    """Generate a unique run identifier using UUID4.
+    
+    Returns:
+        A UUID4 string (e.g., '550e8400-e29b-41d4-a716-446655440000')
+    """
+    return str(uuid.uuid4())
 
 
 def _mk_run_dirs(runs_root: Path, run_id: str) -> dict[str, Path]:
@@ -426,7 +429,7 @@ def run_pipeline(
       errors are encoded via standardized error codes.
     """
 
-    run_id = _now_id()
+    run_id = _generate_run_id()
     request_created_at = datetime.now(timezone(timedelta(hours=UTC_OFFSET_HOURS))).strftime("%d.%m.%Y")
     dirs = _mk_run_dirs(runs_root, run_id)
 
