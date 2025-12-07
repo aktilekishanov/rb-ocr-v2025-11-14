@@ -1,5 +1,5 @@
 """Pydantic request/response schemas for API endpoints."""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 
 
@@ -76,10 +76,11 @@ class ErrorDetail(BaseModel):
     
     Used in VerifyResponse when verdict=False due to business rule violations
     (e.g., FIO mismatch, document too old). These are NOT HTTP errors.
+    
+    The error code is self-documenting and maps to specific business rules.
+    Additional fields (message, details) can be added in future if needed.
     """
-    code: str = Field(..., description="Error code (e.g., FIO_MISMATCH)")
-    message: str | None = Field(None, description="Human-readable message in Russian")
-    details: Optional[str] = Field(None, description="Additional context or explanation")
+    code: str = Field(..., description="Error code (e.g., FIO_MISMATCH, DOCUMENT_TOO_OLD)")
 
 
 class VerifyResponse(BaseModel):
@@ -87,6 +88,8 @@ class VerifyResponse(BaseModel):
     
     Returns HTTP 200 OK for both successful verification and business rule violations.
     HTTP errors (4xx/5xx) use ProblemDetail format instead.
+    
+    Note: trace_id will be omitted if None (only during local testing).
     """
     run_id: str = Field(..., description="Unique run identifier (UUID)")
     verdict: bool = Field(..., description="True if all checks pass")
@@ -99,6 +102,20 @@ class VerifyResponse(BaseModel):
         None,
         description="Distributed tracing ID (matches X-Trace-ID header)"
     )
+    
+    class Config:
+        # Exclude None values from JSON output
+        json_encoders = {type(None): lambda v: None}
+    
+    def dict(self, **kwargs):
+        """Override dict to exclude None values."""
+        kwargs.setdefault('exclude_none', True)
+        return super().dict(**kwargs)
+    
+    def model_dump(self, **kwargs):
+        """Override model_dump to exclude None values."""
+        kwargs.setdefault('exclude_none', True)
+        return super().model_dump(**kwargs)
 
     class Config:
         json_schema_extra = {
@@ -134,17 +151,47 @@ class VerifyResponse(BaseModel):
 
 
 class KafkaEventRequest(BaseModel):
-    """Request schema for Kafka event processing endpoint.
+    """Request schema for Kafka event processing endpoint with comprehensive validation.
     
-    This schema is superseded by KafkaEventRequestValidator in api/validators.py
-    which includes additional validation logic. This is kept for backward compatibility.
+    Validates all input fields for security and data integrity:
+    - request_id: Must be positive integer
+    - iin: Must be valid 12-digit Individual Identification Number
+    - s3_path: Security checks for path traversal, file extension requirement
+    - name fields: Length constraints to prevent abuse
     """
-    request_id: int = Field(..., description="Unique request identifier from Kafka event")
-    s3_path: str = Field(..., description="S3 object key/path to the document")
-    iin: int = Field(..., description="Individual Identification Number (12 digits)")
-    first_name: str = Field(..., description="Applicant's first name")
-    last_name: str = Field(..., description="Applicant's last name")
-    second_name: str | None = Field(None, description="Applicant's patronymic/middle name (optional)")
+    request_id: int = Field(..., gt=0, description="Unique request identifier from Kafka event (must be positive)")
+    s3_path: str = Field(..., min_length=1, max_length=1024, description="S3 object key/path to the document")
+    iin: int = Field(..., ge=100000000000, le=999999999999, description="Individual Identification Number (exactly 12 digits)")
+    first_name: str = Field(..., min_length=1, max_length=100, description="Applicant's first name")
+    last_name: str = Field(..., min_length=1, max_length=100, description="Applicant's last name")
+    second_name: str | None = Field(None, max_length=100, description="Applicant's patronymic/middle name (optional)")
+    
+    @field_validator('s3_path')
+    @classmethod
+    def validate_s3_path(cls, v: str) -> str:
+        """Validate S3 path for security and format.
+        
+        Security checks:
+        - Prevent directory traversal attacks (..)
+        - Prevent absolute paths (/)
+        - Require file extension
+        
+        Raises:
+            ValueError: If path fails validation
+        """
+        # Security: Prevent directory traversal
+        if '..' in v:
+            raise ValueError("S3 path cannot contain '..' (directory traversal)")
+        
+        # Security: Prevent absolute paths
+        if v.startswith('/'):
+            raise ValueError("S3 path cannot start with '/' (absolute path)")
+        
+        # Format: Must have file extension
+        if '.' not in v:
+            raise ValueError("S3 path must include file extension (e.g., .pdf, .jpg)")
+        
+        return v
     
     class Config:
         json_schema_extra = {

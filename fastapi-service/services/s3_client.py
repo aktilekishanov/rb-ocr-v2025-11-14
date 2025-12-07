@@ -1,10 +1,12 @@
-"""MinIO S3 client for downloading documents."""
+"""S3 client for MinIO operations."""
+from minio import Minio
+from minio.error import S3Error
+from pathlib import Path
 import ssl
 import urllib3
 import logging
-from pathlib import Path
-from minio import Minio
-from minio.error import S3Error
+
+from pipeline.core.exceptions import ResourceNotFoundError, ExternalServiceError
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +70,8 @@ class S3Client:
             }
             
         Raises:
-            S3Error: If file not found or download fails
-            Exception: For other errors
+            ResourceNotFoundError: If S3 object not found (404)
+            ExternalServiceError: If S3 operation fails
         """
         try:
             # Get object metadata
@@ -100,8 +102,25 @@ class S3Client:
             }
             
         except S3Error as e:
-            logger.error(f"S3 error downloading {object_key}: {e}")
-            raise
+            # Check if it's a "file not found" error
+            if e.code == "NoSuchKey":
+                logger.warning(f"S3 object not found: {object_key}")
+                raise ResourceNotFoundError(
+                    resource_type="S3 object",
+                    resource_id=object_key
+                )
+            else:
+                # Other S3 errors (permission denied, etc.)
+                logger.error(f"S3 error downloading {object_key}: {e}")
+                raise ExternalServiceError(
+                    service_name="S3",
+                    error_type="error",
+                    details={"object_key": object_key, "error_code": e.code}
+                )
         except Exception as e:
-            logger.error(f"Error downloading {object_key}: {e}")
-            raise
+            logger.error(f"Unexpected error downloading {object_key}: {e}")
+            raise ExternalServiceError(
+                service_name="S3",
+                error_type="error",
+                details={"object_key": object_key}
+            )

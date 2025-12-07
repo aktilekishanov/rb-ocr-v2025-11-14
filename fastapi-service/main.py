@@ -1,6 +1,8 @@
 """FastAPI application entry point."""
-from fastapi import FastAPI, File, UploadFile, Form, Request
-from api.schemas import VerifyResponse, KafkaEventRequest
+from fastapi import FastAPI, File, UploadFile, Form, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from api.schemas import VerifyResponse, KafkaEventRequest, ProblemDetail
 from api.validators import validate_upload_file, VerifyRequest
 from api.middleware.exception_handler import exception_middleware
 from services.processor import DocumentProcessor
@@ -9,6 +11,7 @@ from minio.error import S3Error  # Keep this import as it's used in /v1/kafka/ve
 import tempfile
 import logging
 import time
+import uuid
 import os
 
 # Configure structured JSON logging for production
@@ -27,6 +30,66 @@ app = FastAPI(
 
 # Register global exception middleware
 app.middleware("http")(exception_middleware)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Convert Pydantic validation errors to RFC 7807 Problem Details format.
+    
+    This handler ensures all validation errors follow the RFC 7807 standard,
+    maintaining consistency with other error responses.
+    
+    Args:
+        request: The FastAPI request object
+        exc: The Pydantic validation error
+        
+    Returns:
+        JSONResponse with RFC 7807 ProblemDetail format
+    """
+    # Get or generate trace_id
+    trace_id = getattr(request.state, "trace_id", None)
+    if not trace_id:
+        trace_id = str(uuid.uuid4())
+        request.state.trace_id = trace_id
+    
+    # Extract first validation error for main message
+    first_error = exc.errors()[0] if exc.errors() else {}
+    
+    # Build field path (e.g., "body.request_id" -> "request_id")
+    loc = first_error.get("loc", [])
+    field = ".".join(str(l) for l in loc if l != "body")
+    
+    # Get error message
+    msg = first_error.get("msg", "Validation failed")
+    
+    # Construct detail message
+    detail = f"{field}: {msg}" if field else msg
+    
+    # Log validation error
+    logger.warning(
+        f"Validation error: {detail}",
+        extra={"trace_id": trace_id, "field": field, "error_type": first_error.get("type")}
+    )
+    
+    # Create RFC 7807 Problem Details response
+    problem = ProblemDetail(
+        type="/errors/VALIDATION_ERROR",
+        title="Request validation failed",
+        status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail=detail,
+        instance=request.url.path,
+        code="VALIDATION_ERROR",
+        category="client_error",
+        retryable=False,
+        trace_id=trace_id,
+    )
+    
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=problem.dict(exclude_none=True),
+        headers={"X-Trace-ID": trace_id}
+    )
+
 
 # Initialize processor
 processor = DocumentProcessor(runs_root="./runs")
@@ -119,7 +182,117 @@ async def root():
     }
 
 
-@app.post("/v1/kafka/verify", response_model=VerifyResponse)
+@app.post(
+    "/v1/kafka/verify",
+    response_model=VerifyResponse,
+    summary="Verify document from Kafka event",
+    description="Process document verification request from Kafka event with S3 path",
+    responses={
+        200: {
+            "description": "Document verification completed (success or business validation failed)",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "success": {
+                            "summary": "Verification successful",
+                            "value": {
+                                "run_id": "550e8400-e29b-41d4-a716-446655440000",
+                                "verdict": True,
+                                "errors": [],
+                                "processing_time_seconds": 4.2,
+                                "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                            }
+                        },
+                        "business_error": {
+                            "summary": "Business validation failed",
+                            "value": {
+                                "run_id": "550e8400-e29b-41d4-a716-446655440001",
+                                "verdict": False,
+                                "errors": [{"code": "FIO_MISMATCH"}],
+                                "processing_time_seconds": 4.5,
+                                "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        404: {
+            "description": "S3 file not found",
+            "model": ProblemDetail,
+            "content": {
+                "application/json": {
+                    "example": {
+                        "type": "/errors/RESOURCE_NOT_FOUND",
+                        "title": "S3 object not found",
+                        "status": 404,
+                        "instance": "/rb-ocr/api/v1/kafka/verify",
+                        "code": "RESOURCE_NOT_FOUND",
+                        "category": "client_error",
+                        "retryable": False,
+                        "trace_id": "c1d2e3f4-g5h6-7890-cdef-gh1234567890"
+                    }
+                }
+            }
+        },
+        422: {
+            "description": "Request validation failed",
+            "model": ProblemDetail,
+            "content": {
+                "application/json": {
+                    "example": {
+                        "type": "/errors/VALIDATION_ERROR",
+                        "title": "Request validation failed",
+                        "status": 422,
+                        "detail": "iin: Input should be greater than or equal to 100000000000",
+                        "instance": "/rb-ocr/api/v1/kafka/verify",
+                        "code": "VALIDATION_ERROR",
+                        "category": "client_error",
+                        "retryable": False,
+                        "trace_id": "d1e2f3g4-h5i6-7890-defg-hi1234567890"
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error",
+            "model": ProblemDetail,
+            "content": {
+                "application/json": {
+                    "example": {
+                        "type": "/errors/INTERNAL_SERVER_ERROR",
+                        "title": "Internal server error",
+                        "status": 500,
+                        "detail": "An unexpected error occurred. Please contact support with trace ID.",
+                        "instance": "/rb-ocr/api/v1/kafka/verify",
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "category": "server_error",
+                        "retryable": False,
+                        "trace_id": "e1f2g3h4-i5j6-7890-efgh-ij1234567890"
+                    }
+                }
+            }
+        },
+        502: {
+            "description": "External service error (S3, OCR, LLM)",
+            "model": ProblemDetail,
+            "content": {
+                "application/json": {
+                    "example": {
+                        "type": "/errors/S3_ERROR",
+                        "title": "S3 service error",
+                        "status": 502,
+                        "instance": "/rb-ocr/api/v1/kafka/verify",
+                        "code": "S3_ERROR",
+                        "category": "server_error",
+                        "retryable": True,
+                        "trace_id": "f1g2h3i4-j5k6-7890-fghi-jk1234567890"
+                    }
+                }
+            }
+        }
+    }
+)
 async def verify_kafka_event(
     request: Request,
     event: KafkaEventRequest,
