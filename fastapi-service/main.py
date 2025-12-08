@@ -359,7 +359,7 @@ async def verify_kafka_event(
     "/v1/kafka/verify-get",
     response_model=VerifyResponse,
     summary="Verify document from Kafka event",
-    description="Process document verification request using query parameters instead of JSON body. "
+    description="Process document verification request using query parameters instead of JSON body.",
     responses={
         200: {
             "description": "Document verification completed (success or business validation failed)",
