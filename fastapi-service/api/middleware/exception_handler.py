@@ -9,6 +9,7 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from pydantic_core import ValidationError as PydanticCoreValidationError
 import logging
 import uuid
 
@@ -63,6 +64,46 @@ async def exception_middleware(request: Request, call_next):
         
         return JSONResponse(
             status_code=e.http_status,
+            content=problem.dict(exclude_none=True),
+            headers={"X-Trace-ID": trace_id}
+        )
+    
+    except PydanticCoreValidationError as e:
+        # Pydantic core validation errors (from field_validator in Depends())
+        logger.warning(
+            "Pydantic validation failed",
+            extra={
+                "trace_id": trace_id,
+                "path": request.url.path,
+                "errors": str(e.errors()),
+            }
+        )
+        
+        # Extract first error for detail message
+        errors = e.errors() if hasattr(e, 'errors') else []
+        first_error = errors[0] if errors else {}
+        
+        # Build field path from loc
+        loc = first_error.get("loc", [])
+        field = ".".join(str(l) for l in loc if l != "body")
+        
+        # Get error message  
+        msg = first_error.get("msg", "Validation failed")
+        
+        problem = ProblemDetail(
+            type="/errors/VALIDATION_ERROR",
+            title="Request validation failed",
+            status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field}: {msg}" if field else msg,
+            code="VALIDATION_ERROR",
+            category="client_error",
+            retryable=False,
+            instance=request.url.path,
+            trace_id=trace_id,
+        )
+        
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content=problem.dict(exclude_none=True),
             headers={"X-Trace-ID": trace_id}
         )

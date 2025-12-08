@@ -71,6 +71,76 @@ class ProblemDetail(BaseModel):
         }
 
 
+class KafkaEventQueryParams(BaseModel):
+    """Query parameter schema for GET endpoint version of Kafka event processing.
+        
+    Validates all input fields for security and data integrity:
+    - request_id: Must be positive integer
+    - iin: Must be valid 12-digit Individual Identification Number
+    - s3_path: Security checks for path traversal, file extension requirement
+    - name fields: Length constraints to prevent abuse
+    """
+    request_id: int = Field(..., gt=0, description="Unique request identifier from Kafka event (must be positive)")
+    s3_path: str = Field(..., min_length=1, max_length=1024, description="S3 object key/path to the document")
+    iin: str = Field(..., min_length=12, max_length=12, description="Individual Identification Number (exactly 12 digits, can start with 0)")
+    first_name: str = Field(..., min_length=1, max_length=100, description="Applicant's first name")
+    last_name: str = Field(..., min_length=1, max_length=100, description="Applicant's last name")
+    second_name: str | None = Field(None, max_length=100, description="Applicant's patronymic/middle name (optional)")
+    
+    @field_validator('iin')
+    @classmethod
+    def validate_iin(cls, v: str) -> str:
+        """Validate IIN is exactly 12 digits.
+        
+        Raises:
+            ValueError: If IIN is not exactly 12 digits
+        """
+        if not v.isdigit():
+            raise ValueError("IIN must contain only digits")
+        if len(v) != 12:
+            raise ValueError(f"IIN must be exactly 12 digits, got {len(v)}")
+        return v
+    
+    @field_validator('s3_path')
+    @classmethod
+    def validate_s3_path(cls, v: str) -> str:
+        """Validate S3 path for security and format.
+        
+        Security checks:
+        - Prevent directory traversal attacks (..)
+        - Prevent absolute paths (/)
+        - Require file extension
+        
+        Raises:
+            ValueError: If path fails validation
+        """
+        # Security: Prevent directory traversal
+        if '..' in v:
+            raise ValueError("S3 path cannot contain '..' (directory traversal)")
+        
+        # Security: Prevent absolute paths
+        if v.startswith('/'):
+            raise ValueError("S3 path cannot start with '/' (absolute path)")
+        
+        # Format: Must have file extension
+        if '.' not in v:
+            raise ValueError("S3 path must include file extension (e.g., .pdf, .jpg)")
+        
+        return v
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "request_id": 123123,
+                "s3_path": "documents/2024/sample.pdf",
+                "iin": "021223504060",
+                "first_name": "Иван",
+                "last_name": "Иванов",
+                "second_name": "Иванович"
+            }
+        }
+
+
 class ErrorDetail(BaseModel):
     """Represents a single business validation error.
     
@@ -161,10 +231,24 @@ class KafkaEventRequest(BaseModel):
     """
     request_id: int = Field(..., gt=0, description="Unique request identifier from Kafka event (must be positive)")
     s3_path: str = Field(..., min_length=1, max_length=1024, description="S3 object key/path to the document")
-    iin: int = Field(..., ge=100000000000, le=999999999999, description="Individual Identification Number (exactly 12 digits)")
+    iin: str = Field(..., min_length=12, max_length=12, description="Individual Identification Number (exactly 12 digits, can start with 0)")
     first_name: str = Field(..., min_length=1, max_length=100, description="Applicant's first name")
     last_name: str = Field(..., min_length=1, max_length=100, description="Applicant's last name")
     second_name: str | None = Field(None, max_length=100, description="Applicant's patronymic/middle name (optional)")
+    
+    @field_validator('iin')
+    @classmethod
+    def validate_iin(cls, v: str) -> str:
+        """Validate IIN is exactly 12 digits.
+        
+        Raises:
+            ValueError: If IIN is not exactly 12 digits
+        """
+        if not v.isdigit():
+            raise ValueError("IIN must contain only digits")
+        if len(v) != 12:
+            raise ValueError(f"IIN must be exactly 12 digits, got {len(v)}")
+        return v
     
     @field_validator('s3_path')
     @classmethod
@@ -198,7 +282,7 @@ class KafkaEventRequest(BaseModel):
             "example": {
                 "request_id": 123123,
                 "s3_path": "documents/2024/sample.pdf",
-                "iin": 960125000000,
+                "iin": "021223504060",
                 "first_name": "Иван",
                 "last_name": "Иванов",
                 "second_name": "Иванович"

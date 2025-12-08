@@ -22,4 +22,6 @@ __pycache__/
 .main
 .rb-ocr-dependencies
 
-.REFERENCE # Reference project for S3 connection implementation
+.reference 
+.extra
+.unified-wheels

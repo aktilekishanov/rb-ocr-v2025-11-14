@@ -1,8 +1,8 @@
 """FastAPI application entry point."""
-from fastapi import FastAPI, File, UploadFile, Form, Request, status
+from fastapi import FastAPI, File, UploadFile, Form, Request, status, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from api.schemas import VerifyResponse, KafkaEventRequest, ProblemDetail
+from api.schemas import VerifyResponse, KafkaEventRequest, KafkaEventQueryParams, ProblemDetail
 from api.validators import validate_upload_file, VerifyRequest
 from api.middleware.exception_handler import exception_middleware
 from services.processor import DocumentProcessor
@@ -345,6 +345,185 @@ async def verify_kafka_event(
         f"run_id={response.run_id}, verdict={response.verdict}, "
         f"time={response.processing_time_seconds}s",
         extra={"trace_id": trace_id, "request_id": event.request_id, "run_id": response.run_id}
+    )
+    return response
+
+
+# ============================================================================
+# The following endpoint uses GET with side effects (document processing).
+# This violates REST principles where GET should be idempotent and safe.
+# Best Practice: Use POST /v1/kafka/verify instead.
+# ============================================================================
+
+@app.get(
+    "/v1/kafka/verify-get",
+    response_model=VerifyResponse,
+    summary="Verify document from Kafka event",
+    description="Process document verification request using query parameters instead of JSON body. "
+    responses={
+        200: {
+            "description": "Document verification completed (success or business validation failed)",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "success": {
+                            "summary": "Verification successful",
+                            "value": {
+                                "run_id": "550e8400-e29b-41d4-a716-446655440000",
+                                "verdict": True,
+                                "errors": [],
+                                "processing_time_seconds": 4.2,
+                                "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                            }
+                        },
+                        "business_error": {
+                            "summary": "Business validation failed",
+                            "value": {
+                                "run_id": "550e8400-e29b-41d4-a716-446655440001",
+                                "verdict": False,
+                                "errors": [{"code": "FIO_MISMATCH"}],
+                                "processing_time_seconds": 4.5,
+                                "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        404: {
+            "description": "S3 file not found",
+            "model": ProblemDetail,
+            "content": {
+                "application/json": {
+                    "example": {
+                        "type": "/errors/RESOURCE_NOT_FOUND",
+                        "title": "S3 object not found",
+                        "status": 404,
+                        "instance": "/rb-ocr/api/v1/kafka/verify-get",
+                        "code": "RESOURCE_NOT_FOUND",
+                        "category": "client_error",
+                        "retryable": False,
+                        "trace_id": "c1d2e3f4-g5h6-7890-cdef-gh1234567890"
+                    }
+                }
+            }
+        },
+        422: {
+            "description": "Request validation failed",
+            "model": ProblemDetail,
+            "content": {
+                "application/json": {
+                    "example": {
+                        "type": "/errors/VALIDATION_ERROR",
+                        "title": "Request validation failed",
+                        "status": 422,
+                        "detail": "iin: Input should be greater than or equal to 100000000000",
+                        "instance": "/rb-ocr/api/v1/kafka/verify-get",
+                        "code": "VALIDATION_ERROR",
+                        "category": "client_error",
+                        "retryable": False,
+                        "trace_id": "d1e2f3g4-h5i6-7890-defg-hi1234567890"
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error",
+            "model": ProblemDetail,
+            "content": {
+                "application/json": {
+                    "example": {
+                        "type": "/errors/INTERNAL_SERVER_ERROR",
+                        "title": "Internal server error",
+                        "status": 500,
+                        "detail": "An unexpected error occurred. Please contact support with trace ID.",
+                        "instance": "/rb-ocr/api/v1/kafka/verify-get",
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "category": "server_error",
+                        "retryable": False,
+                        "trace_id": "e1f2g3h4-i5j6-7890-efgh-ij1234567890"
+                    }
+                }
+            }
+        },
+        502: {
+            "description": "External service error (S3, OCR, LLM)",
+            "model": ProblemDetail,
+            "content": {
+                "application/json": {
+                    "example": {
+                        "type": "/errors/S3_ERROR",
+                        "title": "S3 service error",
+                        "status": 502,
+                        "instance": "/rb-ocr/api/v1/kafka/verify-get",
+                        "code": "S3_ERROR",
+                        "category": "server_error",
+                        "retryable": True,
+                        "trace_id": "f1g2h3i4-j5k6-7890-fghi-jk1234567890"
+                    }
+                }
+            }
+        }
+    }
+)
+async def verify_kafka_event_get(
+    request: Request,
+    params: KafkaEventQueryParams = Depends(),
+):
+    """
+    Process a Kafka event for document verification using query parameters.
+    
+    This is a GET equivalent of the POST /v1/kafka/verify endpoint.
+
+    This endpoint:
+    1. Receives query parameters (request_id, s3_path, iin, first_name, last_name, second_name)
+    2. Validates all input fields (request_id, IIN, S3 path, names)
+    3. Stores the event as JSON for audit trail
+    4. Builds FIO from name components (last_name + first_name + second_name)
+    5. Downloads the document from S3
+    6. Runs the verification pipeline
+    7. Returns the same response format as /v1/verify
+    
+    Args:
+        request: FastAPI request object
+        params: Query parameters validated as KafkaEventQueryParams
+        
+    Returns:
+        VerifyResponse with run_id, verdict, errors, processing_time_seconds, and trace_id
+    """
+    start_time = time.time()
+    trace_id = getattr(request.state, "trace_id", None)
+    
+    logger.info(
+        f"[NEW KAFKA EVENT (GET)] request_id={params.request_id}, "
+        f"s3_path={params.s3_path}, iin={params.iin}",
+        extra={"trace_id": trace_id, "request_id": params.request_id}
+    )
+    
+    # Convert query params to dict for processor
+    event_data = params.dict()
+    
+    # Process Kafka event (downloads from S3 and runs pipeline)
+    # Exceptions are now handled by the global middleware
+    result = await processor.process_kafka_event(
+        event_data=event_data,
+    )
+    
+    processing_time = time.time() - start_time
+    
+    response = VerifyResponse(
+        run_id=result["run_id"],
+        verdict=result["verdict"],
+        errors=result["errors"],
+        processing_time_seconds=round(processing_time, 2),
+        trace_id=trace_id,
+    )
+    
+    logger.info(
+        f"[KAFKA RESPONSE (GET)] request_id={params.request_id}, "
+        f"run_id={response.run_id}, verdict={response.verdict}, "
+        f"time={response.processing_time_seconds}s",
+        extra={"trace_id": trace_id, "request_id": params.request_id, "run_id": response.run_id}
     )
     return response
 
