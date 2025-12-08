@@ -73,7 +73,7 @@ class ProblemDetail(BaseModel):
 
 class KafkaEventQueryParams(BaseModel):
     """Query parameter schema for GET endpoint version of Kafka event processing.
-        
+    
     Validates all input fields for security and data integrity:
     - request_id: Must be positive integer
     - iin: Must be valid 12-digit Individual Identification Number

@@ -398,8 +398,6 @@ def stage_validate_and_finalize(ctx: PipelineContext) -> dict[str, Any] | None:
                 check_errors.append(make_error("DOC_DATE_TOO_OLD"))
             elif dv is None:
                 check_errors.append(make_error("DOC_DATE_MISSING"))
-            if checks.get("single_doc_type_valid") is False:
-                check_errors.append(make_error("SINGLE_DOC_TYPE_INVALID"))
         ctx.errors.extend(check_errors)
         return finalize_success(verdict=verdict, checks=checks, ctx=ctx)
     except Exception as e:
