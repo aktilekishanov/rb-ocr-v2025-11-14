@@ -17,16 +17,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create runs directory
-RUN mkdir -p /app/runs && chmod 777 /app/runs
+# Create runs directory with group-writable permissions
+RUN mkdir -p /app/runs && chmod 775 /app/runs
+
+# Copy and setup entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8000
 
-# Run with Gunicorn
-CMD ["gunicorn", "main:app", \
-     "--workers", "4", \
-     "--worker-class", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", \
-     "--timeout", "60", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+# Use entrypoint script to set umask before running Gunicorn
+ENTRYPOINT ["/app/entrypoint.sh"]

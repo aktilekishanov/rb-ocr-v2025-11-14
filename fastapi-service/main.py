@@ -324,10 +324,22 @@ async def verify_kafka_event(
         extra={"trace_id": trace_id, "request_id": event.request_id}
     )
     
+    # Build external metadata to pass to pipeline
+    external_data = {
+        "trace_id": trace_id,  # From middleware, for storage in final.json
+        "external_request_id": str(event.request_id),
+        "external_s3_path": event.s3_path,
+        "external_iin": str(event.iin),
+        "external_first_name": event.first_name,
+        "external_last_name": event.last_name,
+        "external_second_name": event.second_name,
+    }
+    
     # Process Kafka event (downloads from S3 and runs pipeline)
     # Exceptions are now handled by the global middleware
     result = await processor.process_kafka_event(
         event_data=event.dict(),
+        external_metadata=external_data,  # NEW
     )
     
     processing_time = time.time() - start_time

@@ -1,6 +1,6 @@
 """Wrapper around pipeline orchestrator for FastAPI."""
 from pipeline.orchestrator import run_pipeline
-from pipeline.utils.io_utils import build_fio, write_json
+from pipeline.utils.io_utils import build_fio
 from pipeline.core.config import s3_config
 from services.s3_client import S3Client
 from pathlib import Path
@@ -50,6 +50,9 @@ class DocumentProcessor:
         """
         logger.info(f"Processing: {original_filename} for FIO: {fio}")
         
+        # Ensure runs_root exists (in case it was manually deleted)
+        self.runs_root.mkdir(parents=True, exist_ok=True)
+        
         # Run pipeline in executor (it's synchronous)
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
@@ -75,12 +78,14 @@ class DocumentProcessor:
     async def process_kafka_event(
         self,
         event_data: dict,
+        external_metadata: dict | None = None,  # NEW
     ) -> dict:
         """
         Process a Kafka event containing S3 file reference.
         
         Args:
             event_data: Kafka event body as dict
+            external_metadata: Optional dict with trace_id and external metadata
             
         Returns:
             dict with run_id, verdict, errors
@@ -93,16 +98,7 @@ class DocumentProcessor:
         
         logger.info(f"Processing Kafka event: request_id={request_id}, s3_path={s3_path}")
         
-        # 1. Store event body as JSON for audit trail
-        event_storage_dir = self.runs_root / "kafka_events"
-        event_storage_dir.mkdir(parents=True, exist_ok=True)
-        event_file_path = event_storage_dir / f"event_{request_id}_{int(time.time())}.json"
-        
-        
-        write_json(str(event_file_path), event_data)
-        logger.info(f"Stored event body: {event_file_path}")
-        
-        # 2. Build FIO from name components
+        # 1. Build FIO from name components
         fio = build_fio(
             last_name=event_data["last_name"],
             first_name=event_data["first_name"],
@@ -127,20 +123,33 @@ class DocumentProcessor:
             
             logger.info(f"Downloaded from S3: {s3_path} -> {tmp_path} ({s3_metadata['size']} bytes)")
             
-            # 4. Run pipeline
-            result = await self.process_document(
-                file_path=tmp_path,
-                original_filename=filename,
-                fio=fio,
+            # 4. Run pipeline with external metadata
+            # IMPORTANT: run_pipeline is sync but contains async code (ask_tesseract)
+            # Must run in executor to avoid event loop conflict
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,  # Use default ThreadPoolExecutor
+                lambda: run_pipeline(
+                    fio=fio,
+                    source_file_path=tmp_path,
+                    original_filename=filename,
+                    content_type="application/pdf",
+                    runs_root=self.runs_root,
+                    external_metadata=external_metadata,
+                )
             )
             
-            logger.info(f"Pipeline complete for Kafka event. run_id={result.get('run_id')}, verdict={result.get('verdict')}")
+            logger.info(f"Pipeline completed: run_id={result.get('run_id')}, verdict={result.get('verdict')}")
             
-            return result
-            
+            return {
+                "run_id": result.get("run_id"),
+                "verdict": result.get("verdict", False),
+                "errors": result.get("errors", []),
+            }
         finally:
-            # Cleanup temporary file
+            # Cleanup temp file
             try:
-                os.unlink(tmp_path)
+                os.remove(tmp_path)
+                logger.debug(f"Removed temp file: {tmp_path}")
             except Exception as e:
-                logger.warning(f"Failed to cleanup temp file {tmp_path}: {e}")
+                logger.warning(f"Failed to remove temp file {tmp_path}: {e}")
