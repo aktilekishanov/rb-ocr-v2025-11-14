@@ -13,7 +13,6 @@ from typing import Any
 
 from rapidfuzz import fuzz
 
-from pipeline.core.config import VALIDATION_FILENAME
 from pipeline.core.dates import now_utc_plus
 from pipeline.core.validity import compute_valid_until, format_date, is_within_validity
 from pipeline.processors.fio_matching import fio_match as det_fio_match
@@ -111,35 +110,36 @@ def latin_to_cyrillic(s: str) -> str:
 
 
 def validate_run(
-    meta_path: str,
-    merged_path: str,
-    output_dir: str,
-    filename: str = VALIDATION_FILENAME,
-    write_file: bool = True,
+    user_provided_fio: dict[str, str | None],
+    extractor_data: dict[str, Any],     # Pass data directly (not file path)
+    doc_type_data: dict[str, Any],      # Pass data directly (not file path)
 ) -> dict[str, Any]:
     """
-    Validate a single run and optionally write ``validation.json``.
-
+    Validate a single run using in-memory data only.
+    
+    Optimized to eliminate file I/O - receives parsed data from context.
+    
     Args:
-      meta_path: Path to metadata.json with user-provided context.
-      merged_path: Path to merged.json produced by merge_extractor_and_doc_type.
-      output_dir: Directory where validation.json should be written.
-      filename: Validation filename; defaults to VALIDATION_FILENAME.
-      write_file: If True, write validation.json; otherwise return only in-memory result.
+      user_provided_fio: FIO from user/Kafka (passed via PipelineContext)
+      extractor_data: Parsed extractor results from context (no file read)
+      doc_type_data: Parsed doc type results from context (no file read)
 
     Returns:
-      A dict with keys ``success``, ``error``, ``validation_path``, and
+      A dict with keys ``success``, ``error``, and
       ``result`` (containing checks, verdict, and diagnostics).
     """
-    try:
-        with open(meta_path, encoding="utf-8") as mf:
-            meta = json.load(mf)
-        with open(merged_path, encoding="utf-8") as gf:
-            merged = json.load(gf)
-    except Exception as e:
-        return {"success": False, "error": f"IO error: {e}", "validation_path": "", "result": None}
+    # Build merged data in-memory (NO FILE I/O)
+    merged = {
+        "fio": extractor_data.get("fio"),
+        "doc_date": extractor_data.get("doc_date"),
+        "single_doc_type": doc_type_data.get("single_doc_type"),
+        "doc_type_known": doc_type_data.get("doc_type_known"),
+        "doc_type": doc_type_data.get("detected_doc_types", [None])[0] if isinstance(doc_type_data.get("detected_doc_types"), list) else None,
+    }
 
-    fio_meta_raw = meta.get("fio") if isinstance(meta, dict) else None
+    # Use passed FIO (from context, not file)
+    # Extract the "fio" value from the dict (orchestrator passes {"fio": "..."})
+    fio_meta_raw = user_provided_fio.get("fio") if isinstance(user_provided_fio, dict) else user_provided_fio
 
     fio_meta = _norm_text(fio_meta_raw)
 
@@ -254,14 +254,4 @@ def validate_run(
         "diagnostics": diagnostics,
     }
 
-    if not write_file:
-        return {"success": True, "error": None, "validation_path": "", "result": result}
-    try:
-        os.makedirs(output_dir, exist_ok=True)
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"Validation error: {e}",
-            "validation_path": "",
-            "result": None,
-        }
+    return {"success": True, "error": None, "result": result}
