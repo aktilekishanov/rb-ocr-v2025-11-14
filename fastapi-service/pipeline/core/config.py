@@ -1,10 +1,4 @@
-"""
-Central configuration constants for filenames and global settings.
-
-Holds canonical JSON filenames for OCR, LLM, merge, and validation
-artifacts, as well as global limits and feature flags derived from the
-environment.
-"""
+"""Pipeline configuration constants."""
 
 import os
 
@@ -14,26 +8,22 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return v in ("1", "true", "t", "yes", "y", "on")
 
 
-# Centralized filenames and constants used across the pipeline
+# LLM inference settings
+DEFAULT_TEMPERATURE = 0.00001
 
-# OCR outputs
-OCR_RAW = "ocr_response_raw.json"
-OCR_PAGES = "ocr_response_filtered.json"
+# Artifact filenames - sequential numbered for clarity
+INPUT_FILE = "00_input{ext}"  # Template, ext filled at runtime
 
-# LLM: doc type checker (function-oriented filenames)
-LLM_DOC_TYPE_RAW = "doc_type_check.raw.json"
-LLM_DOC_TYPE_FILTERED = "doc_type_check.filtered.json"
+OCR_RAW = "01_ocr.raw.json"
+OCR_FILTERED = "01_ocr.filtered.json"
 
-# LLM: extractor (function-oriented filenames)
-LLM_EXTRACTOR_RAW = "extractor.raw.json"
-LLM_EXTRACTOR_FILTERED = "extractor.filtered.json"
+LLM_DTC_RAW = "02_llm_dtc.raw.json"
+LLM_DTC_FILTERED = "02_llm_dtc.filtered.json"
 
-# Merge and validation
-MERGED_FILENAME = "merged.json"
-VALIDATION_FILENAME = "validation.json"
+LLM_EXT_RAW = "03_llm_ext.raw.json"
+LLM_EXT_FILTERED = "03_llm_ext.filtered.json"
 
-# User-provided metadata
-METADATA_FILENAME = "metadata.json"
+FINAL_JSON = "04_final.json"
 
 # Global settings
 MAX_PDF_PAGES = 3
