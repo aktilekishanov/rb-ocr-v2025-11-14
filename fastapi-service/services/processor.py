@@ -7,7 +7,6 @@ from services.s3_client import S3Client
 from pathlib import Path
 import asyncio
 import logging
-import time
 import tempfile
 import os
 

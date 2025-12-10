@@ -8,7 +8,6 @@ from typing import Any
 
 import httpx
 
-from pipeline.core.config import OCR_FILTERED
 from pipeline.core.config import (
     OCR_POLL_INTERVAL_SECONDS,
     OCR_TIMEOUT_SECONDS,
@@ -33,7 +32,7 @@ class TesseractAsyncClient:
         self._client = httpx.AsyncClient(timeout=self._timeout, verify=self._verify)
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
+    async def __aexit__(self, _exc_type, exc, _tb) -> None:
         if self._client is not None:
             await self._client.aclose()
             self._client = None

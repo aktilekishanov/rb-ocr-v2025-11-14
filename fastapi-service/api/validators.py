@@ -6,7 +6,7 @@ API request inputs including FIO format, file uploads, and S3 paths.
 
 from pydantic import BaseModel, Field, field_validator
 from fastapi import UploadFile
-from typing import Optional, Set
+from typing import Set
 import re
 import os
 

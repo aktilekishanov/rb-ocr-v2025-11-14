@@ -6,7 +6,6 @@ import json
 import ssl
 import urllib.request
 import urllib.error
-from typing import Optional
 from http import HTTPStatus
 
 from pipeline.core.config import (
@@ -18,25 +17,21 @@ from pipeline.core.config import (
 class LLMClientError(Exception):
     """Base exception for LLM client errors."""
 
-    pass
 
 
 class LLMNetworkError(LLMClientError):
     """Raised when network/connection errors occur."""
 
-    pass
 
 
 class LLMHTTPError(LLMClientError):
     """Raised when HTTP errors occur (4xx, 5xx)."""
 
-    pass
 
 
 class LLMResponseError(LLMClientError):
     """Raised when response parsing fails."""
 
-    pass
 
 
 def call_fortebank_llm(

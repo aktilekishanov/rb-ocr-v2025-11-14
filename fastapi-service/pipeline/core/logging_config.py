@@ -10,7 +10,6 @@ This module provides JSON-formatted logging for:
 import logging
 import json
 from datetime import datetime
-from typing import Any
 
 
 class StructuredFormatter(logging.Formatter):
@@ -80,14 +79,12 @@ class StructuredFormatter(logging.Formatter):
 
 def configure_structured_logging(
     level: str = "INFO",
-    include_timestamp: bool = True,
     json_format: bool = True,
 ) -> None:
     """Configure structured logging for the application.
 
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        include_timestamp: Whether to include timestamps in logs
         json_format: Use JSON formatter (True) or plain text (False)
     """
     # Clear existing handlers

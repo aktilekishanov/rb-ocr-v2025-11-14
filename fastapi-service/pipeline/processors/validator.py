@@ -6,8 +6,6 @@ constraints, producing a structured ``validation.json`` plus diagnostics
 used by the UI.
 """
 
-import json
-import os
 import re
 from typing import Any
 
