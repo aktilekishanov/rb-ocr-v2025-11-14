@@ -25,8 +25,8 @@ def ensure_parent(path: str | Path) -> None:
     Args:
       path: Target file path whose parent should be created.
     """
-    p = Path(path)
-    p.parent.mkdir(parents=True, exist_ok=True)
+    path_obj = Path(path)
+    path_obj.parent.mkdir(parents=True, exist_ok=True)
 
 
 def safe_filename(name: str) -> str:

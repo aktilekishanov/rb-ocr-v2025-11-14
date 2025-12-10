@@ -41,35 +41,35 @@ def convert_image_to_pdf(
                         out_pdf = candidate_i
                         break
                     idx += 1
-    with Image.open(image_path) as im:
+    with Image.open(image_path) as image:
         frames = []
         try:
-            for frame in ImageSequence.Iterator(im):
-                f = frame.copy()
+            for frame in ImageSequence.Iterator(image):
+                frame_copy = frame.copy()
                 try:
-                    f = ImageOps.exif_transpose(f)
+                    frame_copy = ImageOps.exif_transpose(frame_copy)
                 except Exception:
                     pass
-                if f.mode not in ("RGB", "L"):
-                    f = f.convert("RGB")
-                frames.append(f)
+                if frame_copy.mode not in ("RGB", "L"):
+                    frame_copy = frame_copy.convert("RGB")
+                frames.append(frame_copy)
         except Exception:
-            f = im.copy()
+            frame_copy = image.copy()
             try:
-                f = ImageOps.exif_transpose(f)
+                frame_copy = ImageOps.exif_transpose(frame_copy)
             except Exception:
                 pass
-            if f.mode not in ("RGB", "L"):
-                f = f.convert("RGB")
-            frames = [f]
+            if frame_copy.mode not in ("RGB", "L"):
+                frame_copy = frame_copy.convert("RGB")
+            frames = [frame_copy]
         if len(frames) == 1:
             frames[0].save(out_pdf, format="PDF", resolution=300.0)
         else:
             first, rest = frames[0], frames[1:]
             first.save(out_pdf, format="PDF", resolution=300.0, save_all=True, append_images=rest)
-        for fr in frames:
+        for frame in frames:
             try:
-                fr.close()
+                frame.close()
             except Exception:
                 pass
     return out_pdf

@@ -75,22 +75,22 @@ _LATIN_TO_CYR = str.maketrans(
 )
 
 
-def _collapse_ws_and_case(s: str) -> str:
-    s = re.sub(r"\s+", " ", (s or "").strip())
-    return s.casefold()
+def _collapse_ws_and_case(text: str) -> str:
+    text = re.sub(r"\s+", " ", (text or "").strip())
+    return text.casefold()
 
 
-def normalize_for_name(s: str) -> str:
+def normalize_for_name(text: str) -> str:
     """Normalize for FIO comparison.
 
     Collapses whitespace, casefolds, and applies KZ->RU plus Latin-to-
     Cyrillic lookalike mappings so that minor script/locale differences
     do not break matching.
     """
-    s = _collapse_ws_and_case(s)
-    s = s.translate(_KZ_TO_RU)
-    s = s.translate(_LATIN_TO_CYR)
-    return s
+    text = _collapse_ws_and_case(text)
+    text = text.translate(_KZ_TO_RU)
+    text = text.translate(_LATIN_TO_CYR)
+    return text
 
 
 def _strip_trailing_dot(token: str) -> str:
@@ -156,7 +156,7 @@ def parse_fio(raw: str) -> NameParts:
     return NameParts(last or None, first or None, patro or None)
 
 
-def build_variants(p: NameParts) -> dict[str, str]:
+def build_variants(name_parts: NameParts) -> dict[str, str]:
     """Return canonical strings per variant: FULL, LF, FP, L_I, L_IO, L.
     Canonicalization rules:
     - FULL/LF/FP: single space between tokens, lowercased.
@@ -165,7 +165,7 @@ def build_variants(p: NameParts) -> dict[str, str]:
     - L: f"{last}" (surname only) for edge cases where both sides only provide last name.
     """
     variants: dict[str, str] = {}
-    last, first, patro = p.last, p.first, p.patro
+    last, first, patro = name_parts.last, name_parts.first, name_parts.patro
 
     def _canon(*parts: str) -> str:
         parts = [x for x in parts if x]
@@ -273,12 +273,12 @@ def fio_match(
     doc_variants = build_variants(doc_parts)
 
     # Match ONLY against the variant explicitly detected from the document.
-    v = doc_variant
-    app_val = app_variants.get(v)
-    doc_val = doc_variants.get(v)
+    variant_key = doc_variant
+    app_val = app_variants.get(variant_key)
+    doc_val = doc_variants.get(variant_key)
     if app_val and doc_val and equals_canonical(doc_val, app_val):
         return True, {
-            "matched_variant": v,
+            "matched_variant": variant_key,
             "meta_variant_value": app_val,
             "doc_variant_value": doc_val,
             "meta_parse": asdict(app_parts),
@@ -329,7 +329,7 @@ def fio_match(
             fuzzy_score = s
             if s >= fuzzy_threshold:
                 return True, {
-                    "matched_variant": v,
+                    "matched_variant": variant_key,
                     "meta_variant_value": app_val,
                     "doc_variant_value": doc_val,
                     "meta_parse": asdict(app_parts),

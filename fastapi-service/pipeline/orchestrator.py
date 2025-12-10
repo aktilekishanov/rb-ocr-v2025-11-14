@@ -48,12 +48,12 @@ from pipeline.models.dto import DocTypeCheck, ExtractorResult
 logger = logging.getLogger(__name__)
 
 
-def _count_pdf_pages(path: str) -> int | None:
+def _count_pdf_pages(pdf_file_path: str) -> int | None:
     try:
         import pypdf as _pypdf  # type: ignore
 
         try:
-            reader = _pypdf.PdfReader(path)
+            reader = _pypdf.PdfReader(pdf_file_path)
             return len(reader.pages)
         except Exception as e:
             logger.debug("pypdf reader failed: %s", e, exc_info=True)
@@ -63,14 +63,14 @@ def _count_pdf_pages(path: str) -> int | None:
         import PyPDF2 as _pypdf2  # type: ignore
 
         try:
-            reader = _pypdf2.PdfReader(path)
+            reader = _pypdf2.PdfReader(pdf_file_path)
             return len(reader.pages)
         except Exception:
             pass
     except Exception:
         pass
     try:
-        with open(path, "rb") as f:
+        with open(pdf_file_path, "rb") as f:
             data = f.read()
         import re as _re
 
@@ -295,12 +295,12 @@ def stage_ocr(ctx: PipelineContext) -> dict[str, Any] | None:
 def stage_doc_type_check(ctx: PipelineContext) -> dict[str, Any] | None:
     try:
         with stage_timer(ctx, "llm"):
-            dtc_raw_str = check_single_doc_type(ctx.pages_obj)
+            doc_type_check_raw_json = check_single_doc_type(ctx.pages_obj)
         
         try:
             dtc_raw_path = ctx.base_dir / LLM_DTC_RAW
             with open(dtc_raw_path, "w", encoding="utf-8") as f:
-                f.write(dtc_raw_str or "")
+                f.write(doc_type_check_raw_json or "")
             
             dtc_filtered_path = filter_llm_generic_response(
                 str(dtc_raw_path), str(ctx.base_dir), filename=LLM_DTC_FILTERED
@@ -361,14 +361,14 @@ def stage_extract(ctx: PipelineContext) -> dict[str, Any] | None:
         ctx.extractor_result = filtered_obj if isinstance(filtered_obj, dict) else {}
         
         try:
-            ext = ExtractorResult.model_validate(ctx.extractor_result)
+            extractor_result = ExtractorResult.model_validate(ctx.extractor_result)
         except Exception as ve:
             raise ValueError("Extractor filtered object is invalid") from ve
-        if not hasattr(ext, "fio") or not hasattr(ext, "doc_date"):
+        if not hasattr(extractor_result, "fio") or not hasattr(extractor_result, "doc_date"):
             raise ValueError("Missing key: required fields")
-        if ext.fio is not None and not isinstance(ext.fio, str):
+        if extractor_result.fio is not None and not isinstance(extractor_result.fio, str):
             raise ValueError("Key fio has invalid type")
-        if ext.doc_date is not None and not isinstance(ext.doc_date, str):
+        if extractor_result.doc_date is not None and not isinstance(extractor_result.doc_date, str):
             raise ValueError("Key doc_date has invalid type")
         return None
     except ValueError as ve:
@@ -393,20 +393,20 @@ def stage_validate_and_finalize(ctx: PipelineContext) -> dict[str, Any] | None:
         verdict = bool(val_result.get("verdict")) if isinstance(val_result, dict) else False
         check_errors: list[dict[str, Any]] = []
         if isinstance(checks, dict):
-            fm = checks.get("fio_match")
-            if fm is False:
+            fio_match_result = checks.get("fio_match")
+            if fio_match_result is False:
                 check_errors.append(make_error("FIO_MISMATCH"))
-            elif fm is None:
+            elif fio_match_result is None:
                 check_errors.append(make_error("FIO_MISSING"))
 
-            dtk = checks.get("doc_type_known")
-            if dtk is False or dtk is None:
+            doc_type_known = checks.get("doc_type_known")
+            if doc_type_known is False or doc_type_known is None:
                 check_errors.append(make_error("DOC_TYPE_UNKNOWN"))
 
-            dv = checks.get("doc_date_valid")
-            if dv is False:
+            doc_date_valid = checks.get("doc_date_valid")
+            if doc_date_valid is False:
                 check_errors.append(make_error("DOC_DATE_TOO_OLD"))
-            elif dv is None:
+            elif doc_date_valid is None:
                 check_errors.append(make_error("DOC_DATE_MISSING"))
         ctx.errors.extend(check_errors)
         return finalize_success(verdict=verdict, checks=checks, ctx=ctx)
@@ -471,8 +471,8 @@ def run_pipeline(
         stage_extract,
         stage_validate_and_finalize,
     ):
-        res = stage(ctx)
-        if res is not None:
-            return res
+        stage_result = stage(ctx)
+        if stage_result is not None:
+            return stage_result
 
     return fail_and_finalize("UNKNOWN_ERROR", None, ctx)

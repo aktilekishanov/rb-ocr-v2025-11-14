@@ -6,22 +6,22 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 
-def parse_doc_date(s: Any) -> datetime | None:
+def parse_doc_date(date_value: Any) -> datetime | None:
     """
     Parse a document date string using common RB formats.
 
     Args:
-      s: Raw date value; expected to be a string.
+      date_value: Raw date value; expected to be a string.
 
     Returns:
       A ``datetime`` instance if parsing succeeds, otherwise None.
     """
-    if not isinstance(s, str):
+    if not isinstance(date_value, str):
         return None
-    s2 = s.strip()
+    cleaned_date_string = date_value.strip()
     for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%d/%m/%Y"):
         try:
-            return datetime.strptime(s2, fmt)
+            return datetime.strptime(cleaned_date_string, fmt)
         except Exception:
             continue
     return None

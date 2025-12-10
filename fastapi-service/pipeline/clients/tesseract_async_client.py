@@ -38,8 +38,8 @@ class TesseractAsyncClient:
             raise RuntimeError("Client is not started. Use 'async with TesseractAsyncClient()'.")
         url = f"{self.base_url}/pdf"
         filename = os.path.basename(file_path)
-        with open(file_path, "rb") as f:
-            files = {"file": (filename, f, "application/pdf")}
+        with open(file_path, "rb") as file_obj:
+            files = {"file": (filename, file_obj, "application/pdf")}
             resp = await self._client.post(url, files=files)
         resp.raise_for_status()
         return resp.json()
@@ -131,12 +131,12 @@ def ask_tesseract(
 ) -> dict[str, Any]:
     work_path = pdf_path
     converted_pdf: str | None = None
-    mt, _ = mimetypes.guess_type(pdf_path)
-    is_pdf = bool(mt == "application/pdf" or pdf_path.lower().endswith(".pdf"))
-    ext = os.path.splitext(pdf_path)[1].lower()
+    mime_type, _ = mimetypes.guess_type(pdf_path)
+    is_pdf = bool(mime_type == "application/pdf" or pdf_path.lower().endswith(".pdf"))
+    file_extension = os.path.splitext(pdf_path)[1].lower()
     is_image = bool(
-        (mt and isinstance(mt, str) and mt.startswith("image/"))
-        or ext in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"}
+        (mime_type and isinstance(mime_type, str) and mime_type.startswith("image/"))
+        or file_extension in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"}
     )
     if not is_pdf and is_image:
         base_dir = os.path.dirname(pdf_path)

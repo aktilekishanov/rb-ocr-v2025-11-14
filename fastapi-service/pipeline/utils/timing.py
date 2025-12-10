@@ -34,12 +34,12 @@ class StageTimers:
         Yields:
           A context manager that measures the enclosed block.
         """
-        t0 = time.perf_counter()
+        start_time = time.perf_counter()
         try:
             yield
         finally:
-            dt = time.perf_counter() - t0
-            self.totals[name] = self.totals.get(name, 0.0) + dt
+            elapsed_time = time.perf_counter() - start_time
+            self.totals[name] = self.totals.get(name, 0.0) + elapsed_time
 
 
 def stage_timer(ctx, name: str):

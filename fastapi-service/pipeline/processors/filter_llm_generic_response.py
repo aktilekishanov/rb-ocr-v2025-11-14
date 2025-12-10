@@ -23,16 +23,16 @@ def _try_parse_inner_json(text: str) -> dict[str, Any] | None:
 def _extract_from_openai_like(obj: dict[str, Any]) -> dict[str, Any] | None:
     choices = obj.get("choices")
     if isinstance(choices, list) and choices:
-        c0 = choices[0]
-        if isinstance(c0, dict):
-            msg = c0.get("message")
+        first_choice = choices[0]
+        if isinstance(first_choice, dict):
+            msg = first_choice.get("message")
             if isinstance(msg, dict):
                 content = msg.get("content")
                 if isinstance(content, str):
                     inner = _try_parse_inner_json(content)
                     if isinstance(inner, dict):
                         return inner
-            text = c0.get("text")
+            text = first_choice.get("text")
             if isinstance(text, str):
                 inner = _try_parse_inner_json(text)
                 if isinstance(inner, dict):

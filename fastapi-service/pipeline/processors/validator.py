@@ -43,18 +43,18 @@ VALIDATION_MESSAGES = {
 }
 
 
-def _norm_text(s: Any) -> str:
-    if not isinstance(s, str):
+def _norm_text(text: Any) -> str:
+    if not isinstance(text, str):
         return ""
-    s = re.sub(r"\s+", " ", s.strip())
-    return s.casefold()
+    text = re.sub(r"\s+", " ", text.strip())
+    return text.casefold()
 
 
 def _now_utc_plus_5():
     return now_utc_plus(5)
 
 
-def kz_to_ru(s: str) -> str:
+def kz_to_ru(text: str) -> str:
     table = str.maketrans(
         {
             "қ": "к",
@@ -71,10 +71,10 @@ def kz_to_ru(s: str) -> str:
             "Ө": "О",
         }
     )
-    return s.translate(table)
+    return text.translate(table)
 
 
-def latin_to_cyrillic(s: str) -> str:
+def latin_to_cyrillic(text: str) -> str:
     table = str.maketrans(
         {
             "a": "а",
@@ -105,7 +105,7 @@ def latin_to_cyrillic(s: str) -> str:
             "I": "И",
         }
     )
-    return s.translate(table)
+    return text.translate(table)
 
 
 def validate_run(
@@ -237,8 +237,8 @@ def validate_run(
         "checks": checks,
         "fio_details": fio_diag,
         "messages": {
-            key: VALIDATION_MESSAGES["checks"][key].get(val) if val is not None else None
-            for key, val in checks.items()
+            key: VALIDATION_MESSAGES["checks"][key].get(check_result) if check_result is not None else None
+            for key, check_result in checks.items()
         },
     }
 

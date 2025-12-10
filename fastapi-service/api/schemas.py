@@ -89,21 +89,21 @@ class KafkaEventQueryParams(BaseModel):
     
     @field_validator('iin')
     @classmethod
-    def validate_iin(cls, v: str) -> str:
+    def validate_iin(cls, iin_value: str) -> str:
         """Validate IIN is exactly 12 digits.
         
         Raises:
             ValueError: If IIN is not exactly 12 digits
         """
-        if not v.isdigit():
+        if not iin_value.isdigit():
             raise ValueError("IIN must contain only digits")
-        if len(v) != 12:
-            raise ValueError(f"IIN must be exactly 12 digits, got {len(v)}")
-        return v
+        if len(iin_value) != 12:
+            raise ValueError(f"IIN must be exactly 12 digits, got {len(iin_value)}")
+        return iin_value
     
     @field_validator('s3_path')
     @classmethod
-    def validate_s3_path(cls, v: str) -> str:
+    def validate_s3_path(cls, s3_path_value: str) -> str:
         """Validate S3 path for security and format.
         
         Security checks:
@@ -115,18 +115,18 @@ class KafkaEventQueryParams(BaseModel):
             ValueError: If path fails validation
         """
         # Security: Prevent directory traversal
-        if '..' in v:
+        if '..' in s3_path_value:
             raise ValueError("S3 path cannot contain '..' (directory traversal)")
         
         # Security: Prevent absolute paths
-        if v.startswith('/'):
+        if s3_path_value.startswith('/'):
             raise ValueError("S3 path cannot start with '/' (absolute path)")
         
         # Format: Must have file extension
-        if '.' not in v:
+        if '.' not in s3_path_value:
             raise ValueError("S3 path must include file extension (e.g., .pdf, .jpg)")
         
-        return v
+        return s3_path_value
     
     class Config:
         json_schema_extra = {
@@ -238,21 +238,21 @@ class KafkaEventRequest(BaseModel):
     
     @field_validator('iin')
     @classmethod
-    def validate_iin(cls, v: str) -> str:
+    def validate_iin(cls, iin_value: str) -> str:
         """Validate IIN is exactly 12 digits.
         
         Raises:
             ValueError: If IIN is not exactly 12 digits
         """
-        if not v.isdigit():
+        if not iin_value.isdigit():
             raise ValueError("IIN must contain only digits")
-        if len(v) != 12:
-            raise ValueError(f"IIN must be exactly 12 digits, got {len(v)}")
-        return v
+        if len(iin_value) != 12:
+            raise ValueError(f"IIN must be exactly 12 digits, got {len(iin_value)}")
+        return iin_value
     
     @field_validator('s3_path')
     @classmethod
-    def validate_s3_path(cls, v: str) -> str:
+    def validate_s3_path(cls, s3_path_value: str) -> str:
         """Validate S3 path for security and format.
         
         Security checks:
@@ -264,18 +264,18 @@ class KafkaEventRequest(BaseModel):
             ValueError: If path fails validation
         """
         # Security: Prevent directory traversal
-        if '..' in v:
+        if '..' in s3_path_value:
             raise ValueError("S3 path cannot contain '..' (directory traversal)")
         
         # Security: Prevent absolute paths
-        if v.startswith('/'):
+        if s3_path_value.startswith('/'):
             raise ValueError("S3 path cannot start with '/' (absolute path)")
         
         # Format: Must have file extension
-        if '.' not in v:
+        if '.' not in s3_path_value:
             raise ValueError("S3 path must include file extension (e.g., .pdf, .jpg)")
         
-        return v
+        return s3_path_value
     
     class Config:
         json_schema_extra = {

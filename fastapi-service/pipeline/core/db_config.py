@@ -111,10 +111,10 @@ async def check_db_health() -> dict[str, Any]:
             "error": None,
             "latency_ms": round(latency, 2)
         }
-    except Exception as e:
-        logger.error(f"Database health check failed: {e}", exc_info=True)
+    except Exception as health_check_err:
+        logger.error(f"Database health check failed: {health_check_err}", exc_info=True)
         return {
             "healthy": False,
-            "error": str(e),
+            "error": str(health_check_err),
             "latency_ms": None
         }

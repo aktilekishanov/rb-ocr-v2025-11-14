@@ -44,12 +44,12 @@ async def insert_verification_run(final_json: dict[str, Any]) -> bool:
                     f"verdict={final_json.get('rule_verdict')}"
                 )
                 return True
-        except Exception as e:
+        except Exception as insert_err:
             backoff = INITIAL_BACKOFF * (2 ** (attempt - 1))
             logger.warning(
                 f"❌ DB INSERT FAILED attempt {attempt}/{MAX_RETRIES} | "
                 f"run_id={final_json.get('run_id')} | "
-                f"error={str(e)} | "
+                f"error={str(insert_err)} | "
                 f"retrying in {backoff}s...",
                 exc_info=True
             )
@@ -60,7 +60,7 @@ async def insert_verification_run(final_json: dict[str, Any]) -> bool:
                 logger.error(
                     f"🚨 DB INSERT EXHAUSTED all {MAX_RETRIES} retries | "
                     f"run_id={final_json.get('run_id')} | "
-                    f"final_error={str(e)}",
+                    f"final_error={str(insert_err)}",
                     exc_info=True
                 )
                 return False
@@ -83,11 +83,11 @@ async def _insert_once(final_json: dict[str, Any]) -> bool:
     pool = await get_db_pool()
     
     # Helper to parse ISO timestamp strings to datetime objects
-    def parse_timestamp(ts_str: str | None) -> datetime | None:
-        if not ts_str:
+    def parse_timestamp(timestamp_string: str | None) -> datetime | None:
+        if not timestamp_string:
             return None
         try:
-            return datetime.fromisoformat(ts_str)
+            return datetime.fromisoformat(timestamp_string)
         except (ValueError, AttributeError):
             return None
     

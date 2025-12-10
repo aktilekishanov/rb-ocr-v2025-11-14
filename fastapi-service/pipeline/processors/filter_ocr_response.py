@@ -15,17 +15,17 @@ def filter_ocr_response(obj: dict, output_dir: str, filename: str = OCR_FILTERED
     # Prefer {data: {pages: [...]}} if present
     data = obj.get("data", {}) if isinstance(obj, dict) else {}
     if isinstance(data, dict) and isinstance(data.get("pages"), list):
-        for p in data["pages"]:
-            if isinstance(p, dict):
-                pn = p.get("page_number")
+        for page_data in data["pages"]:
+            if isinstance(page_data, dict):
+                page_number = page_data.get("page_number")
                 try:
-                    pn = int(pn) if pn is not None else None
+                    page_number = int(page_number) if page_number is not None else None
                 except Exception:
-                    pn = None
+                    page_number = None
                 pages.append(
                     {
-                        "page_number": pn,
-                        "text": p.get("text", "") or "",
+                        "page_number": page_number,
+                        "text": page_data.get("text", "") or "",
                     }
                 )
         if all(isinstance(x.get("page_number"), int) for x in pages):
@@ -48,11 +48,11 @@ def filter_ocr_response(obj: dict, output_dir: str, filename: str = OCR_FILTERED
             for b in blocks:
                 if isinstance(b, dict) and b.get("Text"):
                     pages_map[b.get("Page")].append(b.get("Text"))
-        for pn in sorted(k for k in pages_map.keys() if isinstance(k, int)):
+        for page_number in sorted(k for k in pages_map.keys() if isinstance(k, int)):
             pages.append(
                 {
-                    "page_number": pn,
-                    "text": "\n".join(pages_map[pn]).strip(),
+                    "page_number": page_number,
+                    "text": "\n".join(pages_map[page_number]).strip(),
                 }
             )
         if None in pages_map:

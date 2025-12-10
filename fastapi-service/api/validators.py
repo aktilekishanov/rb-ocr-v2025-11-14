@@ -39,7 +39,7 @@ class VerifyRequest(BaseModel):
     
     @field_validator('fio')
     @classmethod
-    def validate_fio(cls, v: str) -> str:
+    def validate_fio(cls, fio_value: str) -> str:
         """Validate FIO format.
         
         Rules:
@@ -48,7 +48,7 @@ class VerifyRequest(BaseModel):
         - Whitespace is normalized
         
         Args:
-            v: FIO string to validate
+            fio_value: FIO string to validate
             
         Returns:
             Normalized FIO string
@@ -56,17 +56,17 @@ class VerifyRequest(BaseModel):
         Raises:
             ValueError: If validation fails
         """
-        if not re.match(r'^[А-Яа-яЁёA-Za-z\s\-]+$', v):
+        if not re.match(r'^[А-Яа-яЁёA-Za-z\s\-]+$', fio_value):
             raise ValueError(
                 "FIO must contain only letters (Cyrillic or Latin), spaces, and hyphens"
             )
         
-        v = re.sub(r'\s+', ' ', v.strip())
+        fio_value = re.sub(r'\s+', ' ', fio_value.strip())
         
-        if len(v.split()) < 2:
+        if len(fio_value.split()) < 2:
             raise ValueError("FIO must contain at least first and last name (minimum 2 words)")
         
-        return v
+        return fio_value
 
 
 

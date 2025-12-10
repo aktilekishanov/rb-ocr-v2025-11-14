@@ -70,19 +70,19 @@ def compute_valid_until(
     ptype = policy.get("type")
     if ptype == "fixed_days":
         days = int(policy.get("days", DEFAULT_FIXED_DAYS))
-        d = parse_doc_date(doc_date_str)
-        if d is None:
+        parsed_date = parse_doc_date(doc_date_str)
+        if parsed_date is None:
             return None, "fixed_days", days, "DOC_DATE_MISSING_OR_INVALID"
-        d_local = d.replace(tzinfo=tz)
-        return d_local + timedelta(days=days), "fixed_days", days, None
+        localized_date = parsed_date.replace(tzinfo=tz)
+        return localized_date + timedelta(days=days), "fixed_days", days, None
     else:
         # Fallback to default fixed days
         days = DEFAULT_FIXED_DAYS
-        d = parse_doc_date(doc_date_str)
-        if d is None:
+        parsed_date = parse_doc_date(doc_date_str)
+        if parsed_date is None:
             return None, "fixed_days", days, "DOC_DATE_MISSING_OR_INVALID"
-        d_local = d.replace(tzinfo=tz)
-        return d_local + timedelta(days=days), "fixed_days", days, None
+        localized_date = parsed_date.replace(tzinfo=tz)
+        return localized_date + timedelta(days=days), "fixed_days", days, None
 
 
 def is_within_validity(

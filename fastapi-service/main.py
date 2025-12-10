@@ -77,7 +77,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     first_error = exc.errors()[0] if exc.errors() else {}
     
     loc = first_error.get("loc", [])
-    field = ".".join(str(l) for l in loc if l != "body")
+    field = ".".join(str(loc_part) for loc_part in loc if loc_part != "body")
     msg = first_error.get("msg", "Validation failed")
     detail = f"{field}: {msg}" if field else msg
     
@@ -138,10 +138,10 @@ async def verify_document(
     verify_req = VerifyRequest(fio=fio)
     
     # Save uploaded file to temp location  
-    with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file.filename}") as tmp:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file.filename}") as temp_file:
         content = await file.read()
-        tmp.write(content)
-        tmp_path = tmp.name
+        temp_file.write(content)
+        tmp_path = temp_file.name
     
     try:
         result = await processor.process_document(

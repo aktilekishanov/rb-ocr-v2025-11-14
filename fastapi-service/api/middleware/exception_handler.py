@@ -79,7 +79,7 @@ async def exception_middleware(request: Request, call_next):
         first_error = errors[0] if errors else {}
         
         loc = first_error.get("loc", [])
-        field = ".".join(str(l) for l in loc if l != "body")
+        field = ".".join(str(loc_part) for loc_part in loc if loc_part != "body")
         msg = first_error.get("msg", "Validation failed")
         
         problem = ProblemDetail(
