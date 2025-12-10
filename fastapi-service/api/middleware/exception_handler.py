@@ -33,18 +33,15 @@ async def exception_middleware(request: Request, call_next):
         Response with trace ID header
     """
     
-    # Generate trace ID for this request
     trace_id = str(uuid.uuid4())
     request.state.trace_id = trace_id
     
     try:
         response = await call_next(request)
-        # Add trace ID to successful responses
         response.headers["X-Trace-ID"] = trace_id
         return response
     
     except BaseError as e:
-        # Custom application errors
         logger.error(
             "Application error occurred",
             extra={
@@ -69,7 +66,6 @@ async def exception_middleware(request: Request, call_next):
         )
     
     except PydanticCoreValidationError as e:
-        # Pydantic core validation errors (from field_validator in Depends())
         logger.warning(
             "Pydantic validation failed",
             extra={
@@ -79,15 +75,11 @@ async def exception_middleware(request: Request, call_next):
             }
         )
         
-        # Extract first error for detail message
         errors = e.errors() if hasattr(e, 'errors') else []
         first_error = errors[0] if errors else {}
         
-        # Build field path from loc
         loc = first_error.get("loc", [])
         field = ".".join(str(l) for l in loc if l != "body")
-        
-        # Get error message  
         msg = first_error.get("msg", "Validation failed")
         
         problem = ProblemDetail(
@@ -109,7 +101,6 @@ async def exception_middleware(request: Request, call_next):
         )
     
     except RequestValidationError as e:
-        # Pydantic validation errors
         logger.warning(
             "Request validation failed",
             extra={
@@ -119,7 +110,6 @@ async def exception_middleware(request: Request, call_next):
             }
         )
         
-        # Extract first error for detail message
         first_error = e.errors()[0] if e.errors() else {}
         field = ".".join(str(loc) for loc in first_error.get("loc", []))
         msg = first_error.get("msg", "Validation failed")
@@ -143,7 +133,6 @@ async def exception_middleware(request: Request, call_next):
         )
     
     except StarletteHTTPException as e:
-        # Starlette/FastAPI HTTP exceptions
         logger.warning(
             "HTTP exception",
             extra={
@@ -172,7 +161,6 @@ async def exception_middleware(request: Request, call_next):
         )
     
     except Exception as e:
-        # Unexpected errors - sanitize message for security
         logger.exception(
             "Unexpected error occurred",
             extra={
@@ -182,7 +170,6 @@ async def exception_middleware(request: Request, call_next):
             }
         )
         
-        # Don't leak internal details in production
         problem = ProblemDetail(
             type="/errors/INTERNAL_SERVER_ERROR",
             title="Internal server error",

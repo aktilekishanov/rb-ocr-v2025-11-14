@@ -1,12 +1,15 @@
 """FastAPI application entry point."""
-from fastapi import FastAPI, File, UploadFile, Form, Request, status, Depends
+from fastapi import FastAPI, File, UploadFile, Form, Request, status, Depends, BackgroundTasks
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 from api.schemas import VerifyResponse, KafkaEventRequest, KafkaEventQueryParams, ProblemDetail
 from api.validators import validate_upload_file, VerifyRequest
 from api.middleware.exception_handler import exception_middleware
 from services.processor import DocumentProcessor
 from pipeline.core.logging_config import configure_structured_logging
+from pipeline.utils.db_client import insert_verification_run
+from pipeline.utils.io_utils import read_json as util_read_json
 from minio.error import S3Error  # Keep this import as it's used in /v1/kafka/verify
 import tempfile
 import logging
@@ -14,9 +17,29 @@ import time
 import uuid
 import os
 
-# Configure structured JSON logging for production
 configure_structured_logging(level="INFO", json_format=True)
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager for startup/shutdown tasks."""
+    from pipeline.core.db_config import get_db_pool, close_db_pool
+    
+    logger.info("🚀 Initializing database connection pool...")
+    try:
+        pool = await get_db_pool()
+        logger.info("✅ Database pool ready")
+    except Exception as e:
+        logger.error(f"⚠️  Database pool initialization failed: {e}", exc_info=True)
+        logger.warning("Application will continue without database connectivity")
+    
+    yield
+    
+    logger.info("🛑 Closing database connection pool...")
+    await close_db_pool()
+    logger.info("✅ Database pool closed")
+
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -26,9 +49,9 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     root_path="/rb-ocr/api",
+    lifespan=lifespan,
 )
 
-# Register global exception middleware
 app.middleware("http")(exception_middleware)
 
 
@@ -46,32 +69,23 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     Returns:
         JSONResponse with RFC 7807 ProblemDetail format
     """
-    # Get or generate trace_id
     trace_id = getattr(request.state, "trace_id", None)
     if not trace_id:
         trace_id = str(uuid.uuid4())
         request.state.trace_id = trace_id
     
-    # Extract first validation error for main message
     first_error = exc.errors()[0] if exc.errors() else {}
     
-    # Build field path (e.g., "body.request_id" -> "request_id")
     loc = first_error.get("loc", [])
     field = ".".join(str(l) for l in loc if l != "body")
-    
-    # Get error message
     msg = first_error.get("msg", "Validation failed")
-    
-    # Construct detail message
     detail = f"{field}: {msg}" if field else msg
     
-    # Log validation error
     logger.warning(
         f"Validation error: {detail}",
         extra={"trace_id": trace_id, "field": field, "error_type": first_error.get("type")}
     )
     
-    # Create RFC 7807 Problem Details response
     problem = ProblemDetail(
         type="/errors/VALIDATION_ERROR",
         title="Request validation failed",
@@ -91,13 +105,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-# Initialize processor
 processor = DocumentProcessor(runs_root="./runs")
 
 
 @app.post("/v1/verify", response_model=VerifyResponse)
 async def verify_document(
     request: Request,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(..., description="PDF or image file"),
     fio: str = Form(..., description="Applicant's full name (FIO)"),
 ):
@@ -130,11 +144,10 @@ async def verify_document(
         tmp_path = tmp.name
     
     try:
-        # Process document - exceptions handled by middleware
         result = await processor.process_document(
             file_path=tmp_path,
             original_filename=file.filename,
-            fio=verify_req.fio,  # Use validated FIO
+            fio=verify_req.fio,
         )
         
         processing_time = time.time() - start_time
@@ -151,10 +164,18 @@ async def verify_document(
             f"[RESPONSE] run_id={response.run_id}, verdict={response.verdict}, time={response.processing_time_seconds}s",
             extra={"trace_id": trace_id, "run_id": response.run_id}
         )
+        
+        try:
+            final_json_path = result.get("final_result_path")
+            if final_json_path:
+                final_json = util_read_json(final_json_path)
+                background_tasks.add_task(insert_verification_run, final_json)
+        except Exception as e:
+            logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
+        
         return response
     
     finally:
-        # Cleanup temp file
         try:
             os.unlink(tmp_path)
         except Exception:
@@ -169,6 +190,30 @@ async def health_check():
         "service": "rb-ocr-api",
         "version": "1.0.0"
     }
+
+
+@app.get("/health/db")
+async def health_check_database():
+    """Check database connectivity and latency."""
+    from pipeline.core.db_config import check_db_health
+    
+    health = await check_db_health()
+    
+    if health["healthy"]:
+        return {
+            "status": "healthy",
+            "database": "postgresql",
+            "latency_ms": health["latency_ms"]
+        }
+    else:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "database": "postgresql",
+                "error": health["error"]
+            }
+        )
 
 
 @app.get("/")
@@ -295,6 +340,7 @@ async def root():
 )
 async def verify_kafka_event(
     request: Request,
+    background_tasks: BackgroundTasks,
     event: KafkaEventRequest,
 ):
     """
@@ -335,11 +381,9 @@ async def verify_kafka_event(
         "external_second_name": event.second_name,
     }
     
-    # Process Kafka event (downloads from S3 and runs pipeline)
-    # Exceptions are now handled by the global middleware
     result = await processor.process_kafka_event(
         event_data=event.dict(),
-        external_metadata=external_data,  # NEW
+        external_metadata=external_data,
     )
     
     processing_time = time.time() - start_time
@@ -358,6 +402,16 @@ async def verify_kafka_event(
         f"time={response.processing_time_seconds}s",
         extra={"trace_id": trace_id, "request_id": event.request_id, "run_id": response.run_id}
     )
+    
+    # Queue database insert as background task
+    try:
+        final_json_path = result.get("final_result_path")
+        if final_json_path:
+            final_json = util_read_json(final_json_path)
+            background_tasks.add_task(insert_verification_run, final_json)
+    except Exception as e:
+        logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
+    
     return response
 
 
@@ -480,6 +534,7 @@ async def verify_kafka_event(
 )
 async def verify_kafka_event_get(
     request: Request,
+    background_tasks: BackgroundTasks,
     params: KafkaEventQueryParams = Depends(),
 ):
     """
@@ -537,5 +592,15 @@ async def verify_kafka_event_get(
         f"time={response.processing_time_seconds}s",
         extra={"trace_id": trace_id, "request_id": params.request_id, "run_id": response.run_id}
     )
+    
+    # Queue database insert as background task
+    try:
+        final_json_path = result.get("final_result_path")
+        if final_json_path:
+            final_json = util_read_json(final_json_path)
+            background_tasks.add_task(insert_verification_run, final_json)
+    except Exception as e:
+        logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
+    
     return response
 

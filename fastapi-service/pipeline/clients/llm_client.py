@@ -72,29 +72,25 @@ def call_fortebank_llm(
             raw = response.read().decode("utf-8")
             return raw
     except urllib.error.HTTPError as e:
-        # Read error body for context
         error_body = ""
         try:
             error_body = e.read().decode("utf-8")
         except Exception:
             pass
         
-        # Use new exception hierarchy for proper HTTP status code mapping
         from pipeline.core.exceptions import ExternalServiceError
         
         if e.code == 429:
-            # Rate limiting
             raise ExternalServiceError(
                 service_name="LLM",
                 error_type="rate_limit",
                 details={
                     "http_code": e.code,
                     "reason": str(e.reason),
-                    "body": error_body[:200],  # Truncate body
+                    "body": error_body[:200],
                 }
             ) from e
         elif 500 <= e.code < 600:
-            # Server error
             raise ExternalServiceError(
                 service_name="LLM",
                 error_type="error",
@@ -105,13 +101,11 @@ def call_fortebank_llm(
                 }
             ) from e
         else:
-            # Client error (4xx)
             raise LLMHTTPError(
                 f"HTTP {e.code} error from LLM endpoint: {e.reason}. Body: {error_body[:200]}"
             ) from e
             
     except urllib.error.URLError as e:
-        # Network/connection errors
         from pipeline.core.exceptions import ExternalServiceError
         
         error_str = str(e.reason) if hasattr(e, 'reason') else str(e)
@@ -130,7 +124,6 @@ def call_fortebank_llm(
             ) from e
             
     except ssl.SSLError as e:
-        # SSL errors
         from pipeline.core.exceptions import ExternalServiceError
         raise ExternalServiceError(
             service_name="LLM",
@@ -144,7 +137,6 @@ def call_fortebank_llm(
         ) from e
         
     except Exception as e:
-        # Catch-all for unexpected errors
         raise LLMClientError(
             f"Unexpected error calling LLM endpoint: {e}"
         ) from e

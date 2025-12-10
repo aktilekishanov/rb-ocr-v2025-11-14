@@ -20,7 +20,6 @@ class DocumentProcessor:
         self.runs_root = Path(runs_root)
         self.runs_root.mkdir(parents=True, exist_ok=True)
         
-        # Initialize S3 client
         self.s3_client = S3Client(
             endpoint=s3_config.ENDPOINT,
             access_key=s3_config.ACCESS_KEY,
@@ -50,10 +49,8 @@ class DocumentProcessor:
         """
         logger.info(f"Processing: {original_filename} for FIO: {fio}")
         
-        # Ensure runs_root exists (in case it was manually deleted)
         self.runs_root.mkdir(parents=True, exist_ok=True)
         
-        # Run pipeline in executor (it's synchronous)
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             None,
@@ -68,11 +65,11 @@ class DocumentProcessor:
         
         logger.info(f"Pipeline complete. run_id={result.get('run_id')}, verdict={result.get('verdict')}")
         
-        # Return only API-relevant fields
         return {
             "run_id": result.get("run_id"),
             "verdict": result.get("verdict", False),
             "errors": result.get("errors", []),
+            "final_result_path": result.get("final_result_path"),
         }
     
     async def process_kafka_event(
@@ -98,7 +95,6 @@ class DocumentProcessor:
         
         logger.info(f"Processing Kafka event: request_id={request_id}, s3_path={s3_path}")
         
-        # 1. Build FIO from name components
         fio = build_fio(
             last_name=event_data["last_name"],
             first_name=event_data["first_name"],
@@ -106,15 +102,12 @@ class DocumentProcessor:
         )
         logger.info(f"Built FIO: {fio}")
         
-        # 3. Download file from S3
-        # Extract filename from s3_path or use default
         filename = os.path.basename(s3_path) or f"document_{request_id}.pdf"
         
         with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as tmp:
             tmp_path = tmp.name
         
         try:
-            # Download from S3
             loop = asyncio.get_event_loop()
             s3_metadata = await loop.run_in_executor(
                 None,
@@ -123,12 +116,9 @@ class DocumentProcessor:
             
             logger.info(f"Downloaded from S3: {s3_path} -> {tmp_path} ({s3_metadata['size']} bytes)")
             
-            # 4. Run pipeline with external metadata
-            # IMPORTANT: run_pipeline is sync but contains async code (ask_tesseract)
-            # Must run in executor to avoid event loop conflict
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
-                None,  # Use default ThreadPoolExecutor
+                None,
                 lambda: run_pipeline(
                     fio=fio,
                     source_file_path=tmp_path,
@@ -145,9 +135,9 @@ class DocumentProcessor:
                 "run_id": result.get("run_id"),
                 "verdict": result.get("verdict", False),
                 "errors": result.get("errors", []),
+                "final_result_path": result.get("final_result_path"),
             }
         finally:
-            # Cleanup temp file
             try:
                 os.remove(tmp_path)
                 logger.debug(f"Removed temp file: {tmp_path}")

@@ -12,7 +12,6 @@ import re
 from pipeline.core.exceptions import ValidationError, PayloadTooLargeError
 
 
-# File upload configuration
 ALLOWED_CONTENT_TYPES: Set[str] = {
     "application/pdf",
     "image/jpeg",
@@ -57,16 +56,13 @@ class VerifyRequest(BaseModel):
         Raises:
             ValueError: If validation fails
         """
-        # Allow Cyrillic, Latin, spaces, hyphens
         if not re.match(r'^[А-Яа-яЁёA-Za-z\s\-]+$', v):
             raise ValueError(
                 "FIO must contain only letters (Cyrillic or Latin), spaces, and hyphens"
             )
         
-        # Remove excessive whitespace and normalize
         v = re.sub(r'\s+', ' ', v.strip())
         
-        # Must have at least 2 words
         if len(v.split()) < 2:
             raise ValueError("FIO must contain at least first and last name (minimum 2 words)")
         
@@ -89,7 +85,6 @@ async def validate_upload_file(file: UploadFile) -> None:
         ValidationError: If content type is invalid
         PayloadTooLargeError: If file exceeds size limit
     """
-    # Check content type
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise ValidationError(
             message=f"Invalid file type: {file.content_type}",
@@ -100,10 +95,9 @@ async def validate_upload_file(file: UploadFile) -> None:
             }
         )
     
-    # Check file size
-    file.file.seek(0, 2)  # Seek to end
+    file.file.seek(0, 2)
     file_size = file.file.tell()
-    file.file.seek(0)  # Reset to beginning
+    file.file.seek(0)
     
     if file_size > MAX_FILE_SIZE_BYTES:
         actual_size_mb = file_size / 1024 / 1024
@@ -112,7 +106,6 @@ async def validate_upload_file(file: UploadFile) -> None:
             actual_size_mb=actual_size_mb
         )
     
-    # File size of 0 is also invalid
     if file_size == 0:
         raise ValidationError(
             message="File is empty (0 bytes)",

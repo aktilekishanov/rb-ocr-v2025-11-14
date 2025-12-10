@@ -46,7 +46,6 @@ VALIDATION_MESSAGES = {
 def _norm_text(s: Any) -> str:
     if not isinstance(s, str):
         return ""
-    # collapse whitespace and lowercase
     s = re.sub(r"\s+", " ", s.strip())
     return s.casefold()
 
@@ -137,8 +136,6 @@ def validate_run(
         "doc_type": doc_type_data.get("detected_doc_types", [None])[0] if isinstance(doc_type_data.get("detected_doc_types"), list) else None,
     }
 
-    # Use passed FIO (from context, not file)
-    # Extract the "fio" value from the dict (orchestrator passes {"fio": "..."})
     fio_meta_raw = user_provided_fio.get("fio") if isinstance(user_provided_fio, dict) else user_provided_fio
 
     fio_meta = _norm_text(fio_meta_raw)
@@ -166,8 +163,6 @@ def validate_run(
     except Exception:
         pass
 
-    # Deterministic FIO matching using explicit variants (FULL/LF/FP/L_I/L_IO)
-    # Pass raw values; matcher performs its own normalization.
     try:
         fio_match_bool, fio_diag = det_fio_match(
             fio_meta_raw or "",
@@ -185,7 +180,6 @@ def validate_run(
             "meta_parse": None,
             "fuzzy_score": None,
         }
-    # doc_type_known is supplied by the doc type checker via merged.json
     if isinstance(doc_type_known_raw, bool):
         doc_type_known = doc_type_known_raw
     else:

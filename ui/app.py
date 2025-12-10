@@ -11,13 +11,10 @@ import requests
 import streamlit as st
 from typing import Optional
 
-# --- Configuration ---
-# Use the Nginx domain URL for production/dev environment
 DEFAULT_API_URL = "http://rb-ocr-dev-app-uv01.fortebank.com/rb-ocr/api"
 API_URL = os.getenv("FASTAPI_SERVICE_URL", DEFAULT_API_URL)
 VERIFY_ENDPOINT = f"{API_URL}/v1/verify"
 
-# --- Page setup ---
 st.set_page_config(page_title="[DEV] RB Loan Deferment IDP", layout="centered")
 
 st.write("")
@@ -41,7 +38,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- Inputs outside form for dynamic selects ---
 fio = st.text_input("ФИО", placeholder="Иванов Иван Иванович")
 
 
@@ -86,7 +82,6 @@ def call_verify_api(file_bytes: bytes, filename: str, fio: Optional[str]) -> dic
         raise Exception(f"Ошибка API ({e.response.status_code}): {error_detail}")
 
 
-# --- Upload form ---
 with st.form("upload_form", clear_on_submit=False):
     uploaded_file = st.file_uploader(
         "Выберите документ",
@@ -100,7 +95,6 @@ if submitted:
     if not uploaded_file:
         st.warning("Пожалуйста, прикрепите файл")
     else:
-        # Call API
         with st.spinner("Обрабатываем документ через API..."):
             try:
                 result = call_verify_api(
@@ -112,7 +106,6 @@ if submitted:
                 st.error(f"❌ Ошибка при обработке документа: {str(e)}")
                 st.stop()
 
-        # Display Results
         st.subheader("Результат проверки")
         
         run_id = result.get("run_id", "N/A")
@@ -148,10 +141,8 @@ if submitted:
         if errors:
             st.markdown("**Ошибки**")
             for e in errors:
-                # Handle both string errors and dict errors
                 if isinstance(e, dict):
                     code = e.get("code")
-                    # Use mapped message if available, otherwise use API message or code
                     msg = ERROR_MESSAGES.get(code) or e.get("message") or str(code)
                     st.write(f"- {msg}")
                 else:

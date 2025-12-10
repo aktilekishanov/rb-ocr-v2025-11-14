@@ -10,10 +10,14 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./logs:/app/logs
       - ./runs:/app/runs
     environment:
       - TZ=Asia/Almaty
+      - DB_HOST=10.0.94.227
+      - DB_PORT=5432
+      - DB_NAME=rbocrdb
+      - DB_USER=rbocruser
+      - DB_PASSWORD=rbocruserDEV
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

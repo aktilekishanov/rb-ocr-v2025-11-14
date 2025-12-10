@@ -1,26 +1,43 @@
-idp-loan-deferment-service/idp-loan-deferment-service-amd64.tar
-.extra
-.packages
+# Runtime directories
+runs/
+logs/
 
-# Python
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
 
-# OS
+# Environment
+.env
+.env.local
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+*.tmp
 .DS_Store
 
-.main-dev-old
-.main-dev-backup-20251126
-
+idp-loan-deferment-service/idp-loan-deferment-service-amd64.tar
 .packages
+
 .vscode-server
-.main-dev-copy
 *.tar.gz
 
-.main-dev
-.main
-.rb-ocr-dependencies
-
-.reference 
 .extra

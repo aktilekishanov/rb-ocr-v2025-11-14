@@ -35,13 +35,11 @@ class S3Client:
         self.bucket = bucket
         self.endpoint = endpoint
         
-        # Create HTTP client with SSL configuration
         http_client = urllib3.PoolManager(
             cert_reqs=ssl.CERT_NONE,
             assert_hostname=False
         )
         
-        # Initialize MinIO client
         self.client = Minio(
             endpoint,
             access_key=access_key,

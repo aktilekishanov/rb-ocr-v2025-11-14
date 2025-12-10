@@ -20,6 +20,9 @@ COPY . .
 # Create runs directory with group-writable permissions
 RUN mkdir -p /app/runs && chmod 775 /app/runs
 
+# Copy database setup script (for offline server deployment)
+COPY create_db_table.py /app/db_setup.py
+
 # Copy and setup entrypoint script
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
