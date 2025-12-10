@@ -13,6 +13,7 @@ from typing import Any
 from datetime import datetime
 
 from pipeline.core.db_config import get_db_pool
+from pipeline.core.config import BACKOFF_MULTIPLIER
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ async def insert_verification_run(final_json: dict[str, Any]) -> bool:
                 )
                 return True
         except Exception as insert_err:
-            backoff = INITIAL_BACKOFF * (2 ** (attempt - 1))
+            backoff = INITIAL_BACKOFF * (BACKOFF_MULTIPLIER ** (attempt - 1))
             logger.warning(
                 f"❌ DB INSERT FAILED attempt {attempt}/{MAX_RETRIES} | "
                 f"run_id={final_json.get('run_id')} | "

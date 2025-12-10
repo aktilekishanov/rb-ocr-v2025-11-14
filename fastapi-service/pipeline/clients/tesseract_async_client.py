@@ -8,7 +8,12 @@ from typing import Any
 
 import httpx
 
-from pipeline.core.config import OCR_RAW
+from pipeline.core.config import OCR_FILTERED
+from pipeline.core.config import (
+    OCR_POLL_INTERVAL_SECONDS,
+    OCR_TIMEOUT_SECONDS,
+    OCR_CLIENT_TIMEOUT_SECONDS,
+)
 from pipeline.processors.image_to_pdf_converter import convert_image_to_pdf
 
 
@@ -83,9 +88,9 @@ async def ask_tesseract_async(
     *,
     base_url: str = "https://ocr.fortebank.com/v2",
     wait: bool = True,
-    poll_interval: float = 2.0,
-    timeout: float = 300.0,
-    client_timeout: float = 60.0,
+    poll_interval: float = OCR_POLL_INTERVAL_SECONDS,
+    timeout: float = OCR_TIMEOUT_SECONDS,
+    client_timeout: float = OCR_CLIENT_TIMEOUT_SECONDS,
     verify: bool = True,
 ) -> dict[str, Any]:
     async with TesseractAsyncClient(
@@ -125,9 +130,9 @@ def ask_tesseract(
     *,
     base_url: str = "https://ocr.fortebank.com/v2",
     verify: bool = True,
-    poll_interval: float = 2.0,
-    timeout: float = 300.0,
-    client_timeout: float = 60.0,
+    poll_interval: float = OCR_POLL_INTERVAL_SECONDS,
+    timeout: float = OCR_TIMEOUT_SECONDS,
+    client_timeout: float = OCR_CLIENT_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
     work_path = pdf_path
     converted_pdf: str | None = None

@@ -2,6 +2,12 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 
+from pipeline.core.config import (
+    IIN_LENGTH,
+    NAME_MAX_LENGTH,
+    S3_PATH_MAX_LENGTH,
+)
+
 
 class ProblemDetail(BaseModel):
     """RFC 7807 Problem Details for HTTP APIs.
@@ -81,11 +87,11 @@ class KafkaEventQueryParams(BaseModel):
     - name fields: Length constraints to prevent abuse
     """
     request_id: int = Field(..., gt=0, description="Unique request identifier from Kafka event (must be positive)")
-    s3_path: str = Field(..., min_length=1, max_length=1024, description="S3 object key/path to the document")
-    iin: str = Field(..., min_length=12, max_length=12, description="Individual Identification Number (exactly 12 digits, can start with 0)")
-    first_name: str = Field(..., min_length=1, max_length=100, description="Applicant's first name")
-    last_name: str = Field(..., min_length=1, max_length=100, description="Applicant's last name")
-    second_name: str | None = Field(None, max_length=100, description="Applicant's patronymic/middle name (optional)")
+    s3_path: str = Field(..., min_length=1, max_length=S3_PATH_MAX_LENGTH, description="S3 object key/path to the document")
+    iin: str = Field(..., min_length=IIN_LENGTH, max_length=IIN_LENGTH, description="Individual Identification Number (exactly 12 digits, can start with 0)")
+    first_name: str = Field(..., min_length=1, max_length=NAME_MAX_LENGTH, description="Applicant's first name")
+    last_name: str = Field(..., min_length=1, max_length=NAME_MAX_LENGTH, description="Applicant's last name")
+    second_name: str | None = Field(None, max_length=NAME_MAX_LENGTH, description="Applicant's patronymic/middle name (optional)")
     
     @field_validator('iin')
     @classmethod
@@ -97,8 +103,8 @@ class KafkaEventQueryParams(BaseModel):
         """
         if not iin_value.isdigit():
             raise ValueError("IIN must contain only digits")
-        if len(iin_value) != 12:
-            raise ValueError(f"IIN must be exactly 12 digits, got {len(iin_value)}")
+        if len(iin_value) != IIN_LENGTH:
+            raise ValueError(f"IIN must be exactly {IIN_LENGTH} digits, got {len(iin_value)}")
         return iin_value
     
     @field_validator('s3_path')
@@ -230,11 +236,11 @@ class KafkaEventRequest(BaseModel):
     - name fields: Length constraints to prevent abuse
     """
     request_id: int = Field(..., gt=0, description="Unique request identifier from Kafka event (must be positive)")
-    s3_path: str = Field(..., min_length=1, max_length=1024, description="S3 object key/path to the document")
-    iin: str = Field(..., min_length=12, max_length=12, description="Individual Identification Number (exactly 12 digits, can start with 0)")
-    first_name: str = Field(..., min_length=1, max_length=100, description="Applicant's first name")
-    last_name: str = Field(..., min_length=1, max_length=100, description="Applicant's last name")
-    second_name: str | None = Field(None, max_length=100, description="Applicant's patronymic/middle name (optional)")
+    s3_path: str = Field(..., min_length=1, max_length=S3_PATH_MAX_LENGTH, description="S3 object key/path to the document")
+    iin: str = Field(..., min_length=IIN_LENGTH, max_length=IIN_LENGTH, description="Individual Identification Number (exactly 12 digits, can start with 0)")
+    first_name: str = Field(..., min_length=1, max_length=NAME_MAX_LENGTH, description="Applicant's first name")
+    last_name: str = Field(..., min_length=1, max_length=NAME_MAX_LENGTH, description="Applicant's last name")
+    second_name: str | None = Field(None, max_length=NAME_MAX_LENGTH, description="Applicant's patronymic/middle name (optional)")
     
     @field_validator('iin')
     @classmethod

@@ -12,6 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic_core import ValidationError as PydanticCoreValidationError
 import logging
 import uuid
+from http import HTTPStatus
 
 from pipeline.core.exceptions import BaseError
 from api.schemas import ProblemDetail
@@ -148,7 +149,7 @@ async def exception_middleware(request: Request, call_next):
             status=e.status_code,
             detail=e.detail,
             code=f"HTTP_{e.status_code}",
-            category="server_error" if e.status_code >= 500 else "client_error",
+            category="server_error" if e.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR else "client_error",
             retryable=False,
             instance=request.url.path,
             trace_id=trace_id,

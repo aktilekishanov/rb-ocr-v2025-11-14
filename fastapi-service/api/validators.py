@@ -8,8 +8,15 @@ from pydantic import BaseModel, Field, field_validator
 from fastapi import UploadFile
 from typing import Optional, Set
 import re
+import os
 
 from pipeline.core.exceptions import ValidationError, PayloadTooLargeError
+from pipeline.core.config import (
+    FIO_MIN_LENGTH,
+    FIO_MAX_LENGTH,
+    FIO_MIN_WORDS,
+    MAX_FILE_SIZE_MB,
+)
 
 
 ALLOWED_CONTENT_TYPES: Set[str] = {
@@ -20,9 +27,6 @@ ALLOWED_CONTENT_TYPES: Set[str] = {
     "image/jpg",
 }
 
-MAX_FILE_SIZE_MB = 50
-MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
-
 
 class VerifyRequest(BaseModel):
     """Validated request for document verification.
@@ -32,8 +36,8 @@ class VerifyRequest(BaseModel):
     
     fio: str = Field(
         ...,
-        min_length=3,
-        max_length=200,
+        min_length=FIO_MIN_LENGTH,
+        max_length=FIO_MAX_LENGTH,
         description="Full name of applicant (Cyrillic or Latin)"
     )
     
@@ -63,7 +67,7 @@ class VerifyRequest(BaseModel):
         
         fio_value = re.sub(r'\s+', ' ', fio_value.strip())
         
-        if len(fio_value.split()) < 2:
+        if len(fio_value.split()) < FIO_MIN_WORDS:
             raise ValueError("FIO must contain at least first and last name (minimum 2 words)")
         
         return fio_value
@@ -95,12 +99,12 @@ async def validate_upload_file(file: UploadFile) -> None:
             }
         )
     
-    file.file.seek(0, 2)
+    file.file.seek(0, os.SEEK_END)
     file_size = file.file.tell()
-    file.file.seek(0)
+    file.file.seek(0, os.SEEK_SET)
     
-    if file_size > MAX_FILE_SIZE_BYTES:
-        actual_size_mb = file_size / 1024 / 1024
+    if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
+        actual_size_mb = file_size / (1024 * 1024)
         raise PayloadTooLargeError(
             max_size_mb=MAX_FILE_SIZE_MB,
             actual_size_mb=actual_size_mb

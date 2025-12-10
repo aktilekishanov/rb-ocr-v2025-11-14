@@ -1,18 +1,8 @@
-"""Pipeline configuration constants."""
+# =============================================================================
+# Artifact Filenames
+# =============================================================================
 
-import os
-
-
-def _env_bool(name: str, default: bool = False) -> bool:
-    value_str = str(os.getenv(name, str(default))).strip().lower()
-    return value_str in ("1", "true", "t", "yes", "y", "on")
-
-
-# LLM inference settings
-DEFAULT_TEMPERATURE = 0.00001
-
-# Artifact filenames - sequential numbered for clarity
-INPUT_FILE = "00_input{ext}"  # Template, ext filled at runtime
+INPUT_FILE = "00_input{ext}"        # Template, ext filled at runtime
 
 OCR_RAW = "01_ocr.raw.json"
 OCR_FILTERED = "01_ocr.filtered.json"
@@ -25,14 +15,71 @@ LLM_EXT_FILTERED = "03_llm_ext.filtered.json"
 
 FINAL_JSON = "04_final.json"
 
-# Global settings
-MAX_PDF_PAGES = 3
-UTC_OFFSET_HOURS = 5
+
+# =============================================================================
+# Pipeline Settings
+# =============================================================================
+
+MAX_PDF_PAGES = 3               # Maximum pages to process per document
+UTC_OFFSET_HOURS = 5            # Kazakhstan timezone (UTC+5)
+DEFAULT_TEMPERATURE = 0.00001   # LLM temperature for deterministic output
 
 
+# =============================================================================
+# External Service Timeouts (seconds)
+# =============================================================================
+
+LLM_REQUEST_TIMEOUT_SECONDS = 30      # Timeout for LLM API requests
+OCR_POLL_INTERVAL_SECONDS = 2.0       # Polling interval for OCR status checks
+OCR_TIMEOUT_SECONDS = 300             # Total timeout for OCR processing (5 min)
+OCR_CLIENT_TIMEOUT_SECONDS = 60       # HTTP client timeout for OCR requests
+
+
+# =============================================================================
+# Retry Configuration
+# =============================================================================
+
+BACKOFF_MULTIPLIER = 2             # Exponential backoff multiplier for retries
+
+
+# =============================================================================
+# Validation Limits
+# =============================================================================
+
+# File upload
+MAX_FILE_SIZE_MB = 50           # Maximum file size for uploads
+
+# FIO (Full Name)
+FIO_MIN_LENGTH = 3              # Minimum characters
+FIO_MAX_LENGTH = 200            # Maximum characters
+FIO_MIN_WORDS = 2               # Minimum words required (first + last name)
+
+# IIN (Individual Identification Number)
+IIN_LENGTH = 12                 # Exactly 12 digits required
+
+# Name fields
+NAME_MAX_LENGTH = 100           # Maximum length for first/last/second name
+
+# S3 paths
+S3_PATH_MAX_LENGTH = 1024       # Maximum length for S3 object paths
+
+# =============================================================================
+# Error Handling
+# =============================================================================
+
+ERROR_BODY_MAX_CHARS = 200       # Maximum chars from error response bodies
+
+
+# =============================================================================
 # S3/MinIO Configuration
+# =============================================================================
+
 class S3Config:
-    """S3/MinIO hardcoded configuration for DEV."""
+    """S3/MinIO configuration for DEV environment.
+    
+    WARNING: Hardcoded credentials for development only.
+    Production should use environment variables or secrets management.
+    """
     
     ENDPOINT: str = "s3-dev.fortebank.com:9443"
     ACCESS_KEY: str = "fyz13d2czRW7l4sBW8gD"
@@ -41,5 +88,4 @@ class S3Config:
     SECURE: bool = True
 
 
-# Export singleton config
-s3_config = S3Config()
+s3_config = S3Config()            # Export singleton instance

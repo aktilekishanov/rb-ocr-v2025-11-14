@@ -7,6 +7,12 @@ import ssl
 import urllib.request
 import urllib.error
 from typing import Optional
+from http import HTTPStatus
+
+from pipeline.core.config import (
+    LLM_REQUEST_TIMEOUT_SECONDS,
+    ERROR_BODY_MAX_CHARS,
+)
 
 
 class LLMClientError(Exception):
@@ -68,7 +74,7 @@ def call_fortebank_llm(
     context = ssl._create_unverified_context()
 
     try:
-        with urllib.request.urlopen(req, context=context, timeout=30) as response:
+        with urllib.request.urlopen(req, context=context, timeout=LLM_REQUEST_TIMEOUT_SECONDS) as response:
             raw = response.read().decode("utf-8")
             return raw
     except urllib.error.HTTPError as http_err:
@@ -80,24 +86,24 @@ def call_fortebank_llm(
         
         from pipeline.core.exceptions import ExternalServiceError
         
-        if http_err.code == 429:
+        if http_err.code == HTTPStatus.TOO_MANY_REQUESTS:
             raise ExternalServiceError(
                 service_name="LLM",
                 error_type="rate_limit",
                 details={
                     "http_code": http_err.code,
                     "reason": str(http_err.reason),
-                    "body": error_body[:200],
+                    "body": error_body[:ERROR_BODY_MAX_CHARS],
                 }
             ) from http_err
-        elif 500 <= http_err.code < 600:
+        elif HTTPStatus.INTERNAL_SERVER_ERROR <= http_err.code < 600:
             raise ExternalServiceError(
                 service_name="LLM",
                 error_type="error",
                 details={
                     "http_code": http_err.code,
                     "reason": str(http_err.reason),
-                    "body": error_body[:200],
+                    "body": error_body[:ERROR_BODY_MAX_CHARS],
                 }
             ) from http_err
         else:
@@ -114,7 +120,7 @@ def call_fortebank_llm(
             raise ExternalServiceError(
                 service_name="LLM",
                 error_type="timeout",
-                details={"reason": error_str, "timeout_seconds": 30}
+                details={"reason": error_str, "timeout_seconds": LLM_REQUEST_TIMEOUT_SECONDS}
             ) from url_err
         else:
             raise ExternalServiceError(
