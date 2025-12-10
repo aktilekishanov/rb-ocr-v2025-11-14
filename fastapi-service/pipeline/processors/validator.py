@@ -2,7 +2,7 @@
 Run-level validation of merged extractor/doc-type results.
 
 Computes FIO match, doc-type knowledge, doc-date validity, and single-doc
-constraints, producing a structured ``validation.json`` plus diagnostics 
+constraints, producing a structured ``validation.json`` plus diagnostics
 used by the UI.
 """
 
@@ -110,14 +110,14 @@ def latin_to_cyrillic(text: str) -> str:
 
 def validate_run(
     user_provided_fio: dict[str, str | None],
-    extractor_data: dict[str, Any],     # Pass data directly (not file path)
-    doc_type_data: dict[str, Any],      # Pass data directly (not file path)
+    extractor_data: dict[str, Any],  # Pass data directly (not file path)
+    doc_type_data: dict[str, Any],  # Pass data directly (not file path)
 ) -> dict[str, Any]:
     """
     Validate a single run using in-memory data only.
-    
+
     Optimized to eliminate file I/O - receives parsed data from context.
-    
+
     Args:
       user_provided_fio: FIO from user/Kafka (passed via PipelineContext)
       extractor_data: Parsed extractor results from context (no file read)
@@ -133,10 +133,16 @@ def validate_run(
         "doc_date": extractor_data.get("doc_date"),
         "single_doc_type": doc_type_data.get("single_doc_type"),
         "doc_type_known": doc_type_data.get("doc_type_known"),
-        "doc_type": doc_type_data.get("detected_doc_types", [None])[0] if isinstance(doc_type_data.get("detected_doc_types"), list) else None,
+        "doc_type": doc_type_data.get("detected_doc_types", [None])[0]
+        if isinstance(doc_type_data.get("detected_doc_types"), list)
+        else None,
     }
 
-    fio_meta_raw = user_provided_fio.get("fio") if isinstance(user_provided_fio, dict) else user_provided_fio
+    fio_meta_raw = (
+        user_provided_fio.get("fio")
+        if isinstance(user_provided_fio, dict)
+        else user_provided_fio
+    )
 
     fio_meta = _norm_text(fio_meta_raw)
 
@@ -150,8 +156,12 @@ def validate_run(
     doc_class_raw = merged.get("doc_type") if isinstance(merged, dict) else None
     doc_class = _norm_text(doc_class_raw)
     doc_date_raw = merged.get("doc_date") if isinstance(merged, dict) else None
-    single_doc_type_raw = merged.get("single_doc_type") if isinstance(merged, dict) else None
-    doc_type_known_raw = merged.get("doc_type_known") if isinstance(merged, dict) else None
+    single_doc_type_raw = (
+        merged.get("single_doc_type") if isinstance(merged, dict) else None
+    )
+    doc_type_known_raw = (
+        merged.get("doc_type_known") if isinstance(merged, dict) else None
+    )
 
     score_before = None
     score_after = None
@@ -237,7 +247,9 @@ def validate_run(
         "checks": checks,
         "fio_details": fio_diag,
         "messages": {
-            key: VALIDATION_MESSAGES["checks"][key].get(check_result) if check_result is not None else None
+            key: VALIDATION_MESSAGES["checks"][key].get(check_result)
+            if check_result is not None
+            else None
             for key, check_result in checks.items()
         },
     }

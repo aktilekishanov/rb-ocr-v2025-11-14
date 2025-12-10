@@ -84,7 +84,7 @@ ADD_COMMENTS_SQL = [
 async def setup_database():
     """Connect to PostgreSQL and create table with indexes."""
     print(f"🔧 Connecting to {DB_HOST}:{DB_PORT}/{DB_NAME}...")
-    
+
     try:
         # Create connection
         conn = await asyncpg.connect(
@@ -93,28 +93,28 @@ async def setup_database():
             database=DB_NAME,
             user=DB_USER,
             password=DB_PASSWORD,
-            timeout=10.0
+            timeout=10.0,
         )
-        
+
         print("✅ Connected successfully!")
-        
+
         # Create table
         print("\n📋 Creating table 'verification_runs'...")
         await conn.execute(CREATE_TABLE_SQL)
         print("✅ Table created!")
-        
+
         # Create indexes
         print("\n🔍 Creating indexes...")
         for idx_sql in CREATE_INDEXES_SQL:
             await conn.execute(idx_sql)
             print(f"  ✅ {idx_sql.split('idx_')[1].split(' ')[0]}")
-        
+
         # Add comments
         print("\n💬 Adding comments...")
         for comment_sql in ADD_COMMENTS_SQL:
             await conn.execute(comment_sql)
         print("✅ Comments added!")
-        
+
         # Verify table
         print("\n🔍 Verifying table structure...")
         columns = await conn.fetch("""
@@ -123,20 +123,20 @@ async def setup_database():
             WHERE table_name = 'verification_runs'
             ORDER BY ordinal_position
         """)
-        
+
         print(f"\n📊 Table has {len(columns)} columns:")
         for col in columns[:5]:  # Show first 5
             print(f"  - {col['column_name']}: {col['data_type']}")
         print(f"  ... and {len(columns) - 5} more columns")
-        
+
         # Check record count
         count = await conn.fetchval("SELECT COUNT(*) FROM verification_runs")
         print(f"\n📈 Current records: {count}")
-        
+
         # Close connection
         await conn.close()
         print("\n🎉 Database setup complete!")
-        
+
     except Exception as e:
         print(f"\n❌ Error: {e}")
         raise

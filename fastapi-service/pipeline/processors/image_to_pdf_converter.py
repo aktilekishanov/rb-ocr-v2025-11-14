@@ -66,7 +66,13 @@ def convert_image_to_pdf(
             frames[0].save(out_pdf, format="PDF", resolution=300.0)
         else:
             first, rest = frames[0], frames[1:]
-            first.save(out_pdf, format="PDF", resolution=300.0, save_all=True, append_images=rest)
+            first.save(
+                out_pdf,
+                format="PDF",
+                resolution=300.0,
+                save_all=True,
+                append_images=rest,
+            )
         for frame in frames:
             try:
                 frame.close()

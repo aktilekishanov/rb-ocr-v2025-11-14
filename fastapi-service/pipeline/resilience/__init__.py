@@ -5,7 +5,11 @@ This module provides patterns for handling failures in distributed systems:
 - Retry Logic: Handles transient errors
 """
 
-from pipeline.resilience.circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitState
+from pipeline.resilience.circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CircuitState,
+)
 from pipeline.resilience.retry import retry_with_backoff, RetryConfig
 
 __all__ = [

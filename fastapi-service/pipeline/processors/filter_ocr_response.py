@@ -1,7 +1,9 @@
 from pipeline.core.config import OCR_FILTERED
 
 
-def filter_ocr_response(obj: dict, output_dir: str, filename: str = OCR_FILTERED) -> str:
+def filter_ocr_response(
+    obj: dict, output_dir: str, filename: str = OCR_FILTERED
+) -> str:
     """
     Build per-page text and save to JSON file {"pages": [{"page_number", "text"}, ...]}.
     Returns the full path to the saved file.
@@ -36,7 +38,9 @@ def filter_ocr_response(obj: dict, output_dir: str, filename: str = OCR_FILTERED
 
         blocks = obj["Blocks"]
         pages_map = defaultdict(list)
-        has_line = any(isinstance(b, dict) and b.get("BlockType") == "LINE" for b in blocks)
+        has_line = any(
+            isinstance(b, dict) and b.get("BlockType") == "LINE" for b in blocks
+        )
         if has_line:
             for b in blocks:
                 if isinstance(b, dict) and b.get("BlockType") == "LINE":

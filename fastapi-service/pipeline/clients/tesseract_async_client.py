@@ -40,7 +40,9 @@ class TesseractAsyncClient:
 
     async def upload(self, file_path: str) -> dict[str, Any]:
         if self._client is None:
-            raise RuntimeError("Client is not started. Use 'async with TesseractAsyncClient()'.")
+            raise RuntimeError(
+                "Client is not started. Use 'async with TesseractAsyncClient()'."
+            )
         url = f"{self.base_url}/pdf"
         filename = os.path.basename(file_path)
         with open(file_path, "rb") as file_obj:
@@ -51,7 +53,9 @@ class TesseractAsyncClient:
 
     async def get_result(self, file_id: str) -> dict[str, Any]:
         if self._client is None:
-            raise RuntimeError("Client is not started. Use 'async with TesseractAsyncClient()'.")
+            raise RuntimeError(
+                "Client is not started. Use 'async with TesseractAsyncClient()'."
+            )
         url = f"{self.base_url}/result/{file_id}"
         resp = await self._client.get(url)
         resp.raise_for_status()
@@ -64,7 +68,9 @@ class TesseractAsyncClient:
         timeout: float = 300.0,
     ) -> dict[str, Any]:
         if self._client is None:
-            raise RuntimeError("Client is not started. Use 'async with TesseractAsyncClient()'.")
+            raise RuntimeError(
+                "Client is not started. Use 'async with TesseractAsyncClient()'."
+            )
         loop = asyncio.get_event_loop()
         deadline = loop.time() + timeout
         last: dict[str, Any] = {}
@@ -141,7 +147,8 @@ def ask_tesseract(
     file_extension = os.path.splitext(pdf_path)[1].lower()
     is_image = bool(
         (mime_type and isinstance(mime_type, str) and mime_type.startswith("image/"))
-        or file_extension in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"}
+        or file_extension
+        in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"}
     )
     if not is_pdf and is_image:
         base_dir = os.path.dirname(pdf_path)
@@ -201,7 +208,9 @@ def ask_tesseract(
             os.makedirs(output_dir, exist_ok=True)
             raw_path = os.path.join(output_dir, OCR_RAW)
             with open(raw_path, "w", encoding="utf-8") as f:
-                json.dump(raw_obj if isinstance(raw_obj, dict) else {}, f, ensure_ascii=False)
+                json.dump(
+                    raw_obj if isinstance(raw_obj, dict) else {}, f, ensure_ascii=False
+                )
         except Exception:
             raw_path = None
 

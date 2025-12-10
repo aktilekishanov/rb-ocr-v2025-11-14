@@ -17,7 +17,12 @@ from pipeline.clients.llm_client import ask_llm
 
 
 def _prompt_path(version: str = "v1") -> Path:
-    return Path(__file__).resolve().parents[1] / "prompts" / "dtc" / f"{version}.prompt.txt"
+    return (
+        Path(__file__).resolve().parents[1]
+        / "prompts"
+        / "dtc"
+        / f"{version}.prompt.txt"
+    )
 
 
 def _load_prompt(version: str = "v1") -> str:

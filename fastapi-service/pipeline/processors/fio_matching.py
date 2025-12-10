@@ -146,7 +146,11 @@ def parse_fio(raw: str) -> NameParts:
                 "қызы",
             )
             if any(t2.endswith(s) for s in patro_suf):
-                last, first, patro = None, _strip_trailing_dot(t1), _strip_trailing_dot(t2)
+                last, first, patro = (
+                    None,
+                    _strip_trailing_dot(t1),
+                    _strip_trailing_dot(t2),
+                )
             else:
                 last, first = t1, _strip_trailing_dot(t2)
     else:  # len == 1
@@ -259,7 +263,11 @@ def equals_canonical(a: str, b: str) -> bool:
 
 
 def fio_match(
-    app_fio: str, doc_fio: str, *, enable_fuzzy_fallback: bool = True, fuzzy_threshold: int = 85
+    app_fio: str,
+    doc_fio: str,
+    *,
+    enable_fuzzy_fallback: bool = True,
+    fuzzy_threshold: int = 85,
 ) -> tuple[bool, dict[str, object]]:
     """Return (match_bool, diagnostics).
     Strategy: parse BOTH application and document FIO, build canonical variants for both, and
@@ -344,7 +352,11 @@ def fio_match(
             if fuzz is not None:
                 s2 = int(fuzz.token_sort_ratio(app_norm, doc_norm))
             else:
-                s2 = int(round(difflib.SequenceMatcher(None, app_norm, doc_norm).ratio() * 100))
+                s2 = int(
+                    round(
+                        difflib.SequenceMatcher(None, app_norm, doc_norm).ratio() * 100
+                    )
+                )
             fuzzy_score = max(fuzzy_score, s2) if isinstance(fuzzy_score, int) else s2
             if s2 >= fuzzy_threshold:
                 return True, {

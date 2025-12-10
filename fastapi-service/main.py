@@ -1,9 +1,24 @@
 """FastAPI application entry point."""
-from fastapi import FastAPI, File, UploadFile, Form, Request, status, Depends, BackgroundTasks
+
+from fastapi import (
+    FastAPI,
+    File,
+    UploadFile,
+    Form,
+    Request,
+    status,
+    Depends,
+    BackgroundTasks,
+)
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from api.schemas import VerifyResponse, KafkaEventRequest, KafkaEventQueryParams, ProblemDetail
+from api.schemas import (
+    VerifyResponse,
+    KafkaEventRequest,
+    KafkaEventQueryParams,
+    ProblemDetail,
+)
 from api.validators import validate_upload_file, VerifyRequest
 from api.middleware.exception_handler import exception_middleware
 from services.processor import DocumentProcessor
@@ -25,7 +40,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan manager for startup/shutdown tasks."""
     from pipeline.core.db_config import get_db_pool, close_db_pool
-    
+
     logger.info("🚀 Initializing database connection pool...")
     try:
         pool = await get_db_pool()
@@ -33,9 +48,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"⚠️  Database pool initialization failed: {e}", exc_info=True)
         logger.warning("Application will continue without database connectivity")
-    
+
     yield
-    
+
     logger.info("🛑 Closing database connection pool...")
     await close_db_pool()
     logger.info("✅ Database pool closed")
@@ -58,14 +73,14 @@ app.middleware("http")(exception_middleware)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Convert Pydantic validation errors to RFC 7807 Problem Details format.
-    
+
     This handler ensures all validation errors follow the RFC 7807 standard,
     maintaining consistency with other error responses.
-    
+
     Args:
         request: The FastAPI request object
         exc: The Pydantic validation error
-        
+
     Returns:
         JSONResponse with RFC 7807 ProblemDetail format
     """
@@ -73,19 +88,23 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     if not trace_id:
         trace_id = str(uuid.uuid4())
         request.state.trace_id = trace_id
-    
+
     first_error = exc.errors()[0] if exc.errors() else {}
-    
+
     loc = first_error.get("loc", [])
     field = ".".join(str(loc_part) for loc_part in loc if loc_part != "body")
     msg = first_error.get("msg", "Validation failed")
     detail = f"{field}: {msg}" if field else msg
-    
+
     logger.warning(
         f"Validation error: {detail}",
-        extra={"trace_id": trace_id, "field": field, "error_type": first_error.get("type")}
+        extra={
+            "trace_id": trace_id,
+            "field": field,
+            "error_type": first_error.get("type"),
+        },
     )
-    
+
     problem = ProblemDetail(
         type="/errors/VALIDATION_ERROR",
         title="Request validation failed",
@@ -97,11 +116,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         retryable=False,
         trace_id=trace_id,
     )
-    
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=problem.dict(exclude_none=True),
-        headers={"X-Trace-ID": trace_id}
+        headers={"X-Trace-ID": trace_id},
     )
 
 
@@ -117,7 +136,7 @@ async def verify_document(
 ):
     """
     Verify a loan deferment document.
-    
+
     Returns:
     - verdict: True if all checks pass, False otherwise
     - errors: List of failed checks (empty if verdict=True)
@@ -127,31 +146,32 @@ async def verify_document(
     """
     start_time = time.time()
     trace_id = getattr(request.state, "trace_id", None)
-    
+
     logger.info(
-        f"[NEW REQUEST] FIO={fio}, file={file.filename}",
-        extra={"trace_id": trace_id}
+        f"[NEW REQUEST] FIO={fio}, file={file.filename}", extra={"trace_id": trace_id}
     )
-    
+
     # Validate input with new validators
     await validate_upload_file(file)
     verify_req = VerifyRequest(fio=fio)
-    
-    # Save uploaded file to temp location  
-    with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file.filename}") as temp_file:
+
+    # Save uploaded file to temp location
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=f"_{file.filename}"
+    ) as temp_file:
         content = await file.read()
         temp_file.write(content)
         tmp_path = temp_file.name
-    
+
     try:
         result = await processor.process_document(
             file_path=tmp_path,
             original_filename=file.filename,
             fio=verify_req.fio,
         )
-        
+
         processing_time = time.time() - start_time
-        
+
         response = VerifyResponse(
             run_id=result["run_id"],
             verdict=result["verdict"],
@@ -159,12 +179,12 @@ async def verify_document(
             processing_time_seconds=round(processing_time, 2),
             trace_id=trace_id,
         )
-        
+
         logger.info(
             f"[RESPONSE] run_id={response.run_id}, verdict={response.verdict}, time={response.processing_time_seconds}s",
-            extra={"trace_id": trace_id, "run_id": response.run_id}
+            extra={"trace_id": trace_id, "run_id": response.run_id},
         )
-        
+
         try:
             final_json_path = result.get("final_result_path")
             if final_json_path:
@@ -172,9 +192,9 @@ async def verify_document(
                 background_tasks.add_task(insert_verification_run, final_json)
         except Exception as e:
             logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
-        
+
         return response
-    
+
     finally:
         try:
             os.unlink(tmp_path)
@@ -185,25 +205,21 @@ async def verify_document(
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring."""
-    return {
-        "status": "healthy",
-        "service": "rb-ocr-api",
-        "version": "1.0.0"
-    }
+    return {"status": "healthy", "service": "rb-ocr-api", "version": "1.0.0"}
 
 
 @app.get("/health/db")
 async def health_check_database():
     """Check database connectivity and latency."""
     from pipeline.core.db_config import check_db_health
-    
+
     health = await check_db_health()
-    
+
     if health["healthy"]:
         return {
             "status": "healthy",
             "database": "postgresql",
-            "latency_ms": health["latency_ms"]
+            "latency_ms": health["latency_ms"],
         }
     else:
         return JSONResponse(
@@ -211,8 +227,8 @@ async def health_check_database():
             content={
                 "status": "unhealthy",
                 "database": "postgresql",
-                "error": health["error"]
-            }
+                "error": health["error"],
+            },
         )
 
 
@@ -245,8 +261,8 @@ async def root():
                                 "verdict": True,
                                 "errors": [],
                                 "processing_time_seconds": 4.2,
-                                "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                            }
+                                "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                            },
                         },
                         "business_error": {
                             "summary": "Business validation failed",
@@ -255,12 +271,12 @@ async def root():
                                 "verdict": False,
                                 "errors": [{"code": "FIO_MISMATCH"}],
                                 "processing_time_seconds": 4.5,
-                                "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890"
-                            }
-                        }
+                                "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890",
+                            },
+                        },
                     }
                 }
-            }
+            },
         },
         404: {
             "description": "S3 file not found",
@@ -275,10 +291,10 @@ async def root():
                         "code": "RESOURCE_NOT_FOUND",
                         "category": "client_error",
                         "retryable": False,
-                        "trace_id": "c1d2e3f4-g5h6-7890-cdef-gh1234567890"
+                        "trace_id": "c1d2e3f4-g5h6-7890-cdef-gh1234567890",
                     }
                 }
-            }
+            },
         },
         422: {
             "description": "Request validation failed",
@@ -294,10 +310,10 @@ async def root():
                         "code": "VALIDATION_ERROR",
                         "category": "client_error",
                         "retryable": False,
-                        "trace_id": "d1e2f3g4-h5i6-7890-defg-hi1234567890"
+                        "trace_id": "d1e2f3g4-h5i6-7890-defg-hi1234567890",
                     }
                 }
-            }
+            },
         },
         500: {
             "description": "Internal server error",
@@ -313,10 +329,10 @@ async def root():
                         "code": "INTERNAL_SERVER_ERROR",
                         "category": "server_error",
                         "retryable": False,
-                        "trace_id": "e1f2g3h4-i5j6-7890-efgh-ij1234567890"
+                        "trace_id": "e1f2g3h4-i5j6-7890-efgh-ij1234567890",
                     }
                 }
-            }
+            },
         },
         502: {
             "description": "External service error (S3, OCR, LLM)",
@@ -331,12 +347,12 @@ async def root():
                         "code": "S3_ERROR",
                         "category": "server_error",
                         "retryable": True,
-                        "trace_id": "f1g2h3i4-j5k6-7890-fghi-jk1234567890"
+                        "trace_id": "f1g2h3i4-j5k6-7890-fghi-jk1234567890",
                     }
                 }
-            }
-        }
-    }
+            },
+        },
+    },
 )
 async def verify_kafka_event(
     request: Request,
@@ -345,7 +361,7 @@ async def verify_kafka_event(
 ):
     """
     Process a Kafka event for document verification.
-    
+
     This endpoint:
     1. Receives the Kafka event body with S3 file reference
     2. Validates all input fields (request_id, IIN, S3 path, names)
@@ -354,22 +370,22 @@ async def verify_kafka_event(
     5. Downloads the document from S3
     6. Runs the verification pipeline
     7. Returns the same response format as /v1/verify
-    
+
     Args:
         event: Kafka event body containing request_id, s3_path, iin, and name fields
-        
+
     Returns:
         VerifyResponse with run_id, verdict, errors, processing_time_seconds, and trace_id
     """
     start_time = time.time()
     trace_id = getattr(request.state, "trace_id", None)
-    
+
     logger.info(
         f"[NEW KAFKA EVENT] request_id={event.request_id}, "
         f"s3_path={event.s3_path}, iin={event.iin}",
-        extra={"trace_id": trace_id, "request_id": event.request_id}
+        extra={"trace_id": trace_id, "request_id": event.request_id},
     )
-    
+
     # Build external metadata to pass to pipeline
     external_data = {
         "trace_id": trace_id,  # From middleware, for storage in final.json
@@ -380,14 +396,14 @@ async def verify_kafka_event(
         "external_last_name": event.last_name,
         "external_second_name": event.second_name,
     }
-    
+
     result = await processor.process_kafka_event(
         event_data=event.dict(),
         external_metadata=external_data,
     )
-    
+
     processing_time = time.time() - start_time
-    
+
     response = VerifyResponse(
         run_id=result["run_id"],
         verdict=result["verdict"],
@@ -395,14 +411,18 @@ async def verify_kafka_event(
         processing_time_seconds=round(processing_time, 2),
         trace_id=trace_id,
     )
-    
+
     logger.info(
         f"[KAFKA RESPONSE] request_id={event.request_id}, "
         f"run_id={response.run_id}, verdict={response.verdict}, "
         f"time={response.processing_time_seconds}s",
-        extra={"trace_id": trace_id, "request_id": event.request_id, "run_id": response.run_id}
+        extra={
+            "trace_id": trace_id,
+            "request_id": event.request_id,
+            "run_id": response.run_id,
+        },
     )
-    
+
     # Queue database insert as background task
     try:
         final_json_path = result.get("final_result_path")
@@ -411,7 +431,7 @@ async def verify_kafka_event(
             background_tasks.add_task(insert_verification_run, final_json)
     except Exception as e:
         logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
-    
+
     return response
 
 
@@ -420,6 +440,7 @@ async def verify_kafka_event(
 # This violates REST principles where GET should be idempotent and safe.
 # Best Practice: Use POST /v1/kafka/verify instead.
 # ============================================================================
+
 
 @app.get(
     "/v1/kafka/verify-get",
@@ -439,8 +460,8 @@ async def verify_kafka_event(
                                 "verdict": True,
                                 "errors": [],
                                 "processing_time_seconds": 4.2,
-                                "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                            }
+                                "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                            },
                         },
                         "business_error": {
                             "summary": "Business validation failed",
@@ -449,12 +470,12 @@ async def verify_kafka_event(
                                 "verdict": False,
                                 "errors": [{"code": "FIO_MISMATCH"}],
                                 "processing_time_seconds": 4.5,
-                                "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890"
-                            }
-                        }
+                                "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890",
+                            },
+                        },
                     }
                 }
-            }
+            },
         },
         404: {
             "description": "S3 file not found",
@@ -469,10 +490,10 @@ async def verify_kafka_event(
                         "code": "RESOURCE_NOT_FOUND",
                         "category": "client_error",
                         "retryable": False,
-                        "trace_id": "c1d2e3f4-g5h6-7890-cdef-gh1234567890"
+                        "trace_id": "c1d2e3f4-g5h6-7890-cdef-gh1234567890",
                     }
                 }
-            }
+            },
         },
         422: {
             "description": "Request validation failed",
@@ -488,10 +509,10 @@ async def verify_kafka_event(
                         "code": "VALIDATION_ERROR",
                         "category": "client_error",
                         "retryable": False,
-                        "trace_id": "d1e2f3g4-h5i6-7890-defg-hi1234567890"
+                        "trace_id": "d1e2f3g4-h5i6-7890-defg-hi1234567890",
                     }
                 }
-            }
+            },
         },
         500: {
             "description": "Internal server error",
@@ -507,10 +528,10 @@ async def verify_kafka_event(
                         "code": "INTERNAL_SERVER_ERROR",
                         "category": "server_error",
                         "retryable": False,
-                        "trace_id": "e1f2g3h4-i5j6-7890-efgh-ij1234567890"
+                        "trace_id": "e1f2g3h4-i5j6-7890-efgh-ij1234567890",
                     }
                 }
-            }
+            },
         },
         502: {
             "description": "External service error (S3, OCR, LLM)",
@@ -525,12 +546,12 @@ async def verify_kafka_event(
                         "code": "S3_ERROR",
                         "category": "server_error",
                         "retryable": True,
-                        "trace_id": "f1g2h3i4-j5k6-7890-fghi-jk1234567890"
+                        "trace_id": "f1g2h3i4-j5k6-7890-fghi-jk1234567890",
                     }
                 }
-            }
-        }
-    }
+            },
+        },
+    },
 )
 async def verify_kafka_event_get(
     request: Request,
@@ -539,7 +560,7 @@ async def verify_kafka_event_get(
 ):
     """
     Process a Kafka event for document verification using query parameters.
-    
+
     This is a GET equivalent of the POST /v1/kafka/verify endpoint.
 
     This endpoint:
@@ -550,34 +571,34 @@ async def verify_kafka_event_get(
     5. Downloads the document from S3
     6. Runs the verification pipeline
     7. Returns the same response format as /v1/verify
-    
+
     Args:
         request: FastAPI request object
         params: Query parameters validated as KafkaEventQueryParams
-        
+
     Returns:
         VerifyResponse with run_id, verdict, errors, processing_time_seconds, and trace_id
     """
     start_time = time.time()
     trace_id = getattr(request.state, "trace_id", None)
-    
+
     logger.info(
         f"[NEW KAFKA EVENT (GET)] request_id={params.request_id}, "
         f"s3_path={params.s3_path}, iin={params.iin}",
-        extra={"trace_id": trace_id, "request_id": params.request_id}
+        extra={"trace_id": trace_id, "request_id": params.request_id},
     )
-    
+
     # Convert query params to dict for processor
     event_data = params.dict()
-    
+
     # Process Kafka event (downloads from S3 and runs pipeline)
     # Exceptions are now handled by the global middleware
     result = await processor.process_kafka_event(
         event_data=event_data,
     )
-    
+
     processing_time = time.time() - start_time
-    
+
     response = VerifyResponse(
         run_id=result["run_id"],
         verdict=result["verdict"],
@@ -585,14 +606,18 @@ async def verify_kafka_event_get(
         processing_time_seconds=round(processing_time, 2),
         trace_id=trace_id,
     )
-    
+
     logger.info(
         f"[KAFKA RESPONSE (GET)] request_id={params.request_id}, "
         f"run_id={response.run_id}, verdict={response.verdict}, "
         f"time={response.processing_time_seconds}s",
-        extra={"trace_id": trace_id, "request_id": params.request_id, "run_id": response.run_id}
+        extra={
+            "trace_id": trace_id,
+            "request_id": params.request_id,
+            "run_id": response.run_id,
+        },
     )
-    
+
     # Queue database insert as background task
     try:
         final_json_path = result.get("final_result_path")
@@ -601,6 +626,5 @@ async def verify_kafka_event_get(
             background_tasks.add_task(insert_verification_run, final_json)
     except Exception as e:
         logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
-    
-    return response
 
+    return response

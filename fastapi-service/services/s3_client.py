@@ -1,4 +1,5 @@
 """S3 client for MinIO operations."""
+
 from minio import Minio
 from minio.error import S3Error
 from pathlib import Path
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class S3Client:
     """Client for interacting with MinIO S3 storage."""
-    
+
     def __init__(
         self,
         endpoint: str,
@@ -24,7 +25,7 @@ class S3Client:
     ):
         """
         Initialize S3 client.
-        
+
         Args:
             endpoint: S3 endpoint (e.g., "s3-dev.fortebank.com:9443")
             access_key: S3 access key
@@ -34,31 +35,30 @@ class S3Client:
         """
         self.bucket = bucket
         self.endpoint = endpoint
-        
+
         http_client = urllib3.PoolManager(
-            cert_reqs=ssl.CERT_NONE,
-            assert_hostname=False
+            cert_reqs=ssl.CERT_NONE, assert_hostname=False
         )
-        
+
         self.client = Minio(
             endpoint,
             access_key=access_key,
             secret_key=secret_key,
             secure=secure,
             region="random-region",
-            http_client=http_client
+            http_client=http_client,
         )
-        
+
         logger.info(f"S3Client initialized: endpoint={endpoint}, bucket={bucket}")
-    
+
     def download_file(self, object_key: str, destination_path: str) -> dict:
         """
         Download a file from S3.
-        
+
         Args:
             object_key: S3 object key/path
             destination_path: Local file path to save the downloaded file
-            
+
         Returns:
             dict with metadata: {
                 "size": int,
@@ -66,7 +66,7 @@ class S3Client:
                 "etag": str,
                 "local_path": str
             }
-            
+
         Raises:
             ResourceNotFoundError: If S3 object not found (404)
             ExternalServiceError: If S3 operation fails
@@ -78,34 +78,33 @@ class S3Client:
                 f"Found S3 object: key={object_key}, "
                 f"size={stat.size} bytes, content_type={stat.content_type}"
             )
-            
+
             # Download file
             response = self.client.get_object(self.bucket, object_key)
             file_data = response.read()
             response.close()
             response.release_conn()
-            
+
             # Save to local file
             Path(destination_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(destination_path, 'wb') as f:
+            with open(destination_path, "wb") as f:
                 f.write(file_data)
-            
+
             logger.info(f"Downloaded S3 file to: {destination_path}")
-            
+
             return {
                 "size": len(file_data),
                 "content_type": stat.content_type,
                 "etag": stat.etag,
                 "local_path": destination_path,
             }
-            
+
         except S3Error as e:
             # Check if it's a "file not found" error
             if e.code == "NoSuchKey":
                 logger.warning(f"S3 object not found: {object_key}")
                 raise ResourceNotFoundError(
-                    resource_type="S3 object",
-                    resource_id=object_key
+                    resource_type="S3 object", resource_id=object_key
                 )
             else:
                 # Other S3 errors (permission denied, etc.)
@@ -113,12 +112,12 @@ class S3Client:
                 raise ExternalServiceError(
                     service_name="S3",
                     error_type="error",
-                    details={"object_key": object_key, "error_code": e.code}
+                    details={"object_key": object_key, "error_code": e.code},
                 )
         except Exception as e:
             logger.error(f"Unexpected error downloading {object_key}: {e}")
             raise ExternalServiceError(
                 service_name="S3",
                 error_type="error",
-                details={"object_key": object_key}
+                details={"object_key": object_key},
             )

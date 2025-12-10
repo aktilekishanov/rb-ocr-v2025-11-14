@@ -53,17 +53,19 @@ _pool: Optional[asyncpg.Pool] = None
 
 async def get_db_pool() -> asyncpg.Pool:
     """Get or create the global database connection pool.
-    
+
     Returns:
         asyncpg.Pool: The connection pool instance.
-        
+
     Raises:
         Exception: If pool creation fails.
     """
     global _pool
-    
+
     if _pool is None:
-        logger.info(f"Creating database connection pool to {DB_HOST}:{DB_PORT}/{DB_NAME}")
+        logger.info(
+            f"Creating database connection pool to {DB_HOST}:{DB_PORT}/{DB_NAME}"
+        )
         _pool = await asyncpg.create_pool(
             host=DB_HOST,
             port=DB_PORT,
@@ -74,15 +76,17 @@ async def get_db_pool() -> asyncpg.Pool:
             max_size=DB_POOL_MAX_SIZE,
             timeout=DB_POOL_TIMEOUT,
         )
-        logger.info(f"Database pool created (min={DB_POOL_MIN_SIZE}, max={DB_POOL_MAX_SIZE})")
-    
+        logger.info(
+            f"Database pool created (min={DB_POOL_MIN_SIZE}, max={DB_POOL_MAX_SIZE})"
+        )
+
     return _pool
 
 
 async def close_db_pool() -> None:
     """Close the database connection pool gracefully."""
     global _pool
-    
+
     if _pool is not None:
         logger.info("Closing database connection pool")
         await _pool.close()
@@ -92,29 +96,21 @@ async def close_db_pool() -> None:
 
 async def check_db_health() -> dict[str, Any]:
     """Check database connectivity and return health status.
-    
+
     Returns:
         dict with keys: healthy (bool), error (str|None), latency_ms (float|None)
     """
     import time
-    
+
     try:
         pool = await get_db_pool()
         start = time.time()
-        
+
         async with pool.acquire() as conn:
             await conn.fetchval("SELECT 1")
-        
+
         latency = (time.time() - start) * 1000
-        return {
-            "healthy": True,
-            "error": None,
-            "latency_ms": round(latency, 2)
-        }
+        return {"healthy": True, "error": None, "latency_ms": round(latency, 2)}
     except Exception as health_check_err:
         logger.error(f"Database health check failed: {health_check_err}", exc_info=True)
-        return {
-            "healthy": False,
-            "error": str(health_check_err),
-            "latency_ms": None
-        }
+        return {"healthy": False, "error": str(health_check_err), "latency_ms": None}

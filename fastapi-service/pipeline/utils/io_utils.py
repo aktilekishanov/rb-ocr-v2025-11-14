@@ -100,15 +100,15 @@ def copy_file(src: str | Path, dst: str | Path) -> Path:
 def build_fio(last_name: str, first_name: str, second_name: str | None = None) -> str:
     """
     Build Full Name (FIO) from components.
-    
+
     Args:
         last_name: Last name (фамилия)
         first_name: First name (имя)
         second_name: Patronymic/middle name (отчество), optional
-        
+
     Returns:
         Full name string, e.g., "Иванов Иван Иванович" or "Иванов Иван"
-        
+
     Example:
         >>> build_fio("Иванов", "Иван", "Иванович")
         "Иванов Иван Иванович"

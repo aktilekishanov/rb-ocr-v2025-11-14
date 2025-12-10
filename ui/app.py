@@ -19,7 +19,9 @@ st.set_page_config(page_title="[DEV] RB Loan Deferment IDP", layout="centered")
 
 st.write("")
 st.title("[DEV] RB Loan Deferment IDP")
-st.write("Загрузите один файл для распознавания (OCR (Tesseract async, Dev-OCR) & LLM (DMZ))")
+st.write(
+    "Загрузите один файл для распознавания (OCR (Tesseract async, Dev-OCR) & LLM (DMZ))"
+)
 
 # --- Simple CSS tweaks ---
 st.markdown(
@@ -44,39 +46,43 @@ fio = st.text_input("ФИО", placeholder="Иванов Иван Иванови�
 def call_verify_api(file_bytes: bytes, filename: str, fio: Optional[str]) -> dict:
     """
     Call the FastAPI /v1/verify endpoint.
-    
+
     Args:
         file_bytes: Content of the uploaded file
         filename: Original filename
         fio: Full name (optional)
-    
+
     Returns:
         dict: API response with run_id, verdict, errors, processing_time_seconds
-    
+
     Raises:
         requests.HTTPError: If API call fails
         requests.ConnectionError: If cannot connect to API
     """
     files = {"file": (filename, file_bytes, "application/octet-stream")}
     data = {"fio": fio or ""}
-    
+
     try:
         response = requests.post(
             VERIFY_ENDPOINT,
             files=files,
             data=data,
-            timeout=120  # 2 minutes timeout for OCR processing
+            timeout=120,  # 2 minutes timeout for OCR processing
         )
         response.raise_for_status()
         return response.json()
     except requests.exceptions.ConnectionError:
-        raise Exception(f"Не удалось подключиться к API по адресу {VERIFY_ENDPOINT}. Проверьте, запущен ли сервис.")
+        raise Exception(
+            f"Не удалось подключиться к API по адресу {VERIFY_ENDPOINT}. Проверьте, запущен ли сервис."
+        )
     except requests.exceptions.Timeout:
-        raise Exception("Превышено время ожидания ответа от API (120 сек). Сервис перегружен или документ слишком большой.")
+        raise Exception(
+            "Превышено время ожидания ответа от API (120 сек). Сервис перегружен или документ слишком большой."
+        )
     except requests.exceptions.HTTPError as e:
         error_detail = "Unknown error"
         try:
-            error_detail = e.response.json().get('detail', e.response.text)
+            error_detail = e.response.json().get("detail", e.response.text)
         except Exception:
             error_detail = e.response.text
         raise Exception(f"Ошибка API ({e.response.status_code}): {error_detail}")
@@ -100,14 +106,14 @@ if submitted:
                 result = call_verify_api(
                     file_bytes=uploaded_file.getvalue(),
                     filename=uploaded_file.name,
-                    fio=fio or None
+                    fio=fio or None,
                 )
             except Exception as e:
                 st.error(f"❌ Ошибка при обработке документа: {str(e)}")
                 st.stop()
 
         st.subheader("Результат проверки")
-        
+
         run_id = result.get("run_id", "N/A")
         verdict = bool(result.get("verdict", False))
         errors = result.get("errors", []) or []
@@ -135,7 +141,7 @@ if submitted:
             "OCR_FAILED": "Ошибка распознавания текста",
             "LLM_FAILED": "Ошибка обработки LLM",
             "NO_FILE": "Файл не загружен",
-            "INVALID_FILE": "Некорректный формат файла"
+            "INVALID_FILE": "Некорректный формат файла",
         }
 
         if errors:
@@ -147,4 +153,3 @@ if submitted:
                     st.write(f"- {msg}")
                 else:
                     st.write(f"- {str(e)}")
-

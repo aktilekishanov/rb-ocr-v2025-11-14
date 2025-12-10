@@ -12,21 +12,22 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class ErrorSpec:
     """Specification for a single error type."""
+
     code: str
-    message_ru: str              # Russian message for UI
-    category: str                # "client_error" or "server_error"
-    retryable: bool              # True if request can be retried
+    message_ru: str  # Russian message for UI
+    category: str  # "client_error" or "server_error"
+    retryable: bool  # True if request can be retried
 
 
 class ErrorCode(Enum):
     """Centralized error code registry.
-    
+
     Single source of truth for all error specifications.
     Usage:
         error_spec = ErrorCode.get_spec("OCR_FAILED")
         print(error_spec.message_ru, error_spec.category, error_spec.retryable)
     """
-    
+
     # ========================================
     # CLIENT ERRORS (not retryable)
     # ========================================
@@ -48,7 +49,7 @@ class ErrorCode(Enum):
         "client_error",
         False,
     )
-    
+
     # ========================================
     # SERVER ERRORS (retryable)
     # ========================================
@@ -112,7 +113,7 @@ class ErrorCode(Enum):
         "server_error",
         False,  # Usually indicates bug, not transient
     )
-    
+
     # ========================================
     # BUSINESS RULE ERRORS (not used in fail_and_finalize)
     # ========================================
@@ -146,7 +147,7 @@ class ErrorCode(Enum):
         "client_error",
         False,
     )
-    
+
     # ========================================
     # FALLBACK
     # ========================================
@@ -156,11 +157,11 @@ class ErrorCode(Enum):
         "server_error",
         False,
     )
-    
+
     @classmethod
     def get_spec(cls, code: str) -> ErrorSpec:
         """Get error specification by code string.
-        
+
         Returns:
             ErrorSpec with category, message, and retryability.
             Returns default spec for unknown codes.

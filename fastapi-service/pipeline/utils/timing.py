@@ -16,7 +16,7 @@ class StageTimers:
     """
     Accumulate elapsed time per logical stage name.
 
-    Use `timer(name)` as a context manager around stage blocks; 
+    Use `timer(name)` as a context manager around stage blocks;
     each exit adds the elapsed seconds to `totals[name]`.
     """
 
