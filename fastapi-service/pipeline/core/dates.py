@@ -11,16 +11,16 @@ from typing import Any
 
 def parse_iso_timestamp(timestamp_string: str | None) -> datetime | None:
     """Parse ISO format timestamp string.
-    
+
     Handles ISO 8601 format timestamps commonly used for system timestamps
     (e.g., "2025-12-10T14:30:00+05:00", "2025-12-10T09:30:00Z").
-    
+
     Args:
         timestamp_string: ISO format timestamp string, or None
-        
+
     Returns:
         datetime object or None if parsing fails or input is None
-        
+
     Example:
         >>> parse_iso_timestamp("2025-12-10T14:30:00+05:00")
         datetime.datetime(2025, 12, 10, 14, 30, tzinfo=...)

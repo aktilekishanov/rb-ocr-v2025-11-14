@@ -132,7 +132,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-
 # ============================================================================
 # Shared Endpoint Helper Functions
 # ============================================================================

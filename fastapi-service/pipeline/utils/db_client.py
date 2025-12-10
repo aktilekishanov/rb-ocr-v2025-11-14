@@ -10,7 +10,6 @@ import asyncio
 import logging
 import json
 from typing import Any
-from datetime import datetime
 
 from pipeline.core.db_config import get_db_pool
 from pipeline.core.config import BACKOFF_MULTIPLIER

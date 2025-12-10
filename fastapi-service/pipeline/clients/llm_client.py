@@ -18,20 +18,16 @@ class LLMClientError(Exception):
     """Base exception for LLM client errors."""
 
 
-
 class LLMNetworkError(LLMClientError):
     """Raised when network/connection errors occur."""
-
 
 
 class LLMHTTPError(LLMClientError):
     """Raised when HTTP errors occur (4xx, 5xx)."""
 
 
-
 class LLMResponseError(LLMClientError):
     """Raised when response parsing fails."""
-
 
 
 def call_fortebank_llm(

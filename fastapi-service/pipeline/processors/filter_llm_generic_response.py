@@ -50,18 +50,18 @@ def _extract_from_openai_like(obj: dict[str, Any]) -> dict[str, Any] | None:
 
 def _parse_llm_response(raw: str) -> dict[str, Any]:
     """Parse raw LLM output into filtered JSON dict.
-    
+
     Strategy per line:
       1) If dict: try to extract OpenAI-like inner JSON (choices[0].message.content).
       2) If dict: else use the dict as-is (skipping provider prompt-echo dicts).
       3) If string: try to parse it as JSON dict or nested JSON string.
-    
+
     The first successful dict is returned. If none is found, an empty object
     is returned instead.
-    
+
     Args:
         raw: Raw LLM response string (may be multi-line JSONL)
-        
+
     Returns:
         Filtered dict extracted from response, or empty dict if none found
     """
@@ -103,18 +103,18 @@ def _parse_llm_response(raw: str) -> dict[str, Any]:
 
 def filter_llm_generic_response(input_path: str, output_dir: str, filename: str) -> str:
     """Filter raw LLM output into a single JSON dict.
-    
+
     Reads raw LLM response from file, parses it to extract usable JSON,
     and writes the filtered result to output file.
-    
+
     This is where provider-specific envelope differences are normalized
     before we validate into typed DTO models.
-    
+
     Args:
         input_path: Path to raw LLM response file
         output_dir: Directory to write filtered output
         filename: Name of output file
-        
+
     Returns:
         Full path to the written filtered file
     """

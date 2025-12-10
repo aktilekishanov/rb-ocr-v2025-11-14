@@ -1,5 +1,4 @@
 import asyncio
-import json
 import mimetypes
 import os
 from typing import Any
@@ -23,10 +22,10 @@ from pipeline.utils.io_utils import write_json
 
 def _detect_file_type(pdf_path: str) -> tuple[bool, bool]:
     """Detect if file is PDF or image.
-    
+
     Args:
         pdf_path: Path to file to check
-        
+
     Returns:
         Tuple of (is_pdf, is_image)
     """
@@ -41,14 +40,16 @@ def _detect_file_type(pdf_path: str) -> tuple[bool, bool]:
     return is_pdf, is_image
 
 
-def _convert_if_needed(pdf_path: str, is_pdf: bool, is_image: bool) -> tuple[str, str | None]:
+def _convert_if_needed(
+    pdf_path: str, is_pdf: bool, is_image: bool
+) -> tuple[str, str | None]:
     """Convert image to PDF if needed.
-    
+
     Args:
         pdf_path: Original file path
         is_pdf: Whether file is already PDF
         is_image: Whether file is an image
-        
+
     Returns:
         Tuple of (work_path, converted_pdf_path)
         - work_path: Path to use for OCR (converted PDF if image, original if PDF)
@@ -65,10 +66,10 @@ def _convert_if_needed(pdf_path: str, is_pdf: bool, is_image: bool) -> tuple[str
 
 def _parse_ocr_result(async_result: dict) -> tuple[bool, str | None, dict]:
     """Parse async OCR result into success, error, raw_obj.
-    
+
     Args:
         async_result: Result dict from ask_tesseract_async
-        
+
     Returns:
         Tuple of (success, error, raw_obj)
     """
@@ -216,10 +217,10 @@ def ask_tesseract(
     client_timeout: float = OCR_CLIENT_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
     """Synchronous wrapper for async Tesseract OCR.
-    
+
     Handles file type detection, image-to-PDF conversion if needed,
     async OCR execution, result parsing, and optional JSON saving.
-    
+
     Args:
         pdf_path: Path to PDF or image file
         output_dir: Directory to save OCR results
@@ -229,7 +230,7 @@ def ask_tesseract(
         poll_interval: Polling interval for OCR completion
         timeout: Overall timeout for OCR operation
         client_timeout: HTTP client timeout
-        
+
     Returns:
         Dict with keys: success, error, raw_path, raw_obj, converted_pdf
     """
@@ -268,7 +269,7 @@ def ask_tesseract(
 
     # Parse OCR result
     success, error, raw_obj = _parse_ocr_result(async_result)
-    
+
     # Save JSON if requested
     raw_path: str | None = None
     if save_json:

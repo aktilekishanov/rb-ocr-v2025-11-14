@@ -75,7 +75,6 @@ class VerifyRequest(BaseModel):
         return fio_value
 
 
-
 def _validate_content_type(file: UploadFile) -> None:
     """Validate file content type."""
     if file.content_type not in ALLOWED_CONTENT_TYPES:
