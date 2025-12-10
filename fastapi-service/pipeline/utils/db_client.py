@@ -14,6 +14,7 @@ from datetime import datetime
 
 from pipeline.core.db_config import get_db_pool
 from pipeline.core.config import BACKOFF_MULTIPLIER
+from pipeline.core.dates import parse_iso_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -83,20 +84,11 @@ async def _insert_once(final_json: dict[str, Any]) -> bool:
     """
     pool = await get_db_pool()
 
-    # Helper to parse ISO timestamp strings to datetime objects
-    def parse_timestamp(timestamp_string: str | None) -> datetime | None:
-        if not timestamp_string:
-            return None
-        try:
-            return datetime.fromisoformat(timestamp_string)
-        except (ValueError, AttributeError):
-            return None
-
-    # Extract fields from final_json
+    # Extract fields from final_json using centralized timestamp parser
     run_id = final_json.get("run_id")
     trace_id = final_json.get("trace_id")
-    created_at = parse_timestamp(final_json.get("created_at"))
-    completed_at = parse_timestamp(final_json.get("completed_at"))
+    created_at = parse_iso_timestamp(final_json.get("created_at"))
+    completed_at = parse_iso_timestamp(final_json.get("completed_at"))
     processing_time = final_json.get("processing_time_seconds")
 
     # External metadata

@@ -1,5 +1,3 @@
-# CHECKPOINT 2025-11-14 NEW FILE CREATED AS PART OF THE SWITCHING TO ASYNC TESSERACT | DELETE IF CRASHES
-
 import asyncio
 import json
 import mimetypes
@@ -12,8 +10,86 @@ from pipeline.core.config import (
     OCR_POLL_INTERVAL_SECONDS,
     OCR_TIMEOUT_SECONDS,
     OCR_CLIENT_TIMEOUT_SECONDS,
+    OCR_RAW,
 )
 from pipeline.processors.image_to_pdf_converter import convert_image_to_pdf
+from pipeline.utils.io_utils import write_json
+
+
+# ============================================================================
+# Helper Functions for ask_tesseract
+# ============================================================================
+
+
+def _detect_file_type(pdf_path: str) -> tuple[bool, bool]:
+    """Detect if file is PDF or image.
+    
+    Args:
+        pdf_path: Path to file to check
+        
+    Returns:
+        Tuple of (is_pdf, is_image)
+    """
+    mime_type, _ = mimetypes.guess_type(pdf_path)
+    is_pdf = bool(mime_type == "application/pdf" or pdf_path.lower().endswith(".pdf"))
+    file_extension = os.path.splitext(pdf_path)[1].lower()
+    is_image = bool(
+        (mime_type and isinstance(mime_type, str) and mime_type.startswith("image/"))
+        or file_extension
+        in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"}
+    )
+    return is_pdf, is_image
+
+
+def _convert_if_needed(pdf_path: str, is_pdf: bool, is_image: bool) -> tuple[str, str | None]:
+    """Convert image to PDF if needed.
+    
+    Args:
+        pdf_path: Original file path
+        is_pdf: Whether file is already PDF
+        is_image: Whether file is an image
+        
+    Returns:
+        Tuple of (work_path, converted_pdf_path)
+        - work_path: Path to use for OCR (converted PDF if image, original if PDF)
+        - converted_pdf_path: Path to converted PDF if conversion occurred, None otherwise
+    """
+    if not is_pdf and is_image:
+        base_dir = os.path.dirname(pdf_path)
+        base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+        desired_path = os.path.join(base_dir, f"{base_name}_converted.pdf")
+        converted_pdf = convert_image_to_pdf(pdf_path, output_path=desired_path)
+        return converted_pdf, converted_pdf
+    return pdf_path, None
+
+
+def _parse_ocr_result(async_result: dict) -> tuple[bool, str | None, dict]:
+    """Parse async OCR result into success, error, raw_obj.
+    
+    Args:
+        async_result: Result dict from ask_tesseract_async
+        
+    Returns:
+        Tuple of (success, error, raw_obj)
+    """
+    success = bool(async_result.get("success"))
+    error: str | None = None
+    raw_obj: dict[str, Any] = {}
+
+    get_resp = async_result.get("result")
+    if isinstance(get_resp, dict):
+        inner = get_resp.get("result")
+        if isinstance(inner, dict):
+            raw_obj = inner
+        else:
+            raw_obj = get_resp
+
+    if not success:
+        error = async_result.get("error")
+        if not error and isinstance(get_resp, dict):
+            error = get_resp.get("error_message") or get_resp.get("error")
+
+    return success, error, raw_obj
 
 
 class TesseractAsyncClient:
@@ -139,23 +215,29 @@ def ask_tesseract(
     timeout: float = OCR_TIMEOUT_SECONDS,
     client_timeout: float = OCR_CLIENT_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
-    work_path = pdf_path
-    converted_pdf: str | None = None
-    mime_type, _ = mimetypes.guess_type(pdf_path)
-    is_pdf = bool(mime_type == "application/pdf" or pdf_path.lower().endswith(".pdf"))
-    file_extension = os.path.splitext(pdf_path)[1].lower()
-    is_image = bool(
-        (mime_type and isinstance(mime_type, str) and mime_type.startswith("image/"))
-        or file_extension
-        in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"}
-    )
-    if not is_pdf and is_image:
-        base_dir = os.path.dirname(pdf_path)
-        base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-        desired_path = os.path.join(base_dir, f"{base_name}_converted.pdf")
-        converted_pdf = convert_image_to_pdf(pdf_path, output_path=desired_path)
-        work_path = converted_pdf
+    """Synchronous wrapper for async Tesseract OCR.
+    
+    Handles file type detection, image-to-PDF conversion if needed,
+    async OCR execution, result parsing, and optional JSON saving.
+    
+    Args:
+        pdf_path: Path to PDF or image file
+        output_dir: Directory to save OCR results
+        save_json: Whether to save raw OCR JSON
+        base_url: Tesseract API base URL
+        verify: Whether to verify SSL certificates
+        poll_interval: Polling interval for OCR completion
+        timeout: Overall timeout for OCR operation
+        client_timeout: HTTP client timeout
+        
+    Returns:
+        Dict with keys: success, error, raw_path, raw_obj, converted_pdf
+    """
+    # Detect file type and convert if needed
+    is_pdf, is_image = _detect_file_type(pdf_path)
+    work_path, converted_pdf = _convert_if_needed(pdf_path, is_pdf, is_image)
 
+    # Run async OCR operation synchronously
     def _run(coro):
         try:
             loop = asyncio.get_running_loop()
@@ -184,32 +266,15 @@ def ask_tesseract(
         )
     )
 
-    success = bool(async_result.get("success"))
-    error: str | None = None
-    raw_obj: dict[str, Any] = {}
-
-    get_resp = async_result.get("result")
-    if isinstance(get_resp, dict):
-        inner = get_resp.get("result")
-        if isinstance(inner, dict):
-            raw_obj = inner
-        else:
-            raw_obj = get_resp
-
-    if not success:
-        error = async_result.get("error")
-        if not error and isinstance(get_resp, dict):
-            error = get_resp.get("error_message") or get_resp.get("error")
-
+    # Parse OCR result
+    success, error, raw_obj = _parse_ocr_result(async_result)
+    
+    # Save JSON if requested
     raw_path: str | None = None
     if save_json:
         try:
-            os.makedirs(output_dir, exist_ok=True)
             raw_path = os.path.join(output_dir, OCR_RAW)
-            with open(raw_path, "w", encoding="utf-8") as f:
-                json.dump(
-                    raw_obj if isinstance(raw_obj, dict) else {}, f, ensure_ascii=False
-                )
+            write_json(raw_path, raw_obj if isinstance(raw_obj, dict) else {})
         except Exception:
             raw_path = None
 

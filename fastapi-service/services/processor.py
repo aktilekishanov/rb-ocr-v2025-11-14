@@ -13,6 +13,60 @@ import os
 logger = logging.getLogger(__name__)
 
 
+# ============================================================================
+# Module-Level Helper Functions
+# ============================================================================
+
+
+def _extract_event_fields(event_data: dict) -> tuple[str, str, str]:
+    """Extract required fields from event data."""
+    request_id = event_data["request_id"]
+    s3_path = event_data["s3_path"]
+    filename = os.path.basename(s3_path) or f"document_{request_id}.pdf"
+    return request_id, s3_path, filename
+
+
+def _build_fio_from_event(event_data: dict) -> str:
+    """Build FIO from event name components."""
+    return build_fio(
+        last_name=event_data["last_name"],
+        first_name=event_data["first_name"],
+        second_name=event_data.get("second_name"),
+    )
+
+
+async def _download_from_s3_async(
+    s3_client: S3Client, s3_path: str, tmp_path: str
+) -> dict:
+    """Download file from S3 to temp path asynchronously."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None, lambda: s3_client.download_file(s3_path, tmp_path)
+    )
+
+
+async def _run_pipeline_async(
+    fio: str,
+    tmp_path: str,
+    filename: str,
+    runs_root: Path,
+    external_metadata: dict | None,
+) -> dict:
+    """Run pipeline in executor asynchronously."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None,
+        lambda: run_pipeline(
+            fio=fio,
+            source_file_path=tmp_path,
+            original_filename=filename,
+            content_type="application/pdf",
+            runs_root=runs_root,
+            external_metadata=external_metadata,
+        ),
+    )
+
+
 class DocumentProcessor:
     """Processes documents through the RB-OCR pipeline."""
 
@@ -77,7 +131,7 @@ class DocumentProcessor:
     async def process_kafka_event(
         self,
         event_data: dict,
-        external_metadata: dict | None = None,  # NEW
+        external_metadata: dict | None = None,
     ) -> dict:
         """
         Process a Kafka event containing S3 file reference.
@@ -92,48 +146,28 @@ class DocumentProcessor:
         Raises:
             Exception: If S3 download or pipeline processing fails
         """
-        request_id = event_data["request_id"]
-        s3_path = event_data["s3_path"]
+        request_id, s3_path, filename = _extract_event_fields(event_data)
+        fio = _build_fio_from_event(event_data)
 
         logger.info(
             f"Processing Kafka event: request_id={request_id}, s3_path={s3_path}"
         )
-
-        fio = build_fio(
-            last_name=event_data["last_name"],
-            first_name=event_data["first_name"],
-            second_name=event_data.get("second_name"),
-        )
         logger.info(f"Built FIO: {fio}")
-
-        filename = os.path.basename(s3_path) or f"document_{request_id}.pdf"
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as tmp:
             tmp_path = tmp.name
 
         try:
-            loop = asyncio.get_event_loop()
-            s3_metadata = await loop.run_in_executor(
-                None, lambda: self.s3_client.download_file(s3_path, tmp_path)
+            s3_metadata = await _download_from_s3_async(
+                self.s3_client, s3_path, tmp_path
             )
-
             logger.info(
                 f"Downloaded from S3: {s3_path} -> {tmp_path} ({s3_metadata['size']} bytes)"
             )
 
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                lambda: run_pipeline(
-                    fio=fio,
-                    source_file_path=tmp_path,
-                    original_filename=filename,
-                    content_type="application/pdf",
-                    runs_root=self.runs_root,
-                    external_metadata=external_metadata,
-                ),
+            result = await _run_pipeline_async(
+                fio, tmp_path, filename, self.runs_root, external_metadata
             )
-
             logger.info(
                 f"Pipeline completed: run_id={result.get('run_id')}, verdict={result.get('verdict')}"
             )

@@ -70,42 +70,36 @@ app = FastAPI(
 app.middleware("http")(exception_middleware)
 
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Convert Pydantic validation errors to RFC 7807 Problem Details format.
+# ============================================================================
+# Validation Handler Helper Functions
+# ============================================================================
 
-    This handler ensures all validation errors follow the RFC 7807 standard,
-    maintaining consistency with other error responses.
 
-    Args:
-        request: The FastAPI request object
-        exc: The Pydantic validation error
-
-    Returns:
-        JSONResponse with RFC 7807 ProblemDetail format
-    """
+def _ensure_trace_id(request: Request) -> str:
+    """Ensure trace_id exists on request state."""
     trace_id = getattr(request.state, "trace_id", None)
     if not trace_id:
         trace_id = str(uuid.uuid4())
         request.state.trace_id = trace_id
+    return trace_id
 
+
+def _parse_validation_error(exc: RequestValidationError) -> tuple[str, str, str]:
+    """Parse first validation error into field, detail, and error type."""
     first_error = exc.errors()[0] if exc.errors() else {}
-
     loc = first_error.get("loc", [])
     field = ".".join(str(loc_part) for loc_part in loc if loc_part != "body")
     msg = first_error.get("msg", "Validation failed")
     detail = f"{field}: {msg}" if field else msg
+    error_type = first_error.get("type", "")
+    return field, detail, error_type
 
-    logger.warning(
-        f"Validation error: {detail}",
-        extra={
-            "trace_id": trace_id,
-            "field": field,
-            "error_type": first_error.get("type"),
-        },
-    )
 
-    problem = ProblemDetail(
+def _build_validation_problem(
+    request: Request, detail: str, trace_id: str
+) -> ProblemDetail:
+    """Build ProblemDetail for validation error."""
+    return ProblemDetail(
         type="/errors/VALIDATION_ERROR",
         title="Request validation failed",
         status=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -117,11 +111,78 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         trace_id=trace_id,
     )
 
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Convert Pydantic validation errors to RFC 7807 Problem Details format."""
+    trace_id = _ensure_trace_id(request)
+    field, detail, error_type = _parse_validation_error(exc)
+
+    logger.warning(
+        f"Validation error: {detail}",
+        extra={"trace_id": trace_id, "field": field, "error_type": error_type},
+    )
+
+    problem = _build_validation_problem(request, detail, trace_id)
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=problem.dict(exclude_none=True),
         headers={"X-Trace-ID": trace_id},
     )
+
+
+
+# ============================================================================
+# Shared Endpoint Helper Functions
+# ============================================================================
+
+
+async def _save_upload_to_temp(file: UploadFile) -> str:
+    """Save uploaded file to temporary location."""
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=f"_{file.filename}"
+    ) as temp_file:
+        content = await file.read()
+        temp_file.write(content)
+        return temp_file.name
+
+
+def _build_verify_response(
+    result: dict, processing_time: float, trace_id: str
+) -> VerifyResponse:
+    """Build VerifyResponse from pipeline result."""
+    return VerifyResponse(
+        run_id=result["run_id"],
+        verdict=result["verdict"],
+        errors=result["errors"],
+        processing_time_seconds=round(processing_time, 2),
+        trace_id=trace_id,
+    )
+
+
+def _queue_db_insert(background_tasks: BackgroundTasks, result: dict) -> None:
+    """Queue database insert as background task."""
+    try:
+        final_json_path = result.get("final_result_path")
+        if final_json_path:
+            final_json = util_read_json(final_json_path)
+            background_tasks.add_task(insert_verification_run, final_json)
+    except Exception as e:
+        logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
+
+
+def _build_external_metadata(event: KafkaEventRequest, trace_id: str) -> dict:
+    """Build external metadata dict from Kafka event."""
+    return {
+        "trace_id": trace_id,
+        "external_request_id": str(event.request_id),
+        "external_s3_path": event.s3_path,
+        "external_iin": str(event.iin),
+        "external_first_name": event.first_name,
+        "external_last_name": event.last_name,
+        "external_second_name": event.second_name,
+    }
 
 
 processor = DocumentProcessor(runs_root="./runs")
@@ -151,18 +212,12 @@ async def verify_document(
         f"[NEW REQUEST] FIO={fio}, file={file.filename}", extra={"trace_id": trace_id}
     )
 
-    # Validate input with new validators
+    # Validate input
     await validate_upload_file(file)
     verify_req = VerifyRequest(fio=fio)
 
-    # Save uploaded file to temp location
-    with tempfile.NamedTemporaryFile(
-        delete=False, suffix=f"_{file.filename}"
-    ) as temp_file:
-        content = await file.read()
-        temp_file.write(content)
-        tmp_path = temp_file.name
-
+    # Save and process
+    tmp_path = await _save_upload_to_temp(file)
     try:
         result = await processor.process_document(
             file_path=tmp_path,
@@ -171,28 +226,14 @@ async def verify_document(
         )
 
         processing_time = time.time() - start_time
-
-        response = VerifyResponse(
-            run_id=result["run_id"],
-            verdict=result["verdict"],
-            errors=result["errors"],
-            processing_time_seconds=round(processing_time, 2),
-            trace_id=trace_id,
-        )
+        response = _build_verify_response(result, processing_time, trace_id)
 
         logger.info(
             f"[RESPONSE] run_id={response.run_id}, verdict={response.verdict}, time={response.processing_time_seconds}s",
             extra={"trace_id": trace_id, "run_id": response.run_id},
         )
 
-        try:
-            final_json_path = result.get("final_result_path")
-            if final_json_path:
-                final_json = util_read_json(final_json_path)
-                background_tasks.add_task(insert_verification_run, final_json)
-        except Exception as e:
-            logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
-
+        _queue_db_insert(background_tasks, result)
         return response
 
     finally:
@@ -365,11 +406,9 @@ async def verify_kafka_event(
     This endpoint:
     1. Receives the Kafka event body with S3 file reference
     2. Validates all input fields (request_id, IIN, S3 path, names)
-    3. Stores the event as JSON for audit trail
-    4. Builds FIO from name components (last_name + first_name + second_name)
-    5. Downloads the document from S3
-    6. Runs the verification pipeline
-    7. Returns the same response format as /v1/verify
+    3. Builds FIO from name components
+    4. Downloads the document from S3 and runs verification pipeline
+    5. Returns the same response format as /v1/verify
 
     Args:
         event: Kafka event body containing request_id, s3_path, iin, and name fields
@@ -386,31 +425,14 @@ async def verify_kafka_event(
         extra={"trace_id": trace_id, "request_id": event.request_id},
     )
 
-    # Build external metadata to pass to pipeline
-    external_data = {
-        "trace_id": trace_id,  # From middleware, for storage in final.json
-        "external_request_id": str(event.request_id),
-        "external_s3_path": event.s3_path,
-        "external_iin": str(event.iin),
-        "external_first_name": event.first_name,
-        "external_last_name": event.last_name,
-        "external_second_name": event.second_name,
-    }
-
+    external_data = _build_external_metadata(event, trace_id)
     result = await processor.process_kafka_event(
         event_data=event.dict(),
         external_metadata=external_data,
     )
 
     processing_time = time.time() - start_time
-
-    response = VerifyResponse(
-        run_id=result["run_id"],
-        verdict=result["verdict"],
-        errors=result["errors"],
-        processing_time_seconds=round(processing_time, 2),
-        trace_id=trace_id,
-    )
+    response = _build_verify_response(result, processing_time, trace_id)
 
     logger.info(
         f"[KAFKA RESPONSE] request_id={event.request_id}, "
@@ -423,15 +445,7 @@ async def verify_kafka_event(
         },
     )
 
-    # Queue database insert as background task
-    try:
-        final_json_path = result.get("final_result_path")
-        if final_json_path:
-            final_json = util_read_json(final_json_path)
-            background_tasks.add_task(insert_verification_run, final_json)
-    except Exception as e:
-        logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
-
+    _queue_db_insert(background_tasks, result)
     return response
 
 
@@ -562,15 +576,7 @@ async def verify_kafka_event_get(
     Process a Kafka event for document verification using query parameters.
 
     This is a GET equivalent of the POST /v1/kafka/verify endpoint.
-
-    This endpoint:
-    1. Receives query parameters (request_id, s3_path, iin, first_name, last_name, second_name)
-    2. Validates all input fields (request_id, IIN, S3 path, names)
-    3. Stores the event as JSON for audit trail
-    4. Builds FIO from name components (last_name + first_name + second_name)
-    5. Downloads the document from S3
-    6. Runs the verification pipeline
-    7. Returns the same response format as /v1/verify
+    Uses the same helper functions for consistency.
 
     Args:
         request: FastAPI request object
@@ -588,24 +594,17 @@ async def verify_kafka_event_get(
         extra={"trace_id": trace_id, "request_id": params.request_id},
     )
 
-    # Convert query params to dict for processor
-    event_data = params.dict()
+    # Convert params to KafkaEventRequest for metadata building
+    event = KafkaEventRequest(**params.dict())
+    external_data = _build_external_metadata(event, trace_id)
 
-    # Process Kafka event (downloads from S3 and runs pipeline)
-    # Exceptions are now handled by the global middleware
     result = await processor.process_kafka_event(
-        event_data=event_data,
+        event_data=params.dict(),
+        external_metadata=external_data,
     )
 
     processing_time = time.time() - start_time
-
-    response = VerifyResponse(
-        run_id=result["run_id"],
-        verdict=result["verdict"],
-        errors=result["errors"],
-        processing_time_seconds=round(processing_time, 2),
-        trace_id=trace_id,
-    )
+    response = _build_verify_response(result, processing_time, trace_id)
 
     logger.info(
         f"[KAFKA RESPONSE (GET)] request_id={params.request_id}, "
@@ -618,13 +617,5 @@ async def verify_kafka_event_get(
         },
     )
 
-    # Queue database insert as background task
-    try:
-        final_json_path = result.get("final_result_path")
-        if final_json_path:
-            final_json = util_read_json(final_json_path)
-            background_tasks.add_task(insert_verification_run, final_json)
-    except Exception as e:
-        logger.error(f"Failed to queue DB insert task: {e}", exc_info=True)
-
+    _queue_db_insert(background_tasks, result)
     return response

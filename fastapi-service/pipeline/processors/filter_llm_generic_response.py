@@ -9,6 +9,8 @@ import json
 import os
 from typing import Any
 
+from pipeline.utils.io_utils import write_json
+
 
 def _try_parse_inner_json(text: str) -> dict[str, Any] | None:
     try:
@@ -46,24 +48,23 @@ def _extract_from_openai_like(obj: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
-def filter_llm_generic_response(input_path: str, output_dir: str, filename: str) -> str:
-    """
-    Filter raw LLM output into a single JSON dict.
-
+def _parse_llm_response(raw: str) -> dict[str, Any]:
+    """Parse raw LLM output into filtered JSON dict.
+    
     Strategy per line:
       1) If dict: try to extract OpenAI-like inner JSON (choices[0].message.content).
       2) If dict: else use the dict as-is (skipping provider prompt-echo dicts).
       3) If string: try to parse it as JSON dict or nested JSON string.
-
-    The first successful dict is written as the filtered output. If none is
-    found, an empty object is written instead.
-
-    This is where provider-specific envelope differences are normalized
-    before we validate into typed DTO models.
+    
+    The first successful dict is returned. If none is found, an empty object
+    is returned instead.
+    
+    Args:
+        raw: Raw LLM response string (may be multi-line JSONL)
+        
+    Returns:
+        Filtered dict extracted from response, or empty dict if none found
     """
-    with open(input_path, encoding="utf-8") as f:
-        raw = f.read()
-
     result_obj: dict[str, Any] = {}
 
     for line in raw.splitlines():
@@ -97,8 +98,30 @@ def filter_llm_generic_response(input_path: str, output_dir: str, filename: str)
                 result_obj = inner
                 break
 
-    os.makedirs(output_dir, exist_ok=True)
+    return result_obj
+
+
+def filter_llm_generic_response(input_path: str, output_dir: str, filename: str) -> str:
+    """Filter raw LLM output into a single JSON dict.
+    
+    Reads raw LLM response from file, parses it to extract usable JSON,
+    and writes the filtered result to output file.
+    
+    This is where provider-specific envelope differences are normalized
+    before we validate into typed DTO models.
+    
+    Args:
+        input_path: Path to raw LLM response file
+        output_dir: Directory to write filtered output
+        filename: Name of output file
+        
+    Returns:
+        Full path to the written filtered file
+    """
+    with open(input_path, encoding="utf-8") as f:
+        raw = f.read()
+
+    result_obj = _parse_llm_response(raw)
     out_path = os.path.join(output_dir, filename)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(result_obj, f, ensure_ascii=False, indent=2)
+    write_json(out_path, result_obj)
     return out_path

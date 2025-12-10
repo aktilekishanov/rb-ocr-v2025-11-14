@@ -1,19 +1,20 @@
 from pipeline.core.config import OCR_FILTERED
+from pipeline.utils.io_utils import write_json
 
 
-def filter_ocr_response(
-    obj: dict, output_dir: str, filename: str = OCR_FILTERED
-) -> str:
+def _parse_ocr_response(obj: dict) -> list[dict]:
+    """Parse OCR response into normalized page format.
+    
+    Handles multiple OCR response formats:
+    - {data: {pages: [...]}} format
+    - Textract-like {Blocks: [...]} format
+    - Fallback for unrecognized formats
+    
+    Returns:
+        List of dicts with 'page_number' and 'text' keys
     """
-    Build per-page text and save to JSON file {"pages": [{"page_number", "text"}, ...]}.
-    Returns the full path to the saved file.
-    """
-    import json
-    import os
-
-    os.makedirs(output_dir, exist_ok=True)
-
     pages = []
+    
     # Prefer {data: {pages: [...]}} if present
     data = obj.get("data", {}) if isinstance(obj, dict) else {}
     if isinstance(data, dict) and isinstance(data.get("pages"), list):
@@ -32,6 +33,7 @@ def filter_ocr_response(
                 )
         if all(isinstance(x.get("page_number"), int) for x in pages):
             pages.sort(key=lambda x: x["page_number"])
+    
     # Else, derive from Textract-like Blocks if present
     elif isinstance(obj, dict) and isinstance(obj.get("Blocks"), list):
         from collections import defaultdict
@@ -52,6 +54,7 @@ def filter_ocr_response(
             for b in blocks:
                 if isinstance(b, dict) and b.get("Text"):
                     pages_map[b.get("Page")].append(b.get("Text"))
+        
         for page_number in sorted(k for k in pages_map.keys() if isinstance(k, int)):
             pages.append(
                 {
@@ -69,8 +72,28 @@ def filter_ocr_response(
     else:
         # Fallback: nothing recognizable
         pages = [{"page_number": None, "text": ""}]
+    
+    return pages
 
+
+def filter_ocr_response(
+    obj: dict, output_dir: str, filename: str = OCR_FILTERED
+) -> str:
+    """Build per-page text and save to JSON file.
+    
+    Parses OCR response into normalized format and writes to file.
+    
+    Args:
+        obj: OCR response dict (various formats supported)
+        output_dir: Directory to write output file
+        filename: Name of output file
+        
+    Returns:
+        Full path to the saved file
+    """
+    import os
+    
+    pages = _parse_ocr_response(obj)
     out_path = os.path.join(output_dir, filename)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump({"pages": pages}, f, ensure_ascii=False, indent=2)
+    write_json(out_path, {"pages": pages})
     return out_path

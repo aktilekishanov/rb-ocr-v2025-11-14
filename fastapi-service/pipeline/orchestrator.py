@@ -134,41 +134,38 @@ class PipelineContext:
 
 
 def _finalize_timing_artifacts(ctx: PipelineContext) -> None:
+    """Calculate and store timing artifacts in context."""
     ctx.artifacts["duration_seconds"] = time.perf_counter() - ctx.t0
     ctx.artifacts["ocr_seconds"] = ctx.timers.totals.get("ocr", 0.0)
     ctx.artifacts["llm_seconds"] = ctx.timers.totals.get("llm", 0.0)
 
 
-def fail_and_finalize(
-    code: str, details: str | None, ctx: PipelineContext
-) -> dict[str, Any]:
-    """Finalize pipeline with system error (status='error')."""
-    from pipeline.utils.db_record import FinalJsonBuilder, ExternalMetadata
+def _build_external_metadata_obj(ctx: PipelineContext):
+    """Build ExternalMetadata object from context."""
+    from pipeline.utils.db_record import ExternalMetadata
+
+    return ExternalMetadata(
+        request_id=ctx.external_request_id,
+        s3_path=ctx.external_s3_path,
+        iin=ctx.external_iin,
+        first_name=ctx.external_first_name,
+        last_name=ctx.external_last_name,
+        second_name=ctx.external_second_name,
+    )
+
+
+def _build_error_final_json(ctx: PipelineContext, code: str) -> dict[str, Any]:
+    """Build final JSON structure for error case."""
+    from pipeline.utils.db_record import FinalJsonBuilder
     from pipeline.core.errors import ErrorCode
 
-    ctx.errors.append(make_error(code, details=details))
-    _finalize_timing_artifacts(ctx)  # Calculates ctx.artifacts["duration_seconds"]
-
-    # Get error specification from centralized registry
     error_spec = ErrorCode.get_spec(code)
-
-    # Use pipeline-internal timing
     processing_time = ctx.artifacts.get("duration_seconds", 0.0)
     completed_at = datetime.now(timezone(timedelta(hours=UTC_OFFSET_HOURS))).isoformat()
 
-    # Build using fluent interface
-    final_json = (
+    return (
         FinalJsonBuilder(ctx.run_id, ctx.trace_id, ctx.request_created_at)
-        .with_external_metadata(
-            ExternalMetadata(
-                request_id=ctx.external_request_id,
-                s3_path=ctx.external_s3_path,
-                iin=ctx.external_iin,
-                first_name=ctx.external_first_name,
-                last_name=ctx.external_last_name,
-                second_name=ctx.external_second_name,
-            )
-        )
+        .with_external_metadata(_build_external_metadata_obj(ctx))
         .with_error(
             code, error_spec.message_ru, error_spec.category, error_spec.retryable
         )
@@ -176,54 +173,58 @@ def fail_and_finalize(
         .build()
     )
 
-    # Write final.json
+
+def _write_final_json(ctx: PipelineContext, final_json: dict[str, Any]) -> str:
+    """Write final.json to disk and return path."""
     final_path = ctx.base_dir / FINAL_JSON
     util_write_json(final_path, final_json)
     ctx.artifacts["final_result_path"] = str(final_path)
+    return str(final_path)
+
+
+def handle_pipeline_failure(
+    code: str, details: str | None, ctx: PipelineContext
+) -> dict[str, Any]:
+    """Handle pipeline failure by appending error, building final JSON, and writing to disk."""
+    ctx.errors.append(make_error(code, details=details))
+    _finalize_timing_artifacts(ctx)
+
+    final_json = _build_error_final_json(ctx, code)
+    final_path = _write_final_json(ctx, final_json)
 
     return {
         "run_id": ctx.run_id,
         "verdict": False,
         "errors": ctx.errors,
-        "final_result_path": str(final_path),
+        "final_result_path": final_path,
     }
 
 
-def finalize_success(
-    verdict: bool, checks: dict[str, Any] | None, ctx: PipelineContext
+def _extract_final_data(ctx: PipelineContext) -> tuple[dict, dict, list[str]]:
+    """Extract data needed for final JSON from context."""
+    extractor_data = ctx.extractor_result or {}
+    doc_type_data = ctx.doc_type_result or {}
+    rule_errors = [error["code"] for error in ctx.errors]
+    return extractor_data, doc_type_data, rule_errors
+
+
+def _build_success_final_json(
+    ctx: PipelineContext, verdict: bool, checks: dict[str, Any] | None
 ) -> dict[str, Any]:
-    """Finalize pipeline with successful completion (status='success')."""
+    """Build final JSON structure for success case."""
     from pipeline.utils.db_record import (
         FinalJsonBuilder,
-        ExternalMetadata,
         ExtractedData,
         RuleChecks,
     )
 
-    _finalize_timing_artifacts(ctx)
-
-    extractor_data = ctx.extractor_result or {}
-    doc_type_data = ctx.doc_type_result or {}
-
-    rule_errors = [error["code"] for error in ctx.errors]
-
-    # Use pipeline-internal timing
+    extractor_data, doc_type_data, rule_errors = _extract_final_data(ctx)
     processing_time = ctx.artifacts.get("duration_seconds", 0.0)
     completed_at = datetime.now(timezone(timedelta(hours=UTC_OFFSET_HOURS))).isoformat()
 
-    # Build using fluent interface
-    final_json = (
+    return (
         FinalJsonBuilder(ctx.run_id, ctx.trace_id, ctx.request_created_at)
-        .with_external_metadata(
-            ExternalMetadata(
-                request_id=ctx.external_request_id,
-                s3_path=ctx.external_s3_path,
-                iin=ctx.external_iin,
-                first_name=ctx.external_first_name,
-                last_name=ctx.external_last_name,
-                second_name=ctx.external_second_name,
-            )
-        )
+        .with_external_metadata(_build_external_metadata_obj(ctx))
         .with_success(
             extracted=ExtractedData(
                 fio=extractor_data.get("fio"),
@@ -245,16 +246,20 @@ def finalize_success(
         .build()
     )
 
-    # Write final.json
-    final_path = ctx.base_dir / FINAL_JSON
-    util_write_json(final_path, final_json)
-    ctx.artifacts["final_result_path"] = str(final_path)
+
+def finalize_success(
+    verdict: bool, checks: dict[str, Any] | None, ctx: PipelineContext
+) -> dict[str, Any]:
+    """Finalize pipeline with successful completion."""
+    _finalize_timing_artifacts(ctx)
+    final_json = _build_success_final_json(ctx, verdict, checks)
+    final_path = _write_final_json(ctx, final_json)
 
     return {
         "run_id": ctx.run_id,
         "verdict": verdict,
         "errors": ctx.errors,
-        "final_result_path": str(final_path),
+        "final_result_path": final_path,
     }
 
 
@@ -273,7 +278,7 @@ def stage_acquire(ctx: PipelineContext) -> dict[str, Any] | None:
     try:
         util_copy_file(ctx.source_file_path, ctx.saved_path)
     except Exception as e:
-        return fail_and_finalize("FILE_SAVE_FAILED", str(e), ctx)
+        return handle_pipeline_failure("FILE_SAVE_FAILED", str(e), ctx)
 
     try:
         ctx.size_bytes = ctx.saved_path.stat().st_size
@@ -283,7 +288,7 @@ def stage_acquire(ctx: PipelineContext) -> dict[str, Any] | None:
     if ctx.saved_path.suffix.lower() == ".pdf":
         pages = _count_pdf_pages(str(ctx.saved_path))
         if pages is not None and pages > MAX_PDF_PAGES:
-            return fail_and_finalize("PDF_TOO_MANY_PAGES", None, ctx)
+            return handle_pipeline_failure("PDF_TOO_MANY_PAGES", None, ctx)
     return None
 
 
@@ -293,7 +298,7 @@ def stage_ocr(ctx: PipelineContext) -> dict[str, Any] | None:
             str(ctx.saved_path), output_dir=str(ctx.base_dir), save_json=False
         )
     if not ocr_result.get("success"):
-        return fail_and_finalize("OCR_FAILED", str(ocr_result.get("error")), ctx)
+        return handle_pipeline_failure("OCR_FAILED", str(ocr_result.get("error")), ctx)
 
     try:
         filtered_pages_path = filter_ocr_response(
@@ -307,9 +312,9 @@ def stage_ocr(ctx: PipelineContext) -> dict[str, Any] | None:
             or not isinstance(ctx.pages_obj, list)
             or len(ctx.pages_obj) == 0
         ):
-            return fail_and_finalize("OCR_EMPTY_PAGES", None, ctx)
+            return handle_pipeline_failure("OCR_EMPTY_PAGES", None, ctx)
     except Exception as e:
-        return fail_and_finalize("OCR_FILTER_FAILED", str(e), ctx)
+        return handle_pipeline_failure("OCR_FILTER_FAILED", str(e), ctx)
     return None
 
 
@@ -336,21 +341,21 @@ def stage_doc_type_check(ctx: PipelineContext) -> dict[str, Any] | None:
             dtc_obj = util_read_json(dtc_filtered_path)
             ctx.doc_type_result = dtc_obj if isinstance(dtc_obj, dict) else {}
         except Exception as e:
-            return fail_and_finalize("LLM_FILTER_PARSE_ERROR", str(e), ctx)
+            return handle_pipeline_failure("LLM_FILTER_PARSE_ERROR", str(e), ctx)
         try:
             dtc = DocTypeCheck.model_validate(
                 dtc_obj if isinstance(dtc_obj, dict) else {}
             )
         except Exception:
-            return fail_and_finalize("DTC_PARSE_ERROR", None, ctx)
+            return handle_pipeline_failure("DTC_PARSE_ERROR", None, ctx)
         is_single = getattr(dtc, "single_doc_type", None)
         if not isinstance(is_single, bool):
-            return fail_and_finalize("DTC_PARSE_ERROR", None, ctx)
+            return handle_pipeline_failure("DTC_PARSE_ERROR", None, ctx)
         if is_single is False:
-            return fail_and_finalize("MULTIPLE_DOCUMENTS", None, ctx)
+            return handle_pipeline_failure("MULTIPLE_DOCUMENTS", None, ctx)
         return None
     except Exception as e:
-        return fail_and_finalize("DTC_FAILED", str(e), ctx)
+        return handle_pipeline_failure("DTC_FAILED", str(e), ctx)
 
 
 def stage_extract(ctx: PipelineContext) -> dict[str, Any] | None:
@@ -369,7 +374,7 @@ def stage_extract(ctx: PipelineContext) -> dict[str, Any] | None:
                 str(llm_raw_path), str(ctx.base_dir), filename=LLM_EXT_FILTERED
             )
         except Exception as e:
-            return fail_and_finalize("LLM_FILTER_PARSE_ERROR", str(e), ctx)
+            return handle_pipeline_failure("LLM_FILTER_PARSE_ERROR", str(e), ctx)
 
         try:
             os.remove(llm_raw_path)
@@ -379,7 +384,7 @@ def stage_extract(ctx: PipelineContext) -> dict[str, Any] | None:
         try:
             filtered_obj = util_read_json(filtered_path)
         except Exception as e:
-            return fail_and_finalize("LLM_FILTER_PARSE_ERROR", str(e), ctx)
+            return handle_pipeline_failure("LLM_FILTER_PARSE_ERROR", str(e), ctx)
 
         ctx.extractor_result = filtered_obj if isinstance(filtered_obj, dict) else {}
 
@@ -401,12 +406,38 @@ def stage_extract(ctx: PipelineContext) -> dict[str, Any] | None:
             raise ValueError("Key doc_date has invalid type")
         return None
     except ValueError as ve:
-        return fail_and_finalize("EXTRACT_SCHEMA_INVALID", str(ve), ctx)
+        return handle_pipeline_failure("EXTRACT_SCHEMA_INVALID", str(ve), ctx)
     except Exception as e:
-        return fail_and_finalize("EXTRACT_FAILED", str(e), ctx)
+        return handle_pipeline_failure("EXTRACT_FAILED", str(e), ctx)
 
 
-def stage_validate_and_finalize(ctx: PipelineContext) -> dict[str, Any] | None:
+def _build_check_errors(checks: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Build list of validation errors from check results."""
+    check_errors = []
+    if not isinstance(checks, dict):
+        return check_errors
+
+    fio_match_result = checks.get("fio_match")
+    if fio_match_result is False:
+        check_errors.append(make_error("FIO_MISMATCH"))
+    elif fio_match_result is None:
+        check_errors.append(make_error("FIO_MISSING"))
+
+    doc_type_known = checks.get("doc_type_known")
+    if doc_type_known is False or doc_type_known is None:
+        check_errors.append(make_error("DOC_TYPE_UNKNOWN"))
+
+    doc_date_valid = checks.get("doc_date_valid")
+    if doc_date_valid is False:
+        check_errors.append(make_error("DOC_DATE_TOO_OLD"))
+    elif doc_date_valid is None:
+        check_errors.append(make_error("DOC_DATE_MISSING"))
+
+    return check_errors
+
+
+def stage_validate(ctx: PipelineContext) -> dict[str, Any] | None:
+    """Validate the pipeline results and build error list."""
     try:
         with stage_timer(ctx, "llm"):
             validation = validate_run(
@@ -415,7 +446,7 @@ def stage_validate_and_finalize(ctx: PipelineContext) -> dict[str, Any] | None:
                 doc_type_data=ctx.doc_type_result,
             )
         if not validation.get("success"):
-            return fail_and_finalize(
+            return handle_pipeline_failure(
                 "VALIDATION_FAILED", str(validation.get("error")), ctx
             )
 
@@ -424,27 +455,14 @@ def stage_validate_and_finalize(ctx: PipelineContext) -> dict[str, Any] | None:
         verdict = (
             bool(val_result.get("verdict")) if isinstance(val_result, dict) else False
         )
-        check_errors: list[dict[str, Any]] = []
-        if isinstance(checks, dict):
-            fio_match_result = checks.get("fio_match")
-            if fio_match_result is False:
-                check_errors.append(make_error("FIO_MISMATCH"))
-            elif fio_match_result is None:
-                check_errors.append(make_error("FIO_MISSING"))
 
-            doc_type_known = checks.get("doc_type_known")
-            if doc_type_known is False or doc_type_known is None:
-                check_errors.append(make_error("DOC_TYPE_UNKNOWN"))
-
-            doc_date_valid = checks.get("doc_date_valid")
-            if doc_date_valid is False:
-                check_errors.append(make_error("DOC_DATE_TOO_OLD"))
-            elif doc_date_valid is None:
-                check_errors.append(make_error("DOC_DATE_MISSING"))
+        check_errors = _build_check_errors(checks)
         ctx.errors.extend(check_errors)
-        return finalize_success(verdict=verdict, checks=checks, ctx=ctx)
+
+        # Return validation results for finalization
+        return {"verdict": verdict, "checks": checks}
     except Exception as e:
-        return fail_and_finalize("VALIDATION_FAILED", str(e), ctx)
+        return handle_pipeline_failure("VALIDATION_FAILED", str(e), ctx)
 
 
 def run_pipeline(
@@ -499,15 +517,30 @@ def run_pipeline(
         external_second_name=ext_meta.get("external_second_name"),
     )
 
+    # Run pipeline stages
     for stage in (
         stage_acquire,
         stage_ocr,
         stage_doc_type_check,
         stage_extract,
-        stage_validate_and_finalize,
     ):
         stage_result = stage(ctx)
         if stage_result is not None:
             return stage_result
 
-    return fail_and_finalize("UNKNOWN_ERROR", None, ctx)
+    # Validate and finalize (split into two steps for function purity)
+    validation_result = stage_validate(ctx)
+    if validation_result is None:
+        return handle_pipeline_failure("UNKNOWN_ERROR", None, ctx)
+
+    # Check if validation returned an error
+    if "run_id" in validation_result:
+        # This is an error result from handle_pipeline_failure
+        return validation_result
+
+    # Finalize with success
+    return finalize_success(
+        verdict=validation_result["verdict"],
+        checks=validation_result["checks"],
+        ctx=ctx,
+    )
