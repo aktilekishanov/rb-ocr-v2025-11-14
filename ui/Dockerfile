@@ -3,10 +3,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies (if any needed for streamlit/pillow)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# SKIPPED: Server is air-gapped.
+# RUN apt-get update && apt-get install -y ...
 
 # Copy offline wheels from parent directory
 COPY wheels/wheels-ui /tmp/wheels/ui

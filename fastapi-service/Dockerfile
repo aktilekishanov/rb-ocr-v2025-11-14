@@ -3,12 +3,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    libgl1 \
-    libglib2.0-0 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# SKIPPED: Server is air-gapped. Tesseract must be installed manually via .deb files if needed.
+# RUN apt-get update && apt-get install -y ...
 
 # Copy offline wheels from parent directory
 COPY wheels/wheels-backend /tmp/wheels/backend
