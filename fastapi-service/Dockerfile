@@ -4,9 +4,6 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    libgl1 \
-    libglib2.0-0 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,11 +20,9 @@ RUN mkdir -p /app/runs && chmod 775 /app/runs
 # Copy database setup script (for offline server deployment)
 COPY create_db_table.py /app/db_setup.py
 
-# Copy and setup entrypoint script
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
 EXPOSE 8000
 
-# Use entrypoint script to set umask before running Gunicorn
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Use bash to set umask before running gunicorn
+CMD ["/bin/bash", "-c", "umask 0002 && exec gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 60 --access-logfile - --error-logfile -"]
+
+
