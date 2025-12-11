@@ -10,19 +10,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy offline wheels from parent directory
-COPY ../wheels/wheels-backend /tmp/wheels/backend
-
-# Copy requirements file
+# Copy requirements and install
 COPY requirements.txt .
-
-# Install from offline wheels (NO INTERNET NEEDED)
-# We move all wheels to the root of /tmp/wheels/backend to handle subdirectories
-RUN find /tmp/wheels/backend -name "*.whl" -exec mv {} /tmp/wheels/backend/ \; && \
-    pip install --no-index \
-    --find-links=/tmp/wheels/backend \
-    -r requirements.txt && \
-    rm -rf /tmp/wheels
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
