@@ -96,11 +96,11 @@ def _parse_ocr_result(async_result: dict) -> tuple[bool, str | None, dict]:
 class TesseractAsyncClient:
     def __init__(
         self,
-        base_url: str = os.getenv("OCR_BASE_URL", "https://ocr.fortebank.com/v2"),
+        base_url: str | None = None,
         timeout: float = 60.0,
         verify: bool = True,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
+        self.base_url = os.getenv("OCR_BASE_URL")
         self._timeout = timeout
         self._verify = verify
         self._client: httpx.AsyncClient | None = None
