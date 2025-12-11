@@ -45,5 +45,4 @@ idp-loan-deferment-service/idp-loan-deferment-service-amd64.tar
 
 # .md
 .extra
-wheels
 .DS_Store

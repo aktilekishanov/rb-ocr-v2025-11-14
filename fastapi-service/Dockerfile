@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy offline wheels from parent directory
-COPY ../wheels/wheels-backend /tmp/wheels/backend
+COPY wheels/wheels-backend /tmp/wheels/backend
 
 # Copy requirements file
-COPY requirements.txt .
+COPY fastapi-service/requirements.txt .
 
 # Install from offline wheels (NO INTERNET NEEDED)
 # We move all wheels to the root of /tmp/wheels/backend to handle subdirectories
@@ -25,7 +25,7 @@ RUN find /tmp/wheels/backend -name "*.whl" -exec mv {} /tmp/wheels/backend/ \; &
     rm -rf /tmp/wheels
 
 # Copy application code
-COPY . .
+COPY fastapi-service/ .
 
 # Create runs directory with group-writable permissions
 RUN mkdir -p /app/runs && chmod 775 /app/runs

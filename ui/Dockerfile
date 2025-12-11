@@ -9,10 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy offline wheels from parent directory
-COPY ../wheels/wheels-ui /tmp/wheels/ui
+COPY wheels/wheels-ui /tmp/wheels/ui
 
 # Copy requirements file
-COPY requirements.txt .
+COPY ui/requirements.txt .
 
 # Install from offline wheels (NO INTERNET NEEDED)
 # We move all wheels to the root of /tmp/wheels/ui to handle subdirectories
@@ -22,7 +22,8 @@ RUN find /tmp/wheels/ui -name "*.whl" -exec mv {} /tmp/wheels/ui/ \; && \
     -r requirements.txt && \
     rm -rf /tmp/wheels
 
-COPY . .
+# Copy application code
+COPY ui/ .
 
 EXPOSE 8501
 
