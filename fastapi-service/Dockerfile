@@ -31,10 +31,10 @@ COPY fastapi-service/ .
 RUN mkdir -p /app/runs && chmod 775 /app/runs
 
 # Copy database setup script (for offline server deployment)
-COPY create_db_table.py /app/db_setup.py
+COPY fastapi-service/create_db_table.py /app/db_setup.py
 
 # Copy and setup entrypoint script
-COPY entrypoint.sh /app/entrypoint.sh
+COPY fastapi-service/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8000
