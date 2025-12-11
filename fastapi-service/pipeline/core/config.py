@@ -69,24 +69,3 @@ S3_PATH_MAX_LENGTH = 1024  # Maximum length for S3 object paths
 
 ERROR_BODY_MAX_CHARS = 200  # Maximum chars from error response bodies
 
-
-# =============================================================================
-# S3/MinIO Configuration
-# =============================================================================
-
-
-class S3Config:
-    """S3/MinIO configuration for DEV environment.
-
-    WARNING: Hardcoded credentials for development only.
-    Production should use environment variables or secrets management.
-    """
-
-    ENDPOINT: str = "s3-dev.fortebank.com:9443"
-    ACCESS_KEY: str = "fyz13d2czRW7l4sBW8gD"
-    SECRET_KEY: str = "1ixYVVoZKSnG0rwfvTy0vnqQplupXOOn8DF9gS1A"
-    BUCKET: str = "loan-statements-dev"
-    SECURE: bool = True
-
-
-s3_config = S3Config()  # Export singleton instance

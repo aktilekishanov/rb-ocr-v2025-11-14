@@ -1,10 +1,6 @@
-version: '3.8'
-
 services:
   backend:
-    build:
-      context: .
-      dockerfile: fastapi-service/Dockerfile
+    build: ./fastapi-service
     platform: linux/amd64
     image: rb-ocr-backend:latest
     container_name: rb-ocr-backend
@@ -27,9 +23,7 @@ services:
       retries: 3
 
   ui:
-    build:
-      context: .
-      dockerfile: ui/Dockerfile
+    build: ./ui
     platform: linux/amd64
     image: rb-ocr-ui:latest
     container_name: rb-ocr-ui

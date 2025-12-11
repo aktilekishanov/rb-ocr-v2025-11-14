@@ -96,7 +96,7 @@ def _parse_ocr_result(async_result: dict) -> tuple[bool, str | None, dict]:
 class TesseractAsyncClient:
     def __init__(
         self,
-        base_url: str = "https://ocr.fortebank.com/v2",
+        base_url: str = os.getenv("OCR_BASE_URL", "https://ocr.fortebank.com/v2"),
         timeout: float = 60.0,
         verify: bool = True,
     ) -> None:
@@ -168,7 +168,7 @@ class TesseractAsyncClient:
 async def ask_tesseract_async(
     file_path: str,
     *,
-    base_url: str = "https://ocr.fortebank.com/v2",
+    base_url: str | None = None,
     wait: bool = True,
     poll_interval: float = OCR_POLL_INTERVAL_SECONDS,
     timeout: float = OCR_TIMEOUT_SECONDS,
@@ -210,7 +210,7 @@ def ask_tesseract(
     output_dir: str = "output",
     save_json: bool = True,
     *,
-    base_url: str = "https://ocr.fortebank.com/v2",
+    base_url: str | None = None,
     verify: bool = True,
     poll_interval: float = OCR_POLL_INTERVAL_SECONDS,
     timeout: float = OCR_TIMEOUT_SECONDS,

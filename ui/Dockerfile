@@ -3,25 +3,15 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies (if any needed for streamlit/pillow)
-# SKIPPED: Server is air-gapped.
-# RUN apt-get update && apt-get install -y ...
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy offline wheels from parent directory
-COPY wheels/wheels-ui /tmp/wheels/ui
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy requirements file
-COPY ui/requirements.txt .
-
-# Install from offline wheels (NO INTERNET NEEDED)
-# We move all wheels to the root of /tmp/wheels/ui to handle subdirectories
-RUN find /tmp/wheels/ui -name "*.whl" -exec mv {} /tmp/wheels/ui/ \; && \
-    pip install --no-index \
-    --find-links=/tmp/wheels/ui \
-    -r requirements.txt && \
-    rm -rf /tmp/wheels
-
-# Copy application code
-COPY ui/ .
+COPY . .
 
 EXPOSE 8501
 

@@ -2,7 +2,6 @@
 
 from pipeline.orchestrator import run_pipeline
 from pipeline.utils.io_utils import build_fio
-from pipeline.core.config import s3_config
 from services.s3_client import S3Client
 from pathlib import Path
 import asyncio
@@ -75,11 +74,11 @@ class DocumentProcessor:
         self.runs_root.mkdir(parents=True, exist_ok=True)
 
         self.s3_client = S3Client(
-            endpoint=s3_config.ENDPOINT,
-            access_key=s3_config.ACCESS_KEY,
-            secret_key=s3_config.SECRET_KEY,
-            bucket=s3_config.BUCKET,
-            secure=s3_config.SECURE,
+            endpoint=os.getenv("S3_ENDPOINT"),
+            access_key=os.getenv("S3_ACCESS_KEY"),
+            secret_key=os.getenv("S3_SECRET_KEY"),
+            bucket=os.getenv("S3_BUCKET"),
+            secure=os.getenv("S3_SECURE"),
         )
 
         logger.info(f"DocumentProcessor initialized. runs_root={self.runs_root}")

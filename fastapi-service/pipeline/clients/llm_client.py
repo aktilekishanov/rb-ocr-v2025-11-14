@@ -3,6 +3,7 @@ Client for the internal ForteBank LLM completion endpoint.
 """
 
 import json
+import os
 import ssl
 import urllib.request
 import urllib.error
@@ -51,7 +52,7 @@ def call_fortebank_llm(
         LLMResponseError: If response cannot be read or decoded.
     """
 
-    url = "https://dl-ai-dev-app01-uv01.fortebank.com/openai/payment/out/completions"
+    url = os.getenv("LLM_ENDPOINT_URL")
     payload = {
         "Model": model,
         "Content": prompt,
