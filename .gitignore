@@ -1,5 +1,4 @@
-2025-12-10
-2025-12-11
+2025-12-*
 
 # Runtime directories
 runs/
@@ -41,8 +40,9 @@ idp-loan-deferment-service/idp-loan-deferment-service-amd64.tar
 .packages
 
 .vscode-server
-*.tar.gz
 
 # .md
 .extra
 .DS_Store
+*.tar
+*.tar.gz
