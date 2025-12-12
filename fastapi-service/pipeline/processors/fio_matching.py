@@ -17,6 +17,12 @@ try:
 except Exception:  # pragma: no cover
     fuzz = None
 
+from pipeline.core.const import (
+    KZ_TO_RU_MAPPING,
+    LATIN_TO_CYRILLIC_MAPPING,
+    PATRONYMIC_SUFFIXES,
+)
+
 
 @dataclass
 class NameParts:
@@ -26,53 +32,8 @@ class NameParts:
 
 
 # Normalization utilities mirror validator.py behavior
-_KZ_TO_RU = str.maketrans(
-    {
-        "қ": "к",
-        "ұ": "у",
-        "ү": "у",
-        "ң": "н",
-        "ғ": "г",
-        "ө": "о",
-        "Қ": "К",
-        "Ұ": "У",
-        "Ү": "У",
-        "Ң": "Н",
-        "Ғ": "Г",
-        "Ө": "О",
-    }
-)
-
-_LATIN_TO_CYR = str.maketrans(
-    {
-        "a": "а",
-        "e": "е",
-        "o": "о",
-        "p": "р",
-        "c": "с",
-        "y": "у",
-        "x": "х",
-        "k": "к",
-        "h": "н",
-        "b": "в",
-        "m": "м",
-        "t": "т",
-        "i": "и",
-        "A": "А",
-        "E": "Е",
-        "O": "О",
-        "P": "Р",
-        "C": "С",
-        "Y": "У",
-        "X": "Х",
-        "K": "К",
-        "H": "Н",
-        "B": "В",
-        "M": "М",
-        "T": "Т",
-        "I": "И",
-    }
-)
+_KZ_TO_RU = str.maketrans(KZ_TO_RU_MAPPING)
+_LATIN_TO_CYR = str.maketrans(LATIN_TO_CYRILLIC_MAPPING)
 
 
 def _collapse_ws_and_case(text: str) -> str:
@@ -131,21 +92,7 @@ def parse_fio(raw: str) -> NameParts:
             last, first, patro = t1, t2_compact[0], None
         else:
             # heuristics for FIRST+PATRONYMIC
-            patro_suf = (
-                "ович",
-                "евич",
-                "ич",
-                "овна",
-                "евна",
-                "ична",
-                "қызы",
-                "углы",
-                "улы",
-                "уулу",
-                "кызы",
-                "қызы",
-            )
-            if any(t2.endswith(s) for s in patro_suf):
+            if any(t2.endswith(s) for s in PATRONYMIC_SUFFIXES):
                 last, first, patro = (
                     None,
                     _strip_trailing_dot(t1),
@@ -219,21 +166,7 @@ def detect_variant(raw: str) -> str:
         return "L_IO"
     if len(t2c) == 1 and t2c.isalpha():
         return "L_I"
-    patro_suf = (
-        "ович",
-        "евич",
-        "ич",
-        "овна",
-        "евна",
-        "ична",
-        "қызы",
-        "углы",
-        "улы",
-        "уулу",
-        "кызы",
-        "қызы",
-    )
-    if any(t2.endswith(s) for s in patro_suf):
+    if any(t2.endswith(s) for s in PATRONYMIC_SUFFIXES):
         return "FP"
     return "LF"
 

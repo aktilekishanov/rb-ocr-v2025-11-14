@@ -11,24 +11,10 @@ from typing import Any
 
 from pipeline.core.config import UTC_OFFSET_HOURS
 from pipeline.core.dates import parse_doc_date
+from pipeline.core.const import VALIDITY_OVERRIDES
 
-# Canonical doc_type strings (must match extractor output)
-DOC_DECREE_ORDER = "Приказ о выходе в декретный отпуск по уходу за ребенком"
-DOC_DECREE_CERT = "Справка о выходе в декретный отпуск по уходу за ребенком"
-DOC_VKK = "Заключение врачебно-консультативной комиссии (ВКК)"
-DOC_DISABILITY_CERT = "Справка об инвалидности"
-DOC_LOSS_OF_WORK_CAPACITY = "Справка о степени утраты общей трудоспособности"
-
-# Default and overrides
+# Default validity window
 DEFAULT_FIXED_DAYS = 40
-
-VALIDITY_OVERRIDES: dict[str, dict[str, Any]] = {
-    DOC_VKK: {"type": "fixed_days", "days": 180},
-    DOC_DISABILITY_CERT: {"type": "fixed_days", "days": 360},
-    DOC_LOSS_OF_WORK_CAPACITY: {"type": "fixed_days", "days": 360},
-    DOC_DECREE_ORDER: {"type": "fixed_days", "days": 365},
-    DOC_DECREE_CERT: {"type": "fixed_days", "days": 365},
-}
 
 
 def _timezone() -> timezone:

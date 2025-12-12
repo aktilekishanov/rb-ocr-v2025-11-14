@@ -6,7 +6,6 @@ API request inputs including FIO format, file uploads, and S3 paths.
 
 from pydantic import BaseModel, Field, field_validator
 from fastapi import UploadFile
-from typing import Set
 import re
 import os
 
@@ -17,15 +16,7 @@ from pipeline.core.config import (
     FIO_MIN_WORDS,
     MAX_FILE_SIZE_MB,
 )
-
-
-ALLOWED_CONTENT_TYPES: Set[str] = {
-    "application/pdf",
-    "image/jpeg",
-    "image/png",
-    "image/tiff",
-    "image/jpg",
-}
+from pipeline.core.const import ALLOWED_CONTENT_TYPES
 
 
 class VerifyRequest(BaseModel):
