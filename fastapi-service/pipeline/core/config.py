@@ -1,27 +1,21 @@
 # =============================================================================
-# Artifact Filenames
+# Pipeline Configuration
 # =============================================================================
 
-INPUT_FILE = "00_input{ext}"  # Template, ext filled at runtime
+MAX_PDF_PAGES = 20
+UTC_OFFSET_HOURS = 5
 
-OCR_RAW = "01_ocr.raw.json"
-OCR_FILTERED = "01_ocr.filtered.json"
-
-LLM_DTC_RAW = "02_llm_dtc.raw.json"
-LLM_DTC_FILTERED = "02_llm_dtc.filtered.json"
-
-LLM_EXT_RAW = "03_llm_ext.raw.json"
-LLM_EXT_FILTERED = "03_llm_ext.filtered.json"
-
-FINAL_JSON = "04_final.json"
-
+# File names for run artifacts
+INPUT_FILE = "00_input{ext}"
+OCR_RESULT_FILE = "01_ocr.json"
+LLM_DTC_RESULT_FILE = "02_llm_dtc.json"
+LLM_EXT_RESULT_FILE = "03_llm_ext.json"
+FINAL_RESULT_FILE = "04_final.json"
 
 # =============================================================================
 # Pipeline Settings
 # =============================================================================
 
-MAX_PDF_PAGES = 3  # Maximum pages to process per document
-UTC_OFFSET_HOURS = 5  # Kazakhstan timezone (UTC+5)
 DEFAULT_TEMPERATURE = 0.00001  # LLM temperature for deterministic output
 
 

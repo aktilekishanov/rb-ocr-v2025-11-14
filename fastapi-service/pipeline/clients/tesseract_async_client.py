@@ -9,89 +9,65 @@ from pipeline.core.config import (
     OCR_POLL_INTERVAL_SECONDS,
     OCR_TIMEOUT_SECONDS,
     OCR_CLIENT_TIMEOUT_SECONDS,
-    OCR_RAW,
+    OCR_RESULT_FILE,
 )
 from pipeline.processors.image_to_pdf_converter import convert_image_to_pdf
 from pipeline.utils.io_utils import write_json
 
 
-# ============================================================================
-# Helper Functions for ask_tesseract
-# ============================================================================
 
 
-def _detect_file_type(pdf_path: str) -> tuple[bool, bool]:
-    """Detect if file is PDF or image.
+# ------------------------------------------------------------
+# Parsing utilities
+# ------------------------------------------------------------
 
-    Args:
-        pdf_path: Path to file to check
+def _parse_ocr_result(resp: dict) -> tuple[bool, str | None, dict]:
+    """Normalize OCR response."""
+    success = bool(resp.get("success"))
+    raw = resp.get("result") or {}
+    raw_inner = raw.get("result", raw) if isinstance(raw, dict) else {}
 
-    Returns:
-        Tuple of (is_pdf, is_image)
-    """
-    mime_type, _ = mimetypes.guess_type(pdf_path)
-    is_pdf = bool(mime_type == "application/pdf" or pdf_path.lower().endswith(".pdf"))
-    file_extension = os.path.splitext(pdf_path)[1].lower()
-    is_image = bool(
-        (mime_type and isinstance(mime_type, str) and mime_type.startswith("image/"))
-        or file_extension
-        in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".heic", ".heif"}
-    )
+    if success:
+        return True, None, raw_inner
+
+    # Try get error
+    err = resp.get("error") \
+        or raw.get("error_message") \
+        or raw.get("error") \
+        or "Unknown OCR error"
+
+    return False, err, raw_inner
+
+
+# ------------------------------------------------------------
+# File utilities
+# ------------------------------------------------------------
+
+def _detect_file_type(path: str) -> tuple[bool, bool]:
+    mime, _ = mimetypes.guess_type(path)
+    ext = os.path.splitext(path)[1].lower()
+
+    is_pdf = ext == ".pdf" or mime == "application/pdf"
+    is_image = (mime and mime.startswith("image/")) or ext in {
+        ".png", ".jpg", ".jpeg", ".tif", ".tiff",
+        ".bmp", ".webp", ".heic", ".heif"
+    }
     return is_pdf, is_image
 
 
-def _convert_if_needed(
-    pdf_path: str, is_pdf: bool, is_image: bool
-) -> tuple[str, str | None]:
-    """Convert image to PDF if needed.
-
-    Args:
-        pdf_path: Original file path
-        is_pdf: Whether file is already PDF
-        is_image: Whether file is an image
-
-    Returns:
-        Tuple of (work_path, converted_pdf_path)
-        - work_path: Path to use for OCR (converted PDF if image, original if PDF)
-        - converted_pdf_path: Path to converted PDF if conversion occurred, None otherwise
-    """
-    if not is_pdf and is_image:
-        base_dir = os.path.dirname(pdf_path)
-        base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-        desired_path = os.path.join(base_dir, f"{base_name}_converted.pdf")
-        converted_pdf = convert_image_to_pdf(pdf_path, output_path=desired_path)
-        return converted_pdf, converted_pdf
-    return pdf_path, None
+def _convert_if_needed(path: str, is_pdf: bool, is_image: bool) -> tuple[str, str | None]:
+    """Convert image to PDF if needed."""
+    if is_image and not is_pdf:
+        base = os.path.splitext(path)[0]
+        out = f"{base}_converted.pdf"
+        pdf_path = convert_image_to_pdf(path, output_path=out)
+        return pdf_path, pdf_path
+    return path, None
 
 
-def _parse_ocr_result(async_result: dict) -> tuple[bool, str | None, dict]:
-    """Parse async OCR result into success, error, raw_obj.
-
-    Args:
-        async_result: Result dict from ask_tesseract_async
-
-    Returns:
-        Tuple of (success, error, raw_obj)
-    """
-    success = bool(async_result.get("success"))
-    error: str | None = None
-    raw_obj: dict[str, Any] = {}
-
-    get_resp = async_result.get("result")
-    if isinstance(get_resp, dict):
-        inner = get_resp.get("result")
-        if isinstance(inner, dict):
-            raw_obj = inner
-        else:
-            raw_obj = get_resp
-
-    if not success:
-        error = async_result.get("error")
-        if not error and isinstance(get_resp, dict):
-            error = get_resp.get("error_message") or get_resp.get("error")
-
-    return success, error, raw_obj
-
+# ------------------------------------------------------------
+# OCR Client
+# ------------------------------------------------------------
 
 class TesseractAsyncClient:
     def __init__(
@@ -100,70 +76,69 @@ class TesseractAsyncClient:
         timeout: float = 60.0,
         verify: bool = True,
     ) -> None:
-        self.base_url = os.getenv("OCR_BASE_URL")
-        self._timeout = timeout
-        self._verify = verify
+        self.base_url = base_url or os.getenv("OCR_BASE_URL")
+        self.timeout = timeout
+        self.verify = verify
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "TesseractAsyncClient":
-        self._client = httpx.AsyncClient(timeout=self._timeout, verify=self._verify)
+        self._client = httpx.AsyncClient(timeout=self.timeout, verify=self.verify)
         return self
 
-    async def __aexit__(self, _exc_type, exc, _tb) -> None:
-        if self._client is not None:
+    async def __aexit__(self, *_):
+        if self._client:
             await self._client.aclose()
-            self._client = None
 
-    async def upload(self, file_path: str) -> dict[str, Any]:
-        if self._client is None:
-            raise RuntimeError(
-                "Client is not started. Use 'async with TesseractAsyncClient()'."
-            )
+    async def upload(self, file_path: str) -> dict:
+        if not self._client:
+            raise RuntimeError("Client not started")
+
         url = f"{self.base_url}/pdf"
         filename = os.path.basename(file_path)
-        with open(file_path, "rb") as file_obj:
-            files = {"file": (filename, file_obj, "application/pdf")}
-            resp = await self._client.post(url, files=files)
+
+        with open(file_path, "rb") as f:
+            resp = await self._client.post(
+                url, files={"file": (filename, f, "application/pdf")}
+            )
+
         resp.raise_for_status()
         return resp.json()
 
-    async def get_result(self, file_id: str) -> dict[str, Any]:
-        if self._client is None:
-            raise RuntimeError(
-                "Client is not started. Use 'async with TesseractAsyncClient()'."
-            )
-        url = f"{self.base_url}/result/{file_id}"
-        resp = await self._client.get(url)
+    async def get_result(self, file_id: str) -> dict:
+        if not self._client:
+            raise RuntimeError("Client not started")
+        resp = await self._client.get(f"{self.base_url}/result/{file_id}")
         resp.raise_for_status()
         return resp.json()
 
     async def wait_for_result(
         self,
         file_id: str,
-        poll_interval: float = 2.0,
-        timeout: float = 300.0,
-    ) -> dict[str, Any]:
-        if self._client is None:
-            raise RuntimeError(
-                "Client is not started. Use 'async with TesseractAsyncClient()'."
-            )
-        loop = asyncio.get_event_loop()
-        deadline = loop.time() + timeout
-        last: dict[str, Any] = {}
+        poll_interval: float,
+        timeout: float,
+    ) -> dict:
+        """Poll OCR service until result is ready."""
+        deadline = asyncio.get_event_loop().time() + timeout
+
         while True:
-            last = await self.get_result(file_id)
-            status = str(last.get("status", "")).lower()
-            if (
-                status in {"done", "completed", "success", "finished", "ready"}
-                or last.get("result") is not None
-            ):
-                return last
+            resp = await self.get_result(file_id)
+            status = str(resp.get("status", "")).lower()
+
+            if status in {"done", "completed", "success", "finished", "ready"}:
+                return resp
+            if resp.get("result") is not None:
+                return resp
             if status in {"failed", "error"}:
-                return last
-            if loop.time() >= deadline:
-                return last
+                return resp
+            if asyncio.get_event_loop().time() >= deadline:
+                return resp
+
             await asyncio.sleep(poll_interval)
 
+
+# ------------------------------------------------------------
+# High-level async API
+# ------------------------------------------------------------
 
 async def ask_tesseract_async(
     file_path: str,
@@ -175,35 +150,43 @@ async def ask_tesseract_async(
     client_timeout: float = OCR_CLIENT_TIMEOUT_SECONDS,
     verify: bool = True,
 ) -> dict[str, Any]:
+
     async with TesseractAsyncClient(
-        base_url=base_url, timeout=client_timeout, verify=verify
+        base_url=base_url,
+        timeout=client_timeout,
+        verify=verify,
     ) as client:
-        upload_resp = await client.upload(file_path)
-        file_id = upload_resp.get("id")
-        result_obj: dict[str, Any] | None = None
-        success = False
-        error: str | None = None
-        if wait and file_id:
-            result_obj = await client.wait_for_result(
-                file_id, poll_interval=poll_interval, timeout=timeout
-            )
-            status = str(result_obj.get("status", "")).lower()
-            success = bool(
-                status in {"done", "completed", "success", "finished", "ready"}
-                or result_obj.get("result") is not None
-            )
-            if not success:
-                error = result_obj.get("error") or result_obj.get("message")
-        else:
-            success = bool(file_id)
+
+        upload = await client.upload(file_path)
+        file_id = upload.get("id")
+
+        if not wait or not file_id:
+            return {
+                "success": bool(file_id),
+                "error": None if file_id else "Upload failed",
+                "id": file_id,
+                "upload": upload,
+                "result": None,
+            }
+
+        result = await client.wait_for_result(
+            file_id,
+            poll_interval=poll_interval,
+            timeout=timeout,
+        )
+
         return {
-            "success": success,
-            "error": error,
+            "success": True,
+            "error": None,
             "id": file_id,
-            "upload": upload_resp,
-            "result": result_obj,
+            "upload": upload,
+            "result": result,
         }
 
+
+# ------------------------------------------------------------
+# Synchronous wrapper
+# ------------------------------------------------------------
 
 def ask_tesseract(
     pdf_path: str,
@@ -216,73 +199,35 @@ def ask_tesseract(
     timeout: float = OCR_TIMEOUT_SECONDS,
     client_timeout: float = OCR_CLIENT_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
-    """Synchronous wrapper for async Tesseract OCR.
 
-    Handles file type detection, image-to-PDF conversion if needed,
-    async OCR execution, result parsing, and optional JSON saving.
-
-    Args:
-        pdf_path: Path to PDF or image file
-        output_dir: Directory to save OCR results
-        save_json: Whether to save raw OCR JSON
-        base_url: Tesseract API base URL
-        verify: Whether to verify SSL certificates
-        poll_interval: Polling interval for OCR completion
-        timeout: Overall timeout for OCR operation
-        client_timeout: HTTP client timeout
-
-    Returns:
-        Dict with keys: success, error, raw_path, raw_obj, converted_pdf
-    """
-    # Detect file type and convert if needed
+    # Detect + convert
     is_pdf, is_image = _detect_file_type(pdf_path)
     work_path, converted_pdf = _convert_if_needed(pdf_path, is_pdf, is_image)
 
-    # Run async OCR operation synchronously
-    def _run(coro):
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-        if loop and loop.is_running():
-            new_loop = asyncio.new_event_loop()
-            try:
-                asyncio.set_event_loop(new_loop)
-                return new_loop.run_until_complete(coro)
-            finally:
-                new_loop.close()
-                asyncio.set_event_loop(None)
-        else:
-            return asyncio.run(coro)
-
-    async_result = _run(
+    # Run async OCR
+    async_result = asyncio.run(
         ask_tesseract_async(
             file_path=work_path,
             base_url=base_url,
-            wait=True,
+            verify=verify,
             poll_interval=poll_interval,
             timeout=timeout,
             client_timeout=client_timeout,
-            verify=verify,
         )
     )
 
-    # Parse OCR result
-    success, error, raw_obj = _parse_ocr_result(async_result)
+    # Normalize
+    success, error, raw = _parse_ocr_result(async_result)
 
-    # Save JSON if requested
-    raw_path: str | None = None
+    raw_path = None
     if save_json:
-        try:
-            raw_path = os.path.join(output_dir, OCR_RAW)
-            write_json(raw_path, raw_obj if isinstance(raw_obj, dict) else {})
-        except Exception:
-            raw_path = None
+        raw_path = os.path.join(output_dir, OCR_RESULT_FILE)
+        write_json(raw_path, raw)
 
     return {
         "success": success,
         "error": error,
+        "raw_obj": raw,
         "raw_path": raw_path,
-        "raw_obj": raw_obj if isinstance(raw_obj, dict) else {},
         "converted_pdf": converted_pdf,
     }
