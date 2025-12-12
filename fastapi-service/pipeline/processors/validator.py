@@ -7,8 +7,6 @@ constraints, returning validation checks and overall verdict.
 
 import re
 from typing import Any
-
-
 from pipeline.core.dates import now_utc_plus
 from pipeline.core.validity import compute_valid_until, is_within_validity
 from pipeline.processors.fio_matching import (
@@ -31,8 +29,6 @@ def validate_run(
 ) -> dict[str, Any]:
     """
     Validate a single run using in-memory data only.
-
-    Optimized to eliminate file I/O - receives parsed data from context.
 
     Args:
       user_provided_fio: FIO from user/Kafka (passed via PipelineContext)
