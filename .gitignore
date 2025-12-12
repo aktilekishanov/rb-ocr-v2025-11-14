@@ -1,5 +1,3 @@
-2025-12-*
-
 # Runtime directories
 runs/
 logs/
@@ -36,14 +34,6 @@ htmlcov/
 *.tmp
 .DS_Store
 
-idp-loan-deferment-service/idp-loan-deferment-service-amd64.tar
-.packages
-
-.vscode-server
-
-# .md
 .extra
-.DS_Store
 *.tar
 *.tar.gz
-.env.example
