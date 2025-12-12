@@ -33,6 +33,7 @@ import uuid
 import os
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 configure_structured_logging(level="INFO", json_format=True)

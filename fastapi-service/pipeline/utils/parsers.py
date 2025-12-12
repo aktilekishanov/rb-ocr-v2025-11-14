@@ -4,11 +4,11 @@ from typing import Any, Dict
 
 def parse_ocr_output(obj: dict) -> list[dict]:
     """Extract text pages from OCR result.
-    
+
     Args:
         obj: Already-unwrapped OCR result object with structure data.pages
              (NOT result.data.pages - that's already unwrapped by ask_tesseract)
-        
+
     Returns:
         List of dicts with page_number and text keys
     """
@@ -17,10 +17,9 @@ def parse_ocr_output(obj: dict) -> list[dict]:
     parsed = []
     for p in pages:
         if isinstance(p, dict):
-            parsed.append({
-                "page_number": p.get("page_number"),
-                "text": p.get("text") or ""
-            })
+            parsed.append(
+                {"page_number": p.get("page_number"), "text": p.get("text") or ""}
+            )
     return parsed
 
 
@@ -36,11 +35,7 @@ def parse_llm_output(raw: str) -> Dict[str, Any]:
 
     try:
         outer = json.loads(raw)
-        msg = (
-            outer.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content")
-        )
+        msg = outer.get("choices", [{}])[0].get("message", {}).get("content")
         if not isinstance(msg, str):
             return {}
 

@@ -51,7 +51,9 @@ def ask_llm(
     context = ssl._create_unverified_context()
 
     try:
-        with urllib.request.urlopen(req, context=context, timeout=LLM_REQUEST_TIMEOUT_SECONDS) as r:
+        with urllib.request.urlopen(
+            req, context=context, timeout=LLM_REQUEST_TIMEOUT_SECONDS
+        ) as r:
             return r.read().decode("utf-8")
 
     except urllib.error.HTTPError as e:
@@ -61,9 +63,7 @@ def ask_llm(
         except Exception:
             body = ""
 
-        error_type = (
-            "rate_limit" if e.code == HTTPStatus.TOO_MANY_REQUESTS else "error"
-        )
+        error_type = "rate_limit" if e.code == HTTPStatus.TOO_MANY_REQUESTS else "error"
         _raise_llm_error(
             error_type,
             {

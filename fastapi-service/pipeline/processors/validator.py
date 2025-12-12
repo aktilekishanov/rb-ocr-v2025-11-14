@@ -8,10 +8,9 @@ constraints, returning validation checks and overall verdict.
 import re
 from typing import Any
 
-from rapidfuzz import fuzz
 
 from pipeline.core.dates import now_utc_plus
-from pipeline.core.validity import compute_valid_until, format_date, is_within_validity
+from pipeline.core.validity import compute_valid_until, is_within_validity
 from pipeline.processors.fio_matching import (
     fio_match as det_fio_match,
     normalize_for_name,
@@ -27,8 +26,8 @@ def _norm_text(text: Any) -> str:
 
 def validate_run(
     user_provided_fio: dict[str, str | None],
-    extractor_data: dict[str, Any],  
-    doc_type_data: dict[str, Any],  
+    extractor_data: dict[str, Any],
+    doc_type_data: dict[str, Any],
 ) -> dict[str, Any]:
     """
     Validate a single run using in-memory data only.
@@ -44,7 +43,7 @@ def validate_run(
       A dict with keys ``success``, ``error``, and
       ``result`` (containing checks and verdict).
     """
-    
+
     merged = {
         "fio": extractor_data.get("fio"),
         "doc_date": extractor_data.get("doc_date"),

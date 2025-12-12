@@ -15,11 +15,10 @@ from pipeline.processors.image_to_pdf_converter import convert_image_to_pdf
 from pipeline.utils.io_utils import write_json
 
 
-
-
 # ------------------------------------------------------------
 # Parsing utilities
 # ------------------------------------------------------------
+
 
 def _parse_ocr_result(resp: dict) -> tuple[bool, str | None, dict]:
     """Normalize OCR response."""
@@ -31,10 +30,12 @@ def _parse_ocr_result(resp: dict) -> tuple[bool, str | None, dict]:
         return True, None, raw_inner
 
     # Try get error
-    err = resp.get("error") \
-        or raw.get("error_message") \
-        or raw.get("error") \
+    err = (
+        resp.get("error")
+        or raw.get("error_message")
+        or raw.get("error")
         or "Unknown OCR error"
+    )
 
     return False, err, raw_inner
 
@@ -43,19 +44,29 @@ def _parse_ocr_result(resp: dict) -> tuple[bool, str | None, dict]:
 # File utilities
 # ------------------------------------------------------------
 
+
 def _detect_file_type(path: str) -> tuple[bool, bool]:
     mime, _ = mimetypes.guess_type(path)
     ext = os.path.splitext(path)[1].lower()
 
     is_pdf = ext == ".pdf" or mime == "application/pdf"
     is_image = (mime and mime.startswith("image/")) or ext in {
-        ".png", ".jpg", ".jpeg", ".tif", ".tiff",
-        ".bmp", ".webp", ".heic", ".heif"
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".tif",
+        ".tiff",
+        ".bmp",
+        ".webp",
+        ".heic",
+        ".heif",
     }
     return is_pdf, is_image
 
 
-def _convert_if_needed(path: str, is_pdf: bool, is_image: bool) -> tuple[str, str | None]:
+def _convert_if_needed(
+    path: str, is_pdf: bool, is_image: bool
+) -> tuple[str, str | None]:
     """Convert image to PDF if needed."""
     if is_image and not is_pdf:
         base = os.path.splitext(path)[0]
@@ -68,6 +79,7 @@ def _convert_if_needed(path: str, is_pdf: bool, is_image: bool) -> tuple[str, st
 # ------------------------------------------------------------
 # OCR Client
 # ------------------------------------------------------------
+
 
 class TesseractAsyncClient:
     def __init__(
@@ -140,6 +152,7 @@ class TesseractAsyncClient:
 # High-level async API
 # ------------------------------------------------------------
 
+
 async def ask_tesseract_async(
     file_path: str,
     *,
@@ -150,13 +163,11 @@ async def ask_tesseract_async(
     client_timeout: float = OCR_CLIENT_TIMEOUT_SECONDS,
     verify: bool = True,
 ) -> dict[str, Any]:
-
     async with TesseractAsyncClient(
         base_url=base_url,
         timeout=client_timeout,
         verify=verify,
     ) as client:
-
         upload = await client.upload(file_path)
         file_id = upload.get("id")
 
@@ -188,6 +199,7 @@ async def ask_tesseract_async(
 # Synchronous wrapper
 # ------------------------------------------------------------
 
+
 def ask_tesseract(
     pdf_path: str,
     output_dir: str = "output",
@@ -199,7 +211,6 @@ def ask_tesseract(
     timeout: float = OCR_TIMEOUT_SECONDS,
     client_timeout: float = OCR_CLIENT_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
-
     # Detect + convert
     is_pdf, is_image = _detect_file_type(pdf_path)
     work_path, converted_pdf = _convert_if_needed(pdf_path, is_pdf, is_image)

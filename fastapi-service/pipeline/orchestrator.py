@@ -10,7 +10,6 @@ Public entrypoint: `run_pipeline`.
 from __future__ import annotations
 
 import logging
-import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -35,7 +34,6 @@ from pipeline.utils.parsers import parse_ocr_output, parse_llm_output
 from pipeline.processors.validator import validate_run
 from pipeline.utils.io_utils import (
     copy_file as util_copy_file,
-    read_json as util_read_json,
     write_json as util_write_json,
 )
 from pipeline.utils.timing import StageTimers, stage_timer
@@ -300,14 +298,14 @@ def stage_ocr(ctx: PipelineContext) -> dict[str, Any] | None:
     try:
         # Parse OCR output in-memory
         pages = parse_ocr_output(ocr_result.get("raw_obj", {}))
-        
+
         # Save parsed result to disk
         util_write_json(ctx.base_dir / OCR_RESULT_FILE, {"pages": pages})
-        
+
         ctx.pages_obj = pages
         if not ctx.pages_obj or len(ctx.pages_obj) == 0:
             return handle_pipeline_failure("OCR_EMPTY_PAGES", None, ctx)
-            
+
     except Exception as e:
         return handle_pipeline_failure("OCR_FILTER_FAILED", str(e), ctx)
     return None
@@ -321,19 +319,19 @@ def stage_doc_type_check(ctx: PipelineContext) -> dict[str, Any] | None:
         try:
             # Parse LLM output in-memory
             dtc_obj = parse_llm_output(doc_type_check_raw_str or "")
-            
+
             # Save parsed result to disk
             util_write_json(ctx.base_dir / LLM_DTC_RESULT_FILE, dtc_obj)
-            
+
             ctx.doc_type_result = dtc_obj
         except Exception as e:
             return handle_pipeline_failure("LLM_FILTER_PARSE_ERROR", str(e), ctx)
-            
+
         try:
             dtc = DocTypeCheck.model_validate(ctx.doc_type_result)
         except Exception:
             return handle_pipeline_failure("DTC_PARSE_ERROR", None, ctx)
-            
+
         is_single = getattr(dtc, "single_doc_type", None)
         if not isinstance(is_single, bool):
             return handle_pipeline_failure("DTC_PARSE_ERROR", None, ctx)
@@ -352,10 +350,10 @@ def stage_extract(ctx: PipelineContext) -> dict[str, Any] | None:
         try:
             # Parse LLM output in-memory
             extractor_obj = parse_llm_output(llm_raw_str or "")
-            
+
             # Save parsed result to disk
             util_write_json(ctx.base_dir / LLM_EXT_RESULT_FILE, extractor_obj)
-            
+
             ctx.extractor_result = extractor_obj
         except Exception as e:
             return handle_pipeline_failure("LLM_FILTER_PARSE_ERROR", str(e), ctx)
