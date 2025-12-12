@@ -51,9 +51,9 @@ class VerifyRequest(BaseModel):
         Raises:
             ValueError: If validation fails
         """
-        if not re.match(r"^[А-Яа-яЁёA-Za-z\s\-]+$", fio_value):
+        if not re.match(r"^[А-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІіA-Za-z\s\-]+$", fio_value):
             raise ValueError(
-                "FIO must contain only letters (Cyrillic or Latin), spaces, and hyphens"
+                "FIO must contain only letters (Cyrillic, Latin, or Kazakh), spaces, and hyphens"
             )
 
         fio_value = re.sub(r"\s+", " ", fio_value.strip())
