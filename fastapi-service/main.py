@@ -232,8 +232,8 @@ async def verify_document(
         response = _build_verify_response(result, processing_time, trace_id)
 
         logger.info(
-            f"[RESPONSE] run_id={response.run_id}, verdict={response.verdict}, time={response.processing_time_seconds}s",
-            extra={"trace_id": trace_id, "run_id": response.run_id},
+            f"[RESPONSE] run_id={response.run_id}, verdict={response.verdict}, time={response.processing_time_seconds}s, errors={response.errors}",
+            extra={"trace_id": trace_id, "run_id": response.run_id, "errors": response.errors},
         )
 
         _queue_db_insert(background_tasks, result)
@@ -440,11 +440,12 @@ async def verify_kafka_event(
     logger.info(
         f"[KAFKA RESPONSE] request_id={event.request_id}, "
         f"run_id={response.run_id}, verdict={response.verdict}, "
-        f"time={response.processing_time_seconds}s",
+        f"time={response.processing_time_seconds}s, errors={response.errors}",
         extra={
             "trace_id": trace_id,
             "request_id": event.request_id,
             "run_id": response.run_id,
+            "errors": response.errors,
         },
     )
 

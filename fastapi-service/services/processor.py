@@ -1,6 +1,6 @@
 """Wrapper around pipeline orchestrator for FastAPI."""
 
-from pipeline.orchestrator import run_pipeline
+from pipeline.orchestrator import PipelineRunner
 from pipeline.utils.io_utils import build_fio
 from services.s3_client import S3Client
 from pathlib import Path
@@ -53,14 +53,14 @@ async def _run_pipeline_async(
 ) -> dict:
     """Run pipeline in executor asynchronously."""
     loop = asyncio.get_event_loop()
+    runner = PipelineRunner(runs_root)
     return await loop.run_in_executor(
         None,
-        lambda: run_pipeline(
+        lambda: runner.run(
             fio=fio,
             source_file_path=tmp_path,
             original_filename=filename,
             content_type="application/pdf",
-            runs_root=runs_root,
             external_metadata=external_metadata,
         ),
     )
@@ -72,6 +72,7 @@ class DocumentProcessor:
     def __init__(self, runs_root: str = "./runs"):
         self.runs_root = Path(runs_root)
         self.runs_root.mkdir(parents=True, exist_ok=True)
+        self.runner = PipelineRunner(self.runs_root)
 
         self.s3_client = S3Client(
             endpoint=os.getenv("S3_ENDPOINT"),
@@ -107,12 +108,11 @@ class DocumentProcessor:
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             None,
-            lambda: run_pipeline(
+            lambda: self.runner.run(
                 fio=fio,
                 source_file_path=file_path,
                 original_filename=original_filename,
                 content_type=None,
-                runs_root=self.runs_root,
             ),
         )
 
