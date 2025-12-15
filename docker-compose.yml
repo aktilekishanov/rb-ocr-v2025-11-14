@@ -6,7 +6,7 @@ services:
     container_name: rb-ocr-backend
     restart: always
     ports:
-      - "8000:8000"
+      - "8282:8000"
     volumes:
       - ./runs:/app/runs
     environment:
