@@ -11,11 +11,11 @@ services:
       - ./runs:/app/runs
     environment:
       - TZ=Asia/Almaty
-      - DB_HOST=10.0.94.227
+      - DB_HOST=10.0.84.23
       - DB_PORT=5432
-      - DB_NAME=rbocrdb
-      - DB_USER=rbocruser
-      - DB_PASSWORD=rbocruserDEV
+      - DB_NAME=bpm_mail_db
+      - DB_USER=dladmin
+      - DB_PASSWORD=x33WCVKSGdvxPiH
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 20s
