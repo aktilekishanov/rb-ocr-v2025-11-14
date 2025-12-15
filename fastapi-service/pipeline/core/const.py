@@ -5,9 +5,9 @@ from typing import Any, Set
 ALLOWED_CONTENT_TYPES: Set[str] = {
     "application/pdf",
     "image/jpeg",
+    "image/jpg",
     "image/png",
     "image/tiff",
-    "image/jpg",
 }
 
 

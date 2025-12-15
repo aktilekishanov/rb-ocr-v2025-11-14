@@ -43,13 +43,16 @@ st.markdown(
 fio = st.text_input("ФИО", placeholder="Иванов Иван Иванович")
 
 
-def call_verify_api(file_bytes: bytes, filename: str, fio: Optional[str]) -> dict:
+def call_verify_api(
+    file_bytes: bytes, filename: str, content_type: str, fio: Optional[str]
+) -> dict:
     """
     Call the FastAPI /v1/verify endpoint.
 
     Args:
         file_bytes: Content of the uploaded file
         filename: Original filename
+        content_type: MIME type of the file
         fio: Full name (optional)
 
     Returns:
@@ -59,7 +62,7 @@ def call_verify_api(file_bytes: bytes, filename: str, fio: Optional[str]) -> dic
         requests.HTTPError: If API call fails
         requests.ConnectionError: If cannot connect to API
     """
-    files = {"file": (filename, file_bytes, "application/octet-stream")}
+    files = {"file": (filename, file_bytes, content_type)}
     data = {"fio": fio or ""}
 
     try:
@@ -106,6 +109,7 @@ if submitted:
                 result = call_verify_api(
                     file_bytes=uploaded_file.getvalue(),
                     filename=uploaded_file.name,
+                    content_type=uploaded_file.type,
                     fio=fio or None,
                 )
             except Exception as e:

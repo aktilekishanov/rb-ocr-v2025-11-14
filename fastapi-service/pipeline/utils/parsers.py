@@ -13,7 +13,8 @@ def parse_ocr_output(obj: dict) -> list[dict]:
         List of dicts with page_number and text keys
     """
     # obj is already the inner "result" object, so we access data.pages directly
-    pages = obj.get("data", {}).get("pages", [])
+    data = obj.get("data") or {}
+    pages = data.get("pages", [])
     parsed = []
     for p in pages:
         if isinstance(p, dict):
