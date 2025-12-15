@@ -36,7 +36,6 @@ htmlcov/
 
 .extra
 *.tar
-*.tar.gz
 .ruff_cache
 .env.old
 .env.*
