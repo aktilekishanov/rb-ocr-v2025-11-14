@@ -38,3 +38,6 @@ htmlcov/
 *.tar
 *.tar.gz
 .ruff_cache
+.env.old
+.env.*
+docker-compose.yml.old

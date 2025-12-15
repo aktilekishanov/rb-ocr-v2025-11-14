@@ -18,21 +18,6 @@ services:
       - DB_PASSWORD=rbocruserDEV
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
+      interval: 20s
       timeout: 10s
       retries: 3
-
-  ui:
-    build: ./ui
-    platform: linux/amd64
-    image: rb-ocr-ui:latest
-    container_name: rb-ocr-ui
-    restart: always
-    ports:
-      - "8501:8501"
-    environment:
-      - TZ=Asia/Almaty
-      - FASTAPI_SERVICE_URL=http://rb-ocr-dev-app-uv01.fortebank.com/rb-ocr/api
-    depends_on:
-      backend:
-        condition: service_healthy
