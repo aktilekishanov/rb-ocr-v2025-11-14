@@ -10,12 +10,12 @@ services:
     volumes:
       - ./runs:/app/runs
     environment:
-      - TZ=Asia/Almaty
-      - DB_HOST=10.0.84.23
-      - DB_PORT=5432
-      - DB_NAME=bpm_mail_db
-      - DB_USER=dladmin
-      - DB_PASSWORD=x33WCVKSGdvxPiH
+      - TZ=${TZ}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 20s
