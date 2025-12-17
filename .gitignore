@@ -34,9 +34,16 @@ htmlcov/
 *.tmp
 .DS_Store
 
-.extra
+# Tar files
 *.tar
+
+# Ruff cache
 .ruff_cache
+
+# environment
 .env.old
 .env.*
 docker-compose.yml.old
+
+.extra
+*.md

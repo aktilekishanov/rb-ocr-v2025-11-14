@@ -25,7 +25,7 @@ from services.processor import DocumentProcessor
 from pipeline.core.logging_config import configure_structured_logging
 from pipeline.utils.db_client import insert_verification_run
 from pipeline.utils.io_utils import read_json as util_read_json
-from minio.error import S3Error  # Keep this import as it's used in /v1/kafka/verify
+from minio.error import S3Error 
 import tempfile
 import logging
 import time
@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="[DEV] RB-OCR Document Verification API",
+    title="RB-OCR Document Verification API",
     version="1.0.0",
     description="Validates loan deferment documents",
     docs_url="/docs",
@@ -280,7 +280,7 @@ async def health_check_database():
 async def root():
     """Root endpoint with API info."""
     return {
-        "service": "[DEV] RB-OCR Document Verification API",
+        "service": "RB-OCR Document Verification API",
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/health",

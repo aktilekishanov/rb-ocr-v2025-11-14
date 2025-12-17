@@ -15,10 +15,10 @@ DEFAULT_API_URL = "http://rb-ocr-dev-app-uv01.fortebank.com/rb-ocr/api"
 API_URL = os.getenv("FASTAPI_SERVICE_URL", DEFAULT_API_URL)
 VERIFY_ENDPOINT = f"{API_URL}/v1/verify"
 
-st.set_page_config(page_title="[DEV] RB Loan Deferment IDP", layout="centered")
+st.set_page_config(page_title="RB Loan Deferment IDP", layout="centered")
 
 st.write("")
-st.title("[DEV] RB Loan Deferment IDP")
+st.title("RB Loan Deferment IDP")
 st.write(
     "Загрузите один файл для распознавания (OCR (Tesseract async, Dev-OCR) & LLM (DMZ))"
 )
