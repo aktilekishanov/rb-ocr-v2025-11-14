@@ -154,10 +154,14 @@ async def _save_upload_to_temp(file: UploadFile) -> str:
 
 
 def _build_verify_response(
-    result: dict, processing_time: float, trace_id: str
+    request_id: int,
+    result: dict,
+    processing_time: float,
+    trace_id: str,
 ) -> VerifyResponse:
     """Build VerifyResponse from pipeline result."""
     return VerifyResponse(
+        request_id=request_id,
         run_id=result["run_id"],
         verdict=result["verdict"],
         errors=result["errors"],
@@ -193,7 +197,35 @@ def _build_external_metadata(event: KafkaEventRequest, trace_id: str) -> dict:
 processor = DocumentProcessor(runs_root="./runs")
 
 
-@app.post("/v1/verify", response_model=VerifyResponse, tags=["Manual Verification"])
+@app.get("/health", response_model=HealthResponse, tags=["health"])
+async def health_check():
+    """
+    Combined health check
+    Checks:
+    - App responsiveness
+    - Database connectivity
+    """
+    from pipeline.core.db_config import check_db_health
+
+    db_health = await check_db_health()
+    status_code = 200 if db_health["healthy"] else 503
+
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "healthy" if db_health["healthy"] else "unhealthy",
+            "service": "rb-ocr-api",
+            "version": "1.0.0",
+            "database": {
+                "status": "connected" if db_health["healthy"] else "disconnected",
+                "latency_ms": db_health.get("latency_ms"),
+                "error": db_health.get("error"),
+            },
+        },
+    )
+
+
+@app.post("/v1/verify", response_model=VerifyResponse, tags=["manual-verification"])
 async def verify_document(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -252,38 +284,10 @@ async def verify_document(
             pass
 
 
-@app.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health_check():
-    """
-    Combined health check
-    Checks:
-    - App responsiveness
-    - Database connectivity
-    """
-    from pipeline.core.db_config import check_db_health
-
-    db_health = await check_db_health()
-    status_code = 200 if db_health["healthy"] else 503
-
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "status": "healthy" if db_health["healthy"] else "unhealthy",
-            "service": "rb-ocr-api",
-            "version": "1.0.0",
-            "database": {
-                "status": "connected" if db_health["healthy"] else "disconnected",
-                "latency_ms": db_health.get("latency_ms"),
-                "error": db_health.get("error"),
-            },
-        },
-    )
-
-
 @app.post(
     "/v1/kafka/verify",
     response_model=VerifyResponse,
-    tags=["Kafka Integration"],
+    tags=["kafka-integration"],
     summary="Verify document from Kafka event",
     description="Process document verification request from Kafka event with S3 path",
     responses={
@@ -429,7 +433,9 @@ async def verify_kafka_event(
     )
 
     processing_time = time.time() - start_time
-    response = _build_verify_response(result, processing_time, trace_id)
+    response = _build_verify_response(
+        result, processing_time, trace_id, request_id=event.request_id
+    )
 
     logger.info(
         f"[KAFKA RESPONSE] request_id={event.request_id}, "
@@ -457,7 +463,7 @@ async def verify_kafka_event(
 @app.get(
     "/v1/kafka/verify-get",
     response_model=VerifyResponse,
-    tags=["Kafka Integration"],
+    tags=["kafka-integration"],
     summary="Verify document from Kafka event",
     description="Process document verification request using query parameters instead of JSON body.",
     responses={
@@ -603,7 +609,9 @@ async def verify_kafka_event_get(
     )
 
     processing_time = time.time() - start_time
-    response = _build_verify_response(result, processing_time, trace_id)
+    response = _build_verify_response(
+        result, processing_time, trace_id, request_id=params.request_id
+    )
 
     logger.info(
         f"[KAFKA RESPONSE (GET)] request_id={params.request_id}, "

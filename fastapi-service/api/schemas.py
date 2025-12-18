@@ -151,11 +151,8 @@ class KafkaEventQueryParams(BaseModel):
 
 
 class ErrorDetail(BaseModel):
-    """Represents a single business validation error.
-
+    """A single business validation error.
     Used in VerifyResponse when verdict=False due to business rule violations
-    (e.g., FIO mismatch, document too old). These are NOT HTTP errors.
-
     The error code is self-documenting and maps to specific business rules.
     """
 
@@ -171,6 +168,9 @@ class VerifyResponse(BaseModel):
     HTTP errors (4xx/5xx) use ProblemDetail format instead.
     """
 
+    request_id: Optional[int] = Field(
+        None, description="Echoed request identifier from input (if provided)"
+    )
     run_id: str = Field(..., description="Unique run identifier (UUID)")
     verdict: bool = Field(..., description="True if all checks pass")
     errors: List[ErrorDetail] = Field(
@@ -323,7 +323,9 @@ class DatabaseHealth(BaseModel):
     """Database connection status."""
 
     status: str = Field(..., description="Connection status (connected/disconnected)")
-    latency_ms: float | None = Field(None, description="Connection latency in milliseconds")
+    latency_ms: float | None = Field(
+        None, description="Connection latency in milliseconds"
+    )
     error: str | None = Field(None, description="Error message if disconnected")
 
 
