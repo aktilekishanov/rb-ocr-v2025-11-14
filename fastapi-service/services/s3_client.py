@@ -45,7 +45,7 @@ class S3Client:
         self.endpoint = endpoint
 
         http_client = urllib3.PoolManager(
-            cert_reqs=ssl.CERT_NONE, assert_hostname=False
+            cert_reqs=ssl.CERT_NONE
         )
 
         self.client = Minio(
