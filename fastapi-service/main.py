@@ -254,7 +254,12 @@ async def health_check():
     )
 
 
-@app.post("/v1/verify", response_model=VerifyResponse, tags=["manual-verification"])
+@app.post(
+    "/v1/verify",
+    response_model=VerifyResponse,
+    tags=["manual-verification"],
+    responses={422: {"description": "Validation Error", "model": ProblemDetail}},
+)
 async def verify_document(
     request: Request,
     background_tasks: BackgroundTasks,
