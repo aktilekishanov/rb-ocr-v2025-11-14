@@ -70,7 +70,6 @@ app = FastAPI(
     redoc_url="/redoc",
     root_path="/rb-ocr/api",
     lifespan=lifespan,
-    responses={422: {"description": "Validation Error", "model": ProblemDetail}},
 )
 
 app.middleware("http")(exception_middleware)
@@ -154,10 +153,10 @@ async def _save_upload_to_temp(file: UploadFile) -> str:
 
 
 def _build_verify_response(
-    request_id: int,
     result: dict,
     processing_time: float,
     trace_id: str,
+    request_id: int | None = None,
 ) -> VerifyResponse:
     """Build VerifyResponse from pipeline result."""
     return VerifyResponse(
