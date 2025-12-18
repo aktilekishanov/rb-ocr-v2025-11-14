@@ -1,11 +1,13 @@
 """FastAPI application entry point."""
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import logging
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic_core import ValidationError as PydanticCoreValidationError
-from dotenv import load_dotenv
 
 from core.lifespan import lifespan
 from core.openapi import custom_openapi
@@ -20,9 +22,6 @@ from core.error_handlers import (
 from api.routes import health, verify, kafka
 from pipeline.core.logging_config import configure_structured_logging
 from pipeline.core.exceptions import BaseError
-
-# Load environment variables
-load_dotenv()
 
 # Configure logging
 configure_structured_logging(level="INFO", json_format=True)

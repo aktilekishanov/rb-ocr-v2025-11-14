@@ -3,6 +3,7 @@
 from pipeline.orchestrator import PipelineRunner
 from pipeline.utils.io_utils import build_fio
 from services.s3_client import S3Client
+from pipeline.core.exceptions import ExternalServiceError
 from pathlib import Path
 import asyncio
 import logging
@@ -162,7 +163,11 @@ class DocumentProcessor:
 
         try:
             if not self.s3_client:
-                raise Exception("S3Client not initialized (missing configuration)")
+                raise ExternalServiceError(
+                    service_name="S3",
+                    error_type="unavailable",
+                    details={"reason": "Missing S3 configuration (endpoint/credentials)"}
+                )
 
             s3_metadata = await _download_from_s3_async(
                 self.s3_client, s3_path, tmp_path
