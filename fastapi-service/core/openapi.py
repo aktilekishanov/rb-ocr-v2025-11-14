@@ -8,11 +8,15 @@ def custom_openapi(app: FastAPI):
 
     from fastapi.openapi.utils import get_openapi
 
+    # Ensure Swagger UI uses the correct root path
+    servers = [{"url": app.root_path}] if app.root_path else None
+
     openapi_schema = get_openapi(
         title=app.title,
         version=app.version,
         description=app.description,
         routes=app.routes,
+        servers=servers,
     )
 
     # Remove the default validation error schemas if they exist
