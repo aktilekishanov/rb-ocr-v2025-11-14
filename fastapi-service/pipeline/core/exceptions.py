@@ -147,26 +147,6 @@ class PayloadTooLargeError(ClientError):
         )
 
 
-class RateLimitError(ClientError):
-    """Rate limit exceeded (429).
-
-    Raised when client exceeds request rate limits.
-    This error is retryable after the specified delay.
-
-    Args:
-        retry_after: Seconds to wait before retrying
-    """
-
-    def __init__(self, retry_after: int = 60):
-        super().__init__(
-            message="Rate limit exceeded",
-            error_code="RATE_LIMIT_EXCEEDED",
-            http_status=429,
-            details={"retry_after": retry_after},
-        )
-        self.retryable = True  # Set after init to avoid duplicate
-
-
 class ServerError(BaseError):
     """Base for server errors (5xx).
 
@@ -222,22 +202,3 @@ class ExternalServiceError(ServerError):
             details=additional_details,
             **kwargs,
         )
-
-
-class BusinessRuleViolation(Exception):
-    """Business rule violation - returns 200 OK with verdict=False.
-
-    This is NOT an HTTP error. It represents a successful request where
-    the document failed business validation rules (FIO mismatch, doc too old, etc.).
-
-    The API returns HTTP 200 with verdict=False and structured error codes.
-
-    Args:
-        error_code: Business rule error code (e.g., "FIO_MISMATCH")
-        details: Additional context about the violation
-    """
-
-    def __init__(self, error_code: str, details: Optional[str] = None):
-        self.error_code = error_code
-        self.details = details
-        super().__init__(f"{error_code}: {details or ''}")

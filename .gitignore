@@ -46,4 +46,4 @@ htmlcov/
 docker-compose.yml.old
 
 .extra
-*.md
+# *.md

@@ -38,9 +38,6 @@ class ProblemDetail(BaseModel):
     retryable: bool = Field(
         default=False, description="Whether the request can be retried"
     )
-    retry_after: Optional[int] = Field(
-        None, description="Seconds to wait before retrying (for 429 responses)"
-    )
     trace_id: Optional[str] = Field(
         None, description="Distributed tracing ID for correlation across services"
     )
@@ -62,15 +59,6 @@ class ProblemDetail(BaseModel):
 
 
 class KafkaEventQueryParams(BaseModel):
-    """Query parameter schema for GET endpoint version of Kafka event processing.
-
-    Validates all input fields for security and data integrity:
-    - request_id: Must be positive integer
-    - iin: Must be valid 12-digit Individual Identification Number
-    - s3_path: Security checks for path traversal, file extension requirement
-    - name fields: Length constraints to prevent abuse
-    """
-
     request_id: int = Field(
         ...,
         gt=0,
@@ -169,7 +157,6 @@ class ErrorDetail(BaseModel):
     (e.g., FIO mismatch, document too old). These are NOT HTTP errors.
 
     The error code is self-documenting and maps to specific business rules.
-    Additional fields (message, details) can be added in future if needed.
     """
 
     code: str = Field(
@@ -182,8 +169,6 @@ class VerifyResponse(BaseModel):
 
     Returns HTTP 200 OK for both successful verification and business rule violations.
     HTTP errors (4xx/5xx) use ProblemDetail format instead.
-
-    Note: trace_id will be omitted if None (only during local testing).
     """
 
     run_id: str = Field(..., description="Unique run identifier (UUID)")
@@ -234,8 +219,6 @@ class VerifyResponse(BaseModel):
                         "errors": [
                             {
                                 "code": "FIO_MISMATCH",
-                                "message": "ФИО не совпадает",
-                                "details": "Expected: 'Иванов Иван', Got: 'Петров Петр'",
                             }
                         ],
                         "processing_time_seconds": 11.8,
@@ -247,15 +230,6 @@ class VerifyResponse(BaseModel):
 
 
 class KafkaEventRequest(BaseModel):
-    """Request schema for Kafka event processing endpoint with comprehensive validation.
-
-    Validates all input fields for security and data integrity:
-    - request_id: Must be positive integer
-    - iin: Must be valid 12-digit Individual Identification Number
-    - s3_path: Security checks for path traversal, file extension requirement
-    - name fields: Length constraints to prevent abuse
-    """
-
     request_id: int = Field(
         ...,
         gt=0,

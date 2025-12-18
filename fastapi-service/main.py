@@ -25,7 +25,7 @@ from services.processor import DocumentProcessor
 from pipeline.core.logging_config import configure_structured_logging
 from pipeline.utils.db_client import insert_verification_run
 from pipeline.utils.io_utils import read_json as util_read_json
-from minio.error import S3Error 
+from minio.error import S3Error
 import tempfile
 import logging
 import time
@@ -69,6 +69,7 @@ app = FastAPI(
     redoc_url="/redoc",
     root_path="/rb-ocr/api",
     lifespan=lifespan,
+    responses={422: {"description": "Validation Error", "model": ProblemDetail}},
 )
 
 app.middleware("http")(exception_middleware)
@@ -233,7 +234,11 @@ async def verify_document(
 
         logger.info(
             f"[RESPONSE] run_id={response.run_id}, verdict={response.verdict}, time={response.processing_time_seconds}s, errors={response.errors}",
-            extra={"trace_id": trace_id, "run_id": response.run_id, "errors": response.errors},
+            extra={
+                "trace_id": trace_id,
+                "run_id": response.run_id,
+                "errors": response.errors,
+            },
         )
 
         _queue_db_insert(background_tasks, result)
@@ -248,43 +253,30 @@ async def verify_document(
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring."""
-    return {"status": "healthy", "service": "rb-ocr-api", "version": "1.0.0"}
-
-
-@app.get("/health/db")
-async def health_check_database():
-    """Check database connectivity and latency."""
+    """
+    Combined health check
+    Checks:
+    - App responsiveness
+    - Database connectivity
+    """
     from pipeline.core.db_config import check_db_health
 
-    health = await check_db_health()
+    db_health = await check_db_health()
+    status_code = 200 if db_health["healthy"] else 503
 
-    if health["healthy"]:
-        return {
-            "status": "healthy",
-            "database": "postgresql",
-            "latency_ms": health["latency_ms"],
-        }
-    else:
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "unhealthy",
-                "database": "postgresql",
-                "error": health["error"],
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "healthy" if db_health["healthy"] else "unhealthy",
+            "service": "rb-ocr-api",
+            "version": "1.0.0",
+            "database": {
+                "status": "connected" if db_health["healthy"] else "disconnected",
+                "latency_ms": db_health.get("latency_ms"),
+                "error": db_health.get("error"),
             },
-        )
-
-
-@app.get("/")
-async def root():
-    """Root endpoint with API info."""
-    return {
-        "service": "RB-OCR Document Verification API",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "health": "/health",
-    }
+        },
+    )
 
 
 @app.post(
