@@ -7,7 +7,11 @@ from pipeline.core.config import (
     IIN_LENGTH,
     NAME_MAX_LENGTH,
     S3_PATH_MAX_LENGTH,
+    FIO_MIN_LENGTH,
+    FIO_MAX_LENGTH,
+    FIO_MIN_WORDS,
 )
+import re
 
 
 class ProblemDetail(BaseModel):
@@ -56,6 +60,53 @@ class ProblemDetail(BaseModel):
                 "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
             }
         }
+
+
+class VerifyRequest(BaseModel):
+    """Validated request for document verification.
+
+    Validates that FIO contains only valid characters and has at least 2 words.
+    """
+
+    fio: str = Field(
+        ...,
+        min_length=FIO_MIN_LENGTH,
+        max_length=FIO_MAX_LENGTH,
+        description="Full name of applicant (Cyrillic or Latin)",
+    )
+
+    @field_validator("fio")
+    @classmethod
+    def validate_fio(cls, fio_value: str) -> str:
+        """Validate FIO format.
+
+        Rules:
+        - Must contain only letters (Cyrillic/Latin), spaces, and hyphens
+        - Must have at least 2 words (first and last name)
+        - Whitespace is normalized
+
+        Args:
+            fio_value: FIO string to validate
+
+        Returns:
+            Normalized FIO string
+
+        Raises:
+            ValueError: If validation fails
+        """
+        if not re.match(r"^[А-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІіA-Za-z\s\-]+$", fio_value):
+            raise ValueError(
+                "FIO must contain only letters (Cyrillic, Latin, or Kazakh), spaces, and hyphens"
+            )
+
+        fio_value = re.sub(r"\s+", " ", fio_value.strip())
+
+        if len(fio_value.split()) < FIO_MIN_WORDS:
+            raise ValueError(
+                "FIO must contain at least first and last name (minimum 2 words)"
+            )
+
+        return fio_value
 
 
 class KafkaEventQueryParams(BaseModel):

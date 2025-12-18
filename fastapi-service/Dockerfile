@@ -18,7 +18,7 @@ COPY . .
 RUN mkdir -p /app/runs && chmod 775 /app/runs
 
 # Copy database setup script (for offline server deployment)
-COPY create_db_table.py /app/db_setup.py
+COPY scripts/init_db.py /app/db_setup.py
 
 EXPOSE 8000
 
