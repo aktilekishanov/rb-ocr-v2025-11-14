@@ -74,13 +74,17 @@ class DocumentProcessor:
         self.runs_root.mkdir(parents=True, exist_ok=True)
         self.runner = PipelineRunner(self.runs_root)
 
-        self.s3_client = S3Client(
-            endpoint=os.getenv("S3_ENDPOINT"),
-            access_key=os.getenv("S3_ACCESS_KEY"),
-            secret_key=os.getenv("S3_SECRET_KEY"),
-            bucket=os.getenv("S3_BUCKET"),
-            secure=os.getenv("S3_SECURE"),
-        )
+        try:
+            self.s3_client = S3Client(
+                endpoint=os.getenv("S3_ENDPOINT"),
+                access_key=os.getenv("S3_ACCESS_KEY"),
+                secret_key=os.getenv("S3_SECRET_KEY"),
+                bucket=os.getenv("S3_BUCKET"),
+                secure=os.getenv("S3_SECURE") == "true", # robust boolean parsing
+            )
+        except Exception as e:
+            logger.error(f"Failed to initialize S3Client: {e}. Kafka/S3 features will be disabled.")
+            self.s3_client = None
 
         logger.info(f"DocumentProcessor initialized. runs_root={self.runs_root}")
 
@@ -157,6 +161,9 @@ class DocumentProcessor:
             tmp_path = tmp.name
 
         try:
+            if not self.s3_client:
+                raise Exception("S3Client not initialized (missing configuration)")
+
             s3_metadata = await _download_from_s3_async(
                 self.s3_client, s3_path, tmp_path
             )

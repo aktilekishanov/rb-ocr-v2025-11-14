@@ -33,6 +33,14 @@ class S3Client:
             bucket: S3 bucket name
             secure: Use HTTPS (default: True)
         """
+        if not all([endpoint, access_key, secret_key, bucket]):
+            missing = []
+            if not endpoint: missing.append("endpoint")
+            if not access_key: missing.append("access_key")
+            if not secret_key: missing.append("secret_key")
+            if not bucket: missing.append("bucket")
+            raise ValueError(f"Missing S3 configuration: {', '.join(missing)}")
+
         self.bucket = bucket
         self.endpoint = endpoint
 
