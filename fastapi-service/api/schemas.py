@@ -317,3 +317,34 @@ class KafkaEventRequest(BaseModel):
                 "second_name": "Иванович",
             }
         }
+
+
+class DatabaseHealth(BaseModel):
+    """Database connection status."""
+
+    status: str = Field(..., description="Connection status (connected/disconnected)")
+    latency_ms: float | None = Field(None, description="Connection latency in milliseconds")
+    error: str | None = Field(None, description="Error message if disconnected")
+
+
+class HealthResponse(BaseModel):
+    """System health status response."""
+
+    status: str = Field(..., description="Overall system status (healthy/unhealthy)")
+    service: str = Field(..., description="Service name")
+    version: str = Field(..., description="Service version")
+    database: DatabaseHealth = Field(..., description="Database connection status")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "healthy",
+                "service": "rb-ocr-api",
+                "version": "1.0.0",
+                "database": {
+                    "status": "connected",
+                    "latency_ms": 1.76,
+                    "error": None,
+                },
+            }
+        }

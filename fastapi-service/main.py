@@ -18,6 +18,7 @@ from api.schemas import (
     KafkaEventRequest,
     KafkaEventQueryParams,
     ProblemDetail,
+    HealthResponse,
 )
 from api.validators import validate_upload_file, VerifyRequest
 from api.middleware.exception_handler import exception_middleware
@@ -192,20 +193,20 @@ def _build_external_metadata(event: KafkaEventRequest, trace_id: str) -> dict:
 processor = DocumentProcessor(runs_root="./runs")
 
 
-@app.post("/v1/verify", response_model=VerifyResponse)
+@app.post("/v1/verify", response_model=VerifyResponse, tags=["Manual Verification"])
 async def verify_document(
     request: Request,
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(..., description="PDF or image file"),
+    file: UploadFile = File(..., description="PDF or Image file"),
     fio: str = Form(..., description="Applicant's full name (FIO)"),
 ):
     """
     Verify a loan deferment document.
 
     Returns:
+    - run_id: Unique identifier for this request
     - verdict: True if all checks pass, False otherwise
     - errors: List of failed checks (empty if verdict=True)
-    - run_id: Unique identifier for this request
     - processing_time_seconds: Total processing duration
     - trace_id: Distributed tracing correlation ID
     """
@@ -251,7 +252,7 @@ async def verify_document(
             pass
 
 
-@app.get("/health")
+@app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
     """
     Combined health check
@@ -282,6 +283,7 @@ async def health_check():
 @app.post(
     "/v1/kafka/verify",
     response_model=VerifyResponse,
+    tags=["Kafka Integration"],
     summary="Verify document from Kafka event",
     description="Process document verification request from Kafka event with S3 path",
     responses={
@@ -455,6 +457,7 @@ async def verify_kafka_event(
 @app.get(
     "/v1/kafka/verify-get",
     response_model=VerifyResponse,
+    tags=["Kafka Integration"],
     summary="Verify document from Kafka event",
     description="Process document verification request using query parameters instead of JSON body.",
     responses={
