@@ -267,14 +267,7 @@ async def verify_document(
     fio: str = Form(..., description="Applicant's full name (FIO)"),
 ):
     """
-    Verify a loan deferment document.
-
-    Returns:
-    - run_id: Unique identifier for this request
-    - verdict: True if all checks pass, False otherwise
-    - errors: List of failed checks (empty if verdict=True)
-    - processing_time_seconds: Total processing duration
-    - trace_id: Distributed tracing correlation ID
+    Verify a loan deferment document by manually uploading a file.
     """
     start_time = time.time()
     trace_id = getattr(request.state, "trace_id", None)
