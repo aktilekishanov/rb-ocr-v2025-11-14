@@ -13,6 +13,17 @@ import os
 logger = logging.getLogger(__name__)
 
 
+def _parse_bool_env(value: str | None, default: bool = True) -> bool:
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
 # ============================================================================
 # Module-Level Helper Functions
 # ============================================================================
@@ -81,7 +92,7 @@ class DocumentProcessor:
                 access_key=os.getenv("S3_ACCESS_KEY"),
                 secret_key=os.getenv("S3_SECRET_KEY"),
                 bucket=os.getenv("S3_BUCKET"),
-                secure=os.getenv("S3_SECURE") == "true", # robust boolean parsing
+                secure=_parse_bool_env(os.getenv("S3_SECURE"), default=True),
             )
         except Exception as e:
             logger.error(f"Failed to initialize S3Client: {e}. Kafka/S3 features will be disabled.")
