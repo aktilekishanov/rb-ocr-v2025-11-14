@@ -33,24 +33,11 @@ class S3Client:
             bucket: S3 bucket name
             secure: Use HTTPS (default: True)
         """
-        if not all([endpoint, access_key, secret_key, bucket]):
-            missing = []
-            if not endpoint: missing.append("endpoint")
-            if not access_key: missing.append("access_key")
-            if not secret_key: missing.append("secret_key")
-            if not bucket: missing.append("bucket")
-            raise ValueError(f"Missing S3 configuration: {', '.join(missing)}")
-
         self.bucket = bucket
         self.endpoint = endpoint
 
-        # Create a custom SSL context to disable verification (replacement for assert_hostname=False)
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-
         http_client = urllib3.PoolManager(
-            ssl_context=ssl_context
+            cert_reqs=ssl.CERT_NONE, assert_hostname=False
         )
 
         self.client = Minio(
