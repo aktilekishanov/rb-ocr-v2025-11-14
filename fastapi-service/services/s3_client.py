@@ -44,8 +44,13 @@ class S3Client:
         self.bucket = bucket
         self.endpoint = endpoint
 
+        # Create a custom SSL context to disable verification (replacement for assert_hostname=False)
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+
         http_client = urllib3.PoolManager(
-            cert_reqs=ssl.CERT_NONE
+            ssl_context=ssl_context
         )
 
         self.client = Minio(
