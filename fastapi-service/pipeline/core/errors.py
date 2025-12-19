@@ -14,6 +14,7 @@ class ErrorSpec:
     """Specification for a single error type."""
 
     code: str
+    int_code: int
     message_ru: str  # Russian message for UI
     category: str  # "client_error" or "server_error"
     retryable: bool  # True if request can be retried
@@ -33,18 +34,21 @@ class ErrorCode(Enum):
     # ========================================
     PDF_TOO_MANY_PAGES = ErrorSpec(
         "PDF_TOO_MANY_PAGES",
+        12,
         "PDF должен содержать не более 3 страниц",
         "client_error",
         False,
     )
     FILE_SAVE_FAILED = ErrorSpec(
         "FILE_SAVE_FAILED",
+        13,
         "Не удалось сохранить файл",
         "client_error",
         False,
     )
     MULTIPLE_DOCUMENTS = ErrorSpec(
         "MULTIPLE_DOCUMENTS",
+        3,
         "Файл содержит несколько типов документов",
         "client_error",
         False,
@@ -55,60 +59,70 @@ class ErrorCode(Enum):
     # ========================================
     OCR_FAILED = ErrorSpec(
         "OCR_FAILED",
+        20,
         "Ошибка распознавания OCR",
         "server_error",
         True,
     )
     OCR_FILTER_FAILED = ErrorSpec(
         "OCR_FILTER_FAILED",
+        21,
         "Ошибка обработки страниц OCR",
         "server_error",
         True,
     )
     OCR_EMPTY_PAGES = ErrorSpec(
         "OCR_EMPTY_PAGES",
+        22,
         "Не удалось получить текст страниц из OCR",
         "server_error",
         True,
     )
     DTC_FAILED = ErrorSpec(
         "DTC_FAILED",
+        23,
         "Ошибка проверки типа документа",
         "server_error",
         True,
     )
     DTC_PARSE_ERROR = ErrorSpec(
         "DTC_PARSE_ERROR",
+        24,
         "Некорректный ответ проверки типа документа",
         "server_error",
         True,
     )
     EXTRACT_FAILED = ErrorSpec(
         "EXTRACT_FAILED",
+        25,
         "Ошибка извлечения данных LLM",
         "server_error",
         True,
     )
     LLM_FILTER_PARSE_ERROR = ErrorSpec(
         "LLM_FILTER_PARSE_ERROR",
+        26,
         "Ошибка фильтрации ответа LLM",
         "server_error",
         True,
     )
     EXTRACT_SCHEMA_INVALID = ErrorSpec(
         "EXTRACT_SCHEMA_INVALID",
+        27,
         "Некорректная схема данных извлечения",
         "server_error",
         True,
     )
     MERGE_FAILED = ErrorSpec(
         "MERGE_FAILED",
+        28,
         "Ошибка при формировании итогового JSON",
         "server_error",
         False,  # Usually indicates bug, not transient
     )
     VALIDATION_FAILED = ErrorSpec(
         "VALIDATION_FAILED",
+        29,
         "Ошибка валидации",
         "server_error",
         False,  # Usually indicates bug, not transient
@@ -119,30 +133,35 @@ class ErrorCode(Enum):
     # ========================================
     FIO_MISMATCH = ErrorSpec(
         "FIO_MISMATCH",
+        4,
         "ФИО не совпадает",
         "client_error",  # User provided wrong data
         False,
     )
     FIO_MISSING = ErrorSpec(
         "FIO_MISSING",
+        11,
         "Не удалось извлечь ФИО из документа",
         "client_error",
         False,
     )
     DOC_TYPE_UNKNOWN = ErrorSpec(
         "DOC_TYPE_UNKNOWN",
+        6,
         "Не удалось определить тип документа",
         "client_error",
         False,
     )
     DOC_DATE_TOO_OLD = ErrorSpec(
         "DOC_DATE_TOO_OLD",
+        2,
         "Устаревшая дата документа",
         "client_error",
         False,
     )
     DOC_DATE_MISSING = ErrorSpec(
         "DOC_DATE_MISSING",
+        10,
         "Не удалось распознать дату документа",
         "client_error",
         False,
@@ -153,6 +172,7 @@ class ErrorCode(Enum):
     # ========================================
     UNKNOWN_ERROR = ErrorSpec(
         "UNKNOWN_ERROR",
+        0,
         "Неизвестная ошибка",
         "server_error",
         False,
@@ -170,7 +190,7 @@ class ErrorCode(Enum):
             if error.value.code == code:
                 return error.value
         # Default for unknown errors
-        return ErrorSpec(code, f"Ошибка: {code}", "server_error", False)
+        return ErrorSpec(code, 0, f"Ошибка: {code}", "server_error", False)
 
 
 # Keep existing helper functions for backward compatibility
@@ -182,10 +202,14 @@ def message_for(code: str) -> str | None:
 
 def make_error(
     code: str, message: str | None = None, details: str | None = None
-) -> dict[str, str | None]:
-    """Create error dict with code, message, and details."""
+) -> dict[str, str | int | None]:
+    """Create error dict with integer code, message, and details.
+    
+    Looks up the integer code from the string code in ErrorCode.
+    """
+    spec = ErrorCode.get_spec(code)
     return {
-        "code": code,
+        "code": spec.int_code,
         "message": message,
         "details": details,
     }

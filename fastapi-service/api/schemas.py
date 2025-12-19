@@ -215,7 +215,7 @@ class VerifyResponse(BaseModel):
     )
     run_id: str = Field(..., description="Unique run identifier (UUID)")
     verdict: bool = Field(..., description="True if all checks pass")
-    errors: List[str] = Field(
+    errors: List[int] = Field(
         default_factory=list,
         description="List of business validation errors (empty if verdict=True)",
     )
@@ -255,7 +255,7 @@ class VerifyResponse(BaseModel):
                     "request_id": "670e8499-r29c-41d4-a786-446655441111",
                     "run_id": "550e8400-e29b-41d4-a716-446655440001",
                     "verdict": False,
-                    "errors": ["FIO_MISMATCH"],
+                    "errors": [4],
                     "processing_time_seconds": 11.8,
                     "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567891",
                 },

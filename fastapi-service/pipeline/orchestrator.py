@@ -178,7 +178,7 @@ class PipelineRunner:
             FinalJsonBuilder(ctx.run_id, ctx.trace_id, ctx.request_created_at)
             .with_external_metadata(self._build_external_metadata_obj(ctx))
             .with_error(
-                code, error_spec.message_ru, error_spec.category, error_spec.retryable
+                error_spec.int_code, error_spec.message_ru, error_spec.category, error_spec.retryable
             )
             .with_timing(completed_at, processing_time)
             .build()

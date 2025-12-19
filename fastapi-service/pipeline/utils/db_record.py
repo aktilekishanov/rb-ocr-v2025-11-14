@@ -78,7 +78,7 @@ class FinalJsonBuilder:
         return self
 
     def with_error(
-        self, code: str, message: str, category: str, retryable: bool
+        self, code: int, message: str, category: str, retryable: bool
     ) -> "FinalJsonBuilder":
         """Mark as error and set HTTP error fields, NULL all extracted/rule fields."""
         self.data.update(
@@ -109,7 +109,7 @@ class FinalJsonBuilder:
         extracted: ExtractedData,
         checks: RuleChecks,
         verdict: bool,
-        rule_errors: list[str],
+        rule_errors: list[int],
     ) -> "FinalJsonBuilder":
         """Mark as success and set extracted/rule fields, NULL all HTTP error fields."""
         self.data.update(
