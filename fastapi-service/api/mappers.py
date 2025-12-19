@@ -15,7 +15,7 @@ def build_verify_response(
         request_id=request_id,
         run_id=result["run_id"],
         verdict=result["verdict"],
-        errors=result["errors"],
+        errors=[e["code"] for e in result["errors"]],
         processing_time_seconds=round(processing_time, 2),
         trace_id=trace_id,
     )
