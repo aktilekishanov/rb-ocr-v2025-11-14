@@ -8,6 +8,35 @@ from services.webhook_client import webhook_client
 logger = logging.getLogger(__name__)
 
 
+async def send_webhook_and_persist(
+    request_id: int, success: bool, errors: list[int], run_id: str
+) -> None:
+    """
+    Send webhook and persist the result (success/fail + http code) to the database.
+    This wrapper ensures the DB is updated with the outcome of the webhook attempt.
+    """
+    from pipeline.utils.db_client import update_webhook_status
+
+    try:
+        # 1. Send Webhook
+        http_code = await webhook_client.send_result(request_id, success, errors)
+        
+        # 2. Determine status based on HTTP code (2xx = SUCCESS)
+        status = "SUCCESS" if 200 <= http_code < 300 else "FAILED"
+        
+        # 3. Persist to DB
+        await update_webhook_status(run_id, status, http_code)
+        
+    except Exception as e:
+        logger.error(f"Error in webhook wrapper task: {e}", exc_info=True)
+        # Try to mark as ERROR in DB if possible
+        try:
+            from pipeline.utils.db_client import update_webhook_status
+            await update_webhook_status(run_id, "ERROR", 0)
+        except Exception:
+            pass
+
+
 def enqueue_verification_run(
     background_tasks: BackgroundTasks, result: dict, request_id: int | None = None
 ) -> None:
@@ -30,12 +59,15 @@ def enqueue_verification_run(
             raw_errors = result.get("errors", [])
             error_codes = [e["code"] for e in raw_errors]
             success = result.get("verdict", False)
+            run_id = result.get("run_id")
             
+            # Use the wrapper that handles persistence
             background_tasks.add_task(
-                webhook_client.send_result,
+                send_webhook_and_persist,
                 request_id=request_id,
                 success=success,
-                errors=error_codes
+                errors=error_codes,
+                run_id=run_id
             )
 
     except Exception as e:

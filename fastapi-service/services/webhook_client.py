@@ -19,7 +19,7 @@ class WebhookClient:
         self.url = url
         self.timeout = timeout
 
-    async def send_result(self, request_id: int, success: bool, errors: List[int] | None = None) -> bool:
+    async def send_result(self, request_id: int, success: bool, errors: List[int] | None = None) -> int:
         """
         Send the processing result to the webhook endpoint.
 
@@ -29,7 +29,7 @@ class WebhookClient:
             errors: List of integer error codes (if any).
 
         Returns:
-            True if the webhook was delivered successfully (HTTP 200), False otherwise.
+            int: HTTP status code (200, 404, etc.) or 0 if connection failed.
         """
         payload = WebhookPayload(
             request_id=request_id,
@@ -48,13 +48,13 @@ class WebhookClient:
                 )
                 response.raise_for_status()
                 logger.info(f"Webhook delivered successfully. Status: {response.status_code}")
-                return True
+                return response.status_code
         except httpx.HTTPStatusError as e:
             logger.error(f"Webhook HTTP error: {e.response.status_code} - {e.response.text}")
-            return False
+            return e.response.status_code
         except Exception as e:
             logger.error(f"Webhook connection failed: {str(e)}")
-            return False
+            return 0
 
 # Global instance
 webhook_client = WebhookClient()

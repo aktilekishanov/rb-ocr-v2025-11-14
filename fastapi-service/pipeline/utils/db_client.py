@@ -179,3 +179,37 @@ async def _insert_once(final_json: dict[str, Any]) -> bool:
         )
 
     return True
+
+
+async def update_webhook_status(
+    run_id: str,
+    status: str,
+    http_code: int | None = None
+) -> bool:
+    """Update webhook status for a verification run.
+    
+    Args:
+        run_id: The run ID to update.
+        status: One of 'PENDING', 'SUCCESS', 'FAILED', 'ERROR'.
+        http_code: The HTTP status code returned by the webhook (optional).
+    
+    Returns:
+        bool: True if update succeeded.
+    """
+    pool = await get_db_pool()
+    
+    query = """
+        UPDATE verification_runs
+        SET webhook_status = $1,
+            webhook_attempted_at = NOW(),
+            webhook_http_code = $2
+        WHERE run_id = $3
+    """
+    
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(query, status, http_code, run_id)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to update webhook status for {run_id}: {e}", exc_info=True)
+        return False
