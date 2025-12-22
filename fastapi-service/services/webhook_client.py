@@ -6,14 +6,6 @@ from typing import List
 
 logger = logging.getLogger(__name__)
 
-# Default constants (Fix #2: Use env vars with fallback defaults)
-DEFAULT_WEBHOOK_URL = (
-    "https://dev-loan-api.fortebank.com/api/v1/delay/delay/document-scan/result"
-)
-DEFAULT_WEBHOOK_USERNAME = "bank"
-DEFAULT_WEBHOOK_PASSWORD = "bank"
-DEFAULT_WEBHOOK_TIMEOUT = 10.0
-
 
 class WebhookPayload(BaseModel):
     err_codes: List[int] = Field(
@@ -26,14 +18,11 @@ class WebhookPayload(BaseModel):
 class WebhookClient:
     """Webhook client with environment-based configuration.
 
-    Fix #2: Hardcoded credentials moved to environment variables with
-    sensible defaults for development.
-
-    Environment variables:
+    Environment variables (REQUIRED):
         WEBHOOK_URL: Target webhook endpoint URL
         WEBHOOK_USERNAME: Basic auth username
         WEBHOOK_PASSWORD: Basic auth password
-        WEBHOOK_TIMEOUT: Request timeout in seconds
+        WEBHOOK_TIMEOUT: Request timeout in seconds (default: 10.0)
     """
 
     def __init__(
@@ -43,17 +32,12 @@ class WebhookClient:
         password: str | None = None,
         timeout: float | None = None,
     ):
-        # Load from env vars with fallback to defaults
-        self.url = url or os.getenv("WEBHOOK_URL", DEFAULT_WEBHOOK_URL)
-        self.username = username or os.getenv(
-            "WEBHOOK_USERNAME", DEFAULT_WEBHOOK_USERNAME
-        )
-        self.password = password or os.getenv(
-            "WEBHOOK_PASSWORD", DEFAULT_WEBHOOK_PASSWORD
-        )
-        self.timeout = timeout or float(
-            os.getenv("WEBHOOK_TIMEOUT", str(DEFAULT_WEBHOOK_TIMEOUT))
-        )
+        # Load from env vars (no defaults - must be configured)
+        self.url = url or os.getenv("WEBHOOK_URL")
+        self.username = username or os.getenv("WEBHOOK_USERNAME")
+        self.password = password or os.getenv("WEBHOOK_PASSWORD")
+        timeout_env = os.getenv("WEBHOOK_TIMEOUT")
+        self.timeout = timeout or (float(timeout_env) if timeout_env else 10.0)
 
         logger.info(
             f"WebhookClient initialized with URL: {self.url}, timeout: {self.timeout}s"
