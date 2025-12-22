@@ -44,7 +44,7 @@ processor = DocumentProcessor(runs_root="./runs")
                             "value": {
                                 "run_id": "550e8400-e29b-41d4-a716-446655440001",
                                 "verdict": False,
-                                "errors": [{"code": "FIO_MISMATCH"}],
+                                "errors": [4],
                                 "processing_time_seconds": 4.5,
                                 "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890",
                             },
@@ -209,11 +209,11 @@ async def verify_kafka_event(
                             },
                         },
                         "business_error": {
-                            "summary": "Business validation failed",
+                            "summary": "Business validation failed (FIO mismatch)",
                             "value": {
                                 "run_id": "550e8400-e29b-41d4-a716-446655440001",
                                 "verdict": False,
-                                "errors": [{"code": "FIO_MISMATCH"}],
+                                "errors": [4],
                                 "processing_time_seconds": 4.5,
                                 "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890",
                             },

@@ -1,13 +1,18 @@
 import logging
+import os
 import httpx
 from pydantic import BaseModel, Field
 from typing import List
 
 logger = logging.getLogger(__name__)
 
-WEBHOOK_URL = (
+# Default constants (Fix #2: Use env vars with fallback defaults)
+DEFAULT_WEBHOOK_URL = (
     "https://dev-loan-api.fortebank.com/api/v1/delay/delay/document-scan/result"
 )
+DEFAULT_WEBHOOK_USERNAME = "bank"
+DEFAULT_WEBHOOK_PASSWORD = "bank"
+DEFAULT_WEBHOOK_TIMEOUT = 10.0
 
 
 class WebhookPayload(BaseModel):
@@ -19,15 +24,45 @@ class WebhookPayload(BaseModel):
 
 
 class WebhookClient:
-    def __init__(self, url: str = WEBHOOK_URL, timeout: float = 10.0):
-        self.url = url
-        self.timeout = timeout
+    """Webhook client with environment-based configuration.
+
+    Fix #2: Hardcoded credentials moved to environment variables with
+    sensible defaults for development.
+
+    Environment variables:
+        WEBHOOK_URL: Target webhook endpoint URL
+        WEBHOOK_USERNAME: Basic auth username
+        WEBHOOK_PASSWORD: Basic auth password
+        WEBHOOK_TIMEOUT: Request timeout in seconds
+    """
+
+    def __init__(
+        self,
+        url: str | None = None,
+        username: str | None = None,
+        password: str | None = None,
+        timeout: float | None = None,
+    ):
+        # Load from env vars with fallback to defaults
+        self.url = url or os.getenv("WEBHOOK_URL", DEFAULT_WEBHOOK_URL)
+        self.username = username or os.getenv(
+            "WEBHOOK_USERNAME", DEFAULT_WEBHOOK_USERNAME
+        )
+        self.password = password or os.getenv(
+            "WEBHOOK_PASSWORD", DEFAULT_WEBHOOK_PASSWORD
+        )
+        self.timeout = timeout or float(
+            os.getenv("WEBHOOK_TIMEOUT", str(DEFAULT_WEBHOOK_TIMEOUT))
+        )
+
+        logger.info(
+            f"WebhookClient initialized with URL: {self.url}, timeout: {self.timeout}s"
+        )
 
     async def send_result(
         self, request_id: int, success: bool, errors: List[int] | None = None
     ) -> int:
-        """
-        Send the processing result to the webhook endpoint.
+        """Send the processing result to the webhook endpoint.
 
         Args:
             request_id: The ID of the request being processed.
@@ -55,7 +90,7 @@ class WebhookClient:
                         "Content-Type": "application/json",
                         "Accept": "application/json",
                     },
-                    auth=("bank", "bank"),
+                    auth=(self.username, self.password),
                 )
                 response.raise_for_status()
                 logger.info(
