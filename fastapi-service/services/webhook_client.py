@@ -5,7 +5,7 @@ from typing import List
 
 logger = logging.getLogger(__name__)
 
-WEBHOOK_URL = "https://dev-loan-api.fortebank.com/api/v1/delay/document-scan/result"
+WEBHOOK_URL = "https://dev-loan-api.fortebank.com/api/v1/delay/delay/document-scan/result"
 
 
 class WebhookPayload(BaseModel):

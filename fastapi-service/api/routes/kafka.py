@@ -182,7 +182,7 @@ async def verify_kafka_event(
         },
     )
 
-    enqueue_verification_run(background_tasks, result)
+    enqueue_verification_run(background_tasks, result, request_id=event.request_id)
     return response
 
 
@@ -350,5 +350,5 @@ async def verify_kafka_event_get(
         },
     )
 
-    enqueue_verification_run(background_tasks, result)
+    enqueue_verification_run(background_tasks, result, request_id=params.request_id)
     return response
