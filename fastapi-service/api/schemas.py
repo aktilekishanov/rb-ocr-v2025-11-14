@@ -164,12 +164,11 @@ class KafkaEventQueryParams(BaseModel):
     @field_validator("s3_path")
     @classmethod
     def validate_s3_path(cls, s3_path_value: str) -> str:
-        """Validate S3 path for security and format.
+        """Validate S3 path for security.
 
         Security checks:
         - Prevent directory traversal attacks (..)
         - Prevent absolute paths (/)
-        - Require file extension
 
         Raises:
             ValueError: If path fails validation
@@ -181,10 +180,6 @@ class KafkaEventQueryParams(BaseModel):
         # Security: Prevent absolute paths
         if s3_path_value.startswith("/"):
             raise ValueError("S3 path cannot start with '/' (absolute path)")
-
-        # Format: Must have file extension
-        if "." not in s3_path_value:
-            raise ValueError("S3 path must include file extension (e.g., .pdf, .jpg)")
 
         return s3_path_value
 
@@ -314,12 +309,11 @@ class KafkaEventRequest(BaseModel):
     @field_validator("s3_path")
     @classmethod
     def validate_s3_path(cls, s3_path_value: str) -> str:
-        """Validate S3 path for security and format.
+        """Validate S3 path for security.
 
         Security checks:
         - Prevent directory traversal attacks (..)
         - Prevent absolute paths (/)
-        - Require file extension
 
         Raises:
             ValueError: If path fails validation
@@ -331,10 +325,6 @@ class KafkaEventRequest(BaseModel):
         # Security: Prevent absolute paths
         if s3_path_value.startswith("/"):
             raise ValueError("S3 path cannot start with '/' (absolute path)")
-
-        # Format: Must have file extension
-        if "." not in s3_path_value:
-            raise ValueError("S3 path must include file extension (e.g., .pdf, .jpg)")
 
         return s3_path_value
 
