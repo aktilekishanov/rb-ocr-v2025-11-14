@@ -95,7 +95,9 @@ class DocumentProcessor:
                 secure=_parse_bool_env(os.getenv("S3_SECURE"), default=True),
             )
         except Exception as e:
-            logger.error(f"Failed to initialize S3Client: {e}. Kafka/S3 features will be disabled.")
+            logger.error(
+                f"Failed to initialize S3Client: {e}. Kafka/S3 features will be disabled."
+            )
             self.s3_client = None
 
         logger.info(f"DocumentProcessor initialized. runs_root={self.runs_root}")
@@ -177,7 +179,9 @@ class DocumentProcessor:
                 raise ExternalServiceError(
                     service_name="S3",
                     error_type="unavailable",
-                    details={"reason": "Missing S3 configuration (endpoint/credentials)"}
+                    details={
+                        "reason": "Missing S3 configuration (endpoint/credentials)"
+                    },
                 )
 
             s3_metadata = await _download_from_s3_async(

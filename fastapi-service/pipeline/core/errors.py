@@ -204,7 +204,7 @@ def make_error(
     code: str, message: str | None = None, details: str | None = None
 ) -> dict[str, str | int | None]:
     """Create error dict with integer code, message, and details.
-    
+
     Looks up the integer code from the string code in ErrorCode.
     """
     spec = ErrorCode.get_spec(code)

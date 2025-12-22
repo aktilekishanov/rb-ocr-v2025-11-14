@@ -201,8 +201,6 @@ class KafkaEventQueryParams(BaseModel):
         }
 
 
-
-
 class VerifyResponse(BaseModel):
     """Response from document verification endpoint.
 
