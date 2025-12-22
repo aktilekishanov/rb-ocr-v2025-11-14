@@ -52,6 +52,44 @@ def _now_iso() -> str:
     return datetime.now(timezone(timedelta(hours=UTC_OFFSET_HOURS))).isoformat()
 
 
+def _detect_extension_from_file(file_path: str) -> str:
+    """
+    Detect file extension by reading magic bytes (file header).
+    
+    Supported formats:
+        - PDF:  %PDF
+        - JPEG: 0xFFD8
+        - PNG:  0x89PNG
+    
+    Args:
+        file_path: Path to binary file on disk
+        
+    Returns:
+        Extension string without dot (e.g., 'pdf', 'jpg', 'png', 'bin')
+    """
+    try:
+        with open(file_path, 'rb') as f:
+            header = f.read(8)  # Read first 8 bytes
+        
+        # PDF: %PDF-1.x
+        if header.startswith(b'%PDF'):
+            return 'pdf'
+        
+        # JPEG: 0xFFD8FF
+        if header.startswith(b'\xff\xd8'):
+            return 'jpg'
+        
+        # PNG: 0x89504E47
+        if header.startswith(b'\x89PNG'):
+            return 'png'
+        
+    except Exception:
+        # File read error or unrecognized format
+        pass
+    
+    return 'bin'
+
+
 def _count_pdf_pages(pdf_path: str) -> Optional[int]:
     """
     Try pypdf then PyPDF2 to count pages. Return None if both fail.
@@ -232,7 +270,18 @@ class PipelineRunner:
     # Stage implementations
     @stage("acquire")
     def _stage_acquire(self, ctx: PipelineContext) -> None:
-        ext = Path(ctx.original_filename).suffix or ".bin"
+        # Try filename extension first
+        ext = Path(ctx.original_filename).suffix
+        
+        # If no extension in filename, detect from file content (magic bytes)
+        if not ext:
+            detected = _detect_extension_from_file(ctx.source_file_path)
+            ext = f'.{detected}'
+            logger.info(
+                f"Detected file type from magic bytes: {detected} "
+                f"(filename: {ctx.original_filename})"
+            )
+        
         ctx.saved_path = ctx.base_dir / INPUT_FILE.format(ext=ext)
         try:
             util_copy_file(ctx.source_file_path, ctx.saved_path)

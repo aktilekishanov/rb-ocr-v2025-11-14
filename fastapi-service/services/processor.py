@@ -72,7 +72,7 @@ async def _run_pipeline_async(
             fio=fio,
             source_file_path=tmp_path,
             original_filename=filename,
-            content_type="application/pdf",
+            content_type=None,  # Rely solely on magic bytes detection
             external_metadata=external_metadata,
         ),
     )
