@@ -2,13 +2,13 @@ import time
 import logging
 from fastapi import APIRouter, Request, BackgroundTasks, Depends
 from api.schemas import (
-    VerifyResponse,
+    KafkaResponse,
     KafkaEventRequest,
     KafkaEventQueryParams,
     ProblemDetail,
 )
 from services.processor import DocumentProcessor
-from api.mappers import build_verify_response, build_external_metadata
+from api.mappers import build_kafka_response, build_external_metadata
 from services.tasks import enqueue_verification_run
 
 router = APIRouter()
@@ -19,7 +19,7 @@ processor = DocumentProcessor(runs_root="./runs")
 
 @router.post(
     "/v1/kafka/verify",
-    response_model=VerifyResponse,
+    response_model=KafkaResponse,
     tags=["kafka-integration"],
     summary="Verify document from Kafka event",
     description="Process document verification request from Kafka event with S3 path",
@@ -32,21 +32,25 @@ processor = DocumentProcessor(runs_root="./runs")
                         "success": {
                             "summary": "Verification successful",
                             "value": {
-                                "run_id": "550e8400-e29b-41d4-a716-446655440000",
-                                "verdict": True,
-                                "errors": [],
-                                "processing_time_seconds": 4.2,
-                                "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                                "request_id": 52015072,
+                                "status": "success",
+                                "err_codes": []
                             },
                         },
                         "business_error": {
-                            "summary": "Business validation failed",
+                            "summary": "Business validation failed (FIO mismatch)",
                             "value": {
-                                "run_id": "550e8400-e29b-41d4-a716-446655440001",
-                                "verdict": False,
-                                "errors": [4],
-                                "processing_time_seconds": 4.5,
-                                "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890",
+                                "request_id": 52015072,
+                                "status": "fail",
+                                "err_codes": [4]
+                            },
+                        },
+                        "multiple_errors": {
+                            "summary": "Multiple validation failures",
+                            "value": {
+                                "request_id": 52015072,
+                                "status": "fail",
+                                "err_codes": [4, 2, 3]
                             },
                         },
                     }
@@ -166,29 +170,30 @@ async def verify_kafka_event(
     )
 
     processing_time = time.time() - start_time
-    response = build_verify_response(
-        result, processing_time, trace_id, request_id=event.request_id
+    response = build_kafka_response(
+        result, request_id=event.request_id
     )
 
     logger.info(
         f"[KAFKA RESPONSE] request_id={event.request_id}, "
-        f"run_id={response.run_id}, verdict={response.verdict}, "
-        f"time={response.processing_time_seconds}s, errors={response.errors}",
+        f"run_id={result.get('run_id')}, status={response.status}, "
+        f"time={processing_time:.2f}s, err_codes={response.err_codes}",
         extra={
             "trace_id": trace_id,
             "request_id": event.request_id,
-            "run_id": response.run_id,
-            "errors": response.errors,
+            "run_id": result.get("run_id"),
+            "status": response.status,
+            "err_codes": response.err_codes,
         },
     )
 
-    enqueue_verification_run(background_tasks, result, request_id=event.request_id)
+    enqueue_verification_run(background_tasks, result, request_id=None)
     return response
 
 
 @router.get(
     "/v1/kafka/verify-get",
-    response_model=VerifyResponse,
+    response_model=KafkaResponse,
     tags=["kafka-integration"],
     summary="Verify document from Kafka event",
     description="Process document verification request from Kafka event with S3 path",
@@ -201,21 +206,25 @@ async def verify_kafka_event(
                         "success": {
                             "summary": "Verification successful",
                             "value": {
-                                "run_id": "550e8400-e29b-41d4-a716-446655440000",
-                                "verdict": True,
-                                "errors": [],
-                                "processing_time_seconds": 4.2,
-                                "trace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                                "request_id": 52015072,
+                                "status": "success",
+                                "err_codes": []
                             },
                         },
                         "business_error": {
                             "summary": "Business validation failed (FIO mismatch)",
                             "value": {
-                                "run_id": "550e8400-e29b-41d4-a716-446655440001",
-                                "verdict": False,
-                                "errors": [4],
-                                "processing_time_seconds": 4.5,
-                                "trace_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890",
+                                "request_id": 52015072,
+                                "status": "fail",
+                                "err_codes": [4]
+                            },
+                        },
+                        "multiple_errors": {
+                            "summary": "Multiple validation failures",
+                            "value": {
+                                "request_id": 52015072,
+                                "status": "fail",
+                                "err_codes": [4, 2, 3]
                             },
                         },
                     }
@@ -335,20 +344,22 @@ async def verify_kafka_event_get(
     )
 
     processing_time = time.time() - start_time
-    response = build_verify_response(
-        result, processing_time, trace_id, request_id=params.request_id
+    response = build_kafka_response(
+        result, request_id=params.request_id
     )
 
     logger.info(
         f"[KAFKA RESPONSE (GET)] request_id={params.request_id}, "
-        f"run_id={response.run_id}, verdict={response.verdict}, "
-        f"time={response.processing_time_seconds}s",
+        f"run_id={result.get('run_id')}, status={response.status}, "
+        f"time={processing_time:.2f}s, err_codes={response.err_codes}",
         extra={
             "trace_id": trace_id,
             "request_id": params.request_id,
-            "run_id": response.run_id,
+            "run_id": result.get("run_id"),
+            "status": response.status,
+            "err_codes": response.err_codes,
         },
     )
 
-    enqueue_verification_run(background_tasks, result, request_id=params.request_id)
+    enqueue_verification_run(background_tasks, result, request_id=None)
     return response

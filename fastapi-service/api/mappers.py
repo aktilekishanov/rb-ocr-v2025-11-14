@@ -1,4 +1,4 @@
-from api.schemas import VerifyResponse, KafkaEventRequest
+from api.schemas import VerifyResponse, KafkaEventRequest, KafkaResponse
 
 
 def build_verify_response(
@@ -35,3 +35,31 @@ def build_external_metadata(event: KafkaEventRequest, trace_id: str) -> dict:
         "external_last_name": event.last_name,
         "external_second_name": event.second_name,
     }
+
+
+def build_kafka_response(
+    result: dict,
+    request_id: int,
+) -> KafkaResponse:
+    """
+    Map pipeline results to KafkaResponse format.
+    
+    This builds a webhook-compatible response for Kafka endpoints.
+    Unlike build_verify_response(), this omits diagnostic fields
+    (run_id, trace_id, processing_time) which are only in logs/DB.
+    
+    Args:
+        result: Pipeline result dict with verdict and errors
+        request_id: Original Kafka event request ID
+        
+    Returns:
+        KafkaResponse with request_id, status, and err_codes
+    """
+    verdict = result.get("verdict", False)
+    errors = result.get("errors", [])
+    
+    return KafkaResponse(
+        request_id=request_id,
+        status="success" if verdict else "fail",
+        err_codes=[e["code"] for e in errors],
+    )
