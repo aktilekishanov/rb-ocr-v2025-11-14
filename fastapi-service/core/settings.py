@@ -22,7 +22,7 @@ class DatabaseSettings(BaseSettings):
     DB_POOL_TIMEOUT: float = 10.0
     DB_COMMAND_TIMEOUT: float = 10.0
 
-    model_config = {"case_sensitive": True, "env_file": ".env"}
+    model_config = {"case_sensitive": True, "env_file": ".env", "extra": "ignore"}
 
 
 class S3Settings(BaseSettings):
@@ -34,7 +34,7 @@ class S3Settings(BaseSettings):
     S3_BUCKET: str
     S3_SECURE: bool = True
 
-    model_config = {"case_sensitive": True, "env_file": ".env"}
+    model_config = {"case_sensitive": True, "env_file": ".env", "extra": "ignore"}
 
 
 class OCRSettings(BaseSettings):
@@ -42,7 +42,7 @@ class OCRSettings(BaseSettings):
 
     OCR_BASE_URL: str
 
-    model_config = {"case_sensitive": True, "env_file": ".env"}
+    model_config = {"case_sensitive": True, "env_file": ".env", "extra": "ignore"}
 
 
 class LLMSettings(BaseSettings):
@@ -50,7 +50,7 @@ class LLMSettings(BaseSettings):
 
     LLM_ENDPOINT_URL: str
 
-    model_config = {"case_sensitive": True, "env_file": ".env"}
+    model_config = {"case_sensitive": True, "env_file": ".env", "extra": "ignore"}
 
 
 class WebhookSettings(BaseSettings):
@@ -60,7 +60,7 @@ class WebhookSettings(BaseSettings):
     WEBHOOK_USERNAME: str
     WEBHOOK_PASSWORD: str
 
-    model_config = {"case_sensitive": True, "env_file": ".env"}
+    model_config = {"case_sensitive": True, "env_file": ".env", "extra": "ignore"}
 
 
 class AppSettings(BaseSettings):
@@ -70,7 +70,7 @@ class AppSettings(BaseSettings):
     TZ: str = "Asia/Almaty"
     RB_IDP_RUNS_DIR: str = "./runs"
 
-    model_config = {"case_sensitive": True, "env_file": ".env"}
+    model_config = {"case_sensitive": True, "env_file": ".env", "extra": "ignore"}
 
     @property
     def runs_dir(self):
