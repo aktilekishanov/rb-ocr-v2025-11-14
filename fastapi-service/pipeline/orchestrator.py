@@ -88,12 +88,11 @@ def _detect_extension_from_file(file_path: str) -> str:
     return "bin"
 
 
-def _count_pdf_pages_sync(pdf_path: str) -> Optional[int]:
-    """Synchronous PDF page counting (runs in thread pool).
+def _count_pdf_pages(pdf_path: str) -> Optional[int]:
+    """Count PDF pages.
 
     Try pypdf then PyPDF2 to count pages. Return None if both fail.
-    This function is designed to run in a thread pool executor,
-    so it's safe to block here.
+    Avoid loading whole file into memory.
 
     Args:
         pdf_path: Path to PDF file
@@ -122,34 +121,6 @@ def _count_pdf_pages_sync(pdf_path: str) -> Optional[int]:
         logger.debug("PyPDF2 failed to count pages", exc_info=True)
 
     return None
-
-
-async def _count_pdf_pages_async(pdf_path: str) -> Optional[int]:
-    """Async PDF page counting using thread pool executor.
-
-    This runs the blocking PDF operation in a thread pool so the
-    event loop remains responsive for other requests.
-
-    Args:
-        pdf_path: Path to PDF file
-
-    Returns:
-        Number of pages or None if counting fails
-    """
-    import asyncio
-
-    loop = asyncio.get_event_loop()
-
-    try:
-        page_count = await loop.run_in_executor(
-            None,  # Use default ThreadPoolExecutor
-            _count_pdf_pages_sync,
-            pdf_path,
-        )
-        return page_count
-    except Exception as e:
-        logger.error(f"Failed to count PDF pages async: {e}", exc_info=True)
-        return None
 
 
 # Context & runner
