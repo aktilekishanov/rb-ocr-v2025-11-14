@@ -7,12 +7,12 @@ Handles automatic insertion of final.json data into PostgreSQL with:
 """
 
 import asyncio
-import logging
 import json
+import logging
 from typing import Any
 
+from pipeline.core.config import BACKOFF_MULTIPLIER, INITIAL_BACKOFF, MAX_RETRIES
 from pipeline.core.database_manager import DatabaseManager
-from pipeline.core.config import MAX_RETRIES, INITIAL_BACKOFF, BACKOFF_MULTIPLIER
 from pipeline.core.dates import parse_iso_timestamp
 
 logger = logging.getLogger(__name__)

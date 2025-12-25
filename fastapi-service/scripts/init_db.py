@@ -1,8 +1,9 @@
 """Database setup script - creates verification_runs table."""
 
 import asyncio
-import asyncpg
 import os
+
+import asyncpg
 
 # Database connection settings
 DB_HOST = os.getenv("DB_HOST")

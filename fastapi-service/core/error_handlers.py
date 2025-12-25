@@ -1,13 +1,13 @@
 import logging
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from pydantic_core import ValidationError as PydanticCoreValidationError
 
 from api.schemas import ProblemDetail
 from core.utils import ensure_trace_id
+from fastapi import Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pipeline.core.exceptions import BaseError
+from pydantic_core import ValidationError as PydanticCoreValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger(__name__)
 

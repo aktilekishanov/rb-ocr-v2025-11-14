@@ -1,8 +1,9 @@
 import logging
 import os
+from typing import List
+
 import httpx
 from pydantic import BaseModel, Field
-from typing import List
 
 logger = logging.getLogger(__name__)
 

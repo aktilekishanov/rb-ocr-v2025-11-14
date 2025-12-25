@@ -14,7 +14,6 @@ import json
 
 from pipeline.clients.llm_client import ask_llm
 
-
 DTC_PROMPT_V1 = """You are a deterministic OCR document-type classifier.
 Analyze the OCR text and output ONLY the following JSON object (no extra text):
 {

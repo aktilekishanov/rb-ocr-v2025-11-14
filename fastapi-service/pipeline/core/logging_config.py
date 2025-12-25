@@ -7,8 +7,8 @@ This module provides JSON-formatted logging for:
 - Machine-readable log output
 """
 
-import logging
 import json
+import logging
 from datetime import datetime
 
 

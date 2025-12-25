@@ -1,9 +1,9 @@
-from fastapi import UploadFile
 import os
 
-from pipeline.core.exceptions import ValidationError, PayloadTooLargeError
+from fastapi import UploadFile
 from pipeline.core.config import MAX_FILE_SIZE_MB
 from pipeline.core.const import ALLOWED_CONTENT_TYPES
+from pipeline.core.exceptions import PayloadTooLargeError, ValidationError
 
 
 def _validate_content_type(file: UploadFile) -> None:

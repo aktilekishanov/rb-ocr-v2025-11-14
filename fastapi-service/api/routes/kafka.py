@@ -1,22 +1,23 @@
-import time
 import logging
-from fastapi import APIRouter, Request, BackgroundTasks, Depends
-from api.schemas import (
-    VerifyResponse,
-    KafkaResponse,
-    KafkaEventRequest,
-    KafkaEventQueryParams,
-    ProblemDetail,
-)
-from services.processor import DocumentProcessor
+import time
+
 from api.mappers import (
-    build_verify_response,
-    build_kafka_response,
     build_external_metadata,
+    build_kafka_response,
+    build_verify_response,
 )
-from services.tasks import enqueue_verification_run
+from api.schemas import (
+    KafkaEventQueryParams,
+    KafkaEventRequest,
+    KafkaResponse,
+    ProblemDetail,
+    VerifyResponse,
+)
 from core.dependencies import get_db_manager, get_webhook_client
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pipeline.core.database_manager import DatabaseManager
+from services.processor import DocumentProcessor
+from services.tasks import enqueue_verification_run
 from services.webhook_client import WebhookClient
 
 router = APIRouter()

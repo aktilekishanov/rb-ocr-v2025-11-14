@@ -1,5 +1,5 @@
-from fastapi import Request
 from core.utils import ensure_trace_id
+from fastapi import Request
 
 
 async def trace_id_middleware(request: Request, call_next):

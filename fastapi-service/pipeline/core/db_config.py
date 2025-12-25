@@ -4,10 +4,11 @@ Uses asyncpg for high-performance async PostgreSQL access.
 Credentials loaded from environment variables for security.
 """
 
-import asyncpg
 import logging
 import os
 from typing import Any, Optional
+
+import asyncpg
 
 logger = logging.getLogger(__name__)
 

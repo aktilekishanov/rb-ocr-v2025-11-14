@@ -1,16 +1,13 @@
 import json
 import os
 import ssl
-import urllib.request
 import urllib.error
+import urllib.request
 from http import HTTPStatus
 from typing import Any
 
+from pipeline.core.config import ERROR_BODY_MAX_CHARS, LLM_REQUEST_TIMEOUT_SECONDS
 from pipeline.core.exceptions import ExternalServiceError
-from pipeline.core.config import (
-    LLM_REQUEST_TIMEOUT_SECONDS,
-    ERROR_BODY_MAX_CHARS,
-)
 
 
 def _raise_llm_error(error_type: str, details: dict[str, Any], exc: Exception) -> None:

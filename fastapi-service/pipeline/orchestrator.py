@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import logging
 import time
 import uuid
@@ -9,24 +10,22 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from pipeline.clients.tesseract_async_client import ask_tesseract
 from pipeline.core.config import (
-    MAX_PDF_PAGES,
-    UTC_OFFSET_HOURS,
+    FINAL_RESULT_FILE,
     INPUT_FILE,
-    OCR_RESULT_FILE,
     LLM_DTC_RESULT_FILE,
     LLM_EXT_RESULT_FILE,
-    FINAL_RESULT_FILE,
+    MAX_PDF_PAGES,
+    OCR_RESULT_FILE,
+    UTC_OFFSET_HOURS,
 )
-from pipeline.core.errors import make_error, ErrorCode
+from pipeline.core.errors import ErrorCode, make_error
+from pipeline.models.dto import DocTypeCheck, ExtractorResult
 from pipeline.processors.agent_doc_type_checker import check_single_doc_type
 from pipeline.processors.agent_extractor import extract_doc_data
 from pipeline.processors.validator import validate_run
-from pipeline.utils.parsers import parse_ocr_output, parse_llm_output
-from pipeline.utils.io_utils import (
-    copy_file as util_copy_file,
-    write_json as util_write_json,
-)
-from pipeline.models.dto import DocTypeCheck, ExtractorResult
+from pipeline.utils.io_utils import copy_file as util_copy_file
+from pipeline.utils.io_utils import write_json as util_write_json
+from pipeline.utils.parsers import parse_llm_output, parse_ocr_output
 
 logger = logging.getLogger(__name__)
 
@@ -263,7 +262,7 @@ class PipelineRunner:
     def _build_success_final_json(
         self, ctx: PipelineContext, verdict: bool, checks: dict | None
     ) -> dict:
-        from pipeline.utils.db_record import FinalJsonBuilder, ExtractedData, RuleChecks
+        from pipeline.utils.db_record import ExtractedData, FinalJsonBuilder, RuleChecks
 
         extractor_data = ctx.extractor_result or {}
         doc_type_data = ctx.doc_type_result or {}

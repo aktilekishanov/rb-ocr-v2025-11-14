@@ -1,13 +1,13 @@
 """S3 client for MinIO operations."""
 
+import logging
+import ssl
+from pathlib import Path
+
+import urllib3
 from minio import Minio
 from minio.error import S3Error
-from pathlib import Path
-import ssl
-import urllib3
-import logging
-
-from pipeline.core.exceptions import ResourceNotFoundError, ExternalServiceError
+from pipeline.core.exceptions import ExternalServiceError, ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 

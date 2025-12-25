@@ -1,6 +1,7 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
 import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from pipeline.core.database_manager import create_database_manager_from_env
 from services.webhook_client import create_webhook_client_from_env
 

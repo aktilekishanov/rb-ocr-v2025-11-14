@@ -5,8 +5,8 @@ All exceptions inherit from BaseError and provide structured error information c
 with RFC 7807 Problem Details for HTTP APIs.
 """
 
-from typing import Any, Optional
 from enum import Enum
+from typing import Any, Optional
 
 
 class ErrorCategory(str, Enum):

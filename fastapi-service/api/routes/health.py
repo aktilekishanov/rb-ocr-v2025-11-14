@@ -1,6 +1,6 @@
+from api.schemas import HealthResponse
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from api.schemas import HealthResponse
 from pipeline.core.db_config import check_db_health
 
 router = APIRouter()

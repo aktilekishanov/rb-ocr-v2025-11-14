@@ -14,7 +14,6 @@ import json
 
 from pipeline.clients.llm_client import ask_llm
 
-
 EXTRACTOR_PROMPT_V1 = """You are an expert in multilingual document information extraction and normalization.
 Your task is to analyze a noisy OCR text that may contain both Kazakh and Russian fragments.
 

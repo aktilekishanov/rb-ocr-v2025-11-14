@@ -1,10 +1,10 @@
-import logging
 import asyncio
-from fastapi import BackgroundTasks
-from pipeline.utils.db_client import insert_verification_run, update_webhook_status
+import logging
 
-from services.webhook_client import WebhookClient
+from fastapi import BackgroundTasks
 from pipeline.core.database_manager import DatabaseManager
+from pipeline.utils.db_client import insert_verification_run, update_webhook_status
+from services.webhook_client import WebhookClient
 
 logger = logging.getLogger(__name__)
 

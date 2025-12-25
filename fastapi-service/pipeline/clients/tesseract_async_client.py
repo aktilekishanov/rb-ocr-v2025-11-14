@@ -4,16 +4,14 @@ import os
 from typing import Any
 
 import httpx
-
 from pipeline.core.config import (
-    OCR_POLL_INTERVAL_SECONDS,
-    OCR_TIMEOUT_SECONDS,
     OCR_CLIENT_TIMEOUT_SECONDS,
+    OCR_POLL_INTERVAL_SECONDS,
     OCR_RESULT_FILE,
+    OCR_TIMEOUT_SECONDS,
 )
 from pipeline.processors.image_to_pdf_converter import convert_image_to_pdf
 from pipeline.utils.io_utils import write_json
-
 
 # ------------------------------------------------------------
 # Parsing utilities

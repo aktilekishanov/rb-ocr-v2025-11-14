@@ -1,10 +1,9 @@
 import re
 from typing import Any
+
 from pipeline.core.dates import now_utc_plus
 from pipeline.core.validity import compute_valid_until, is_within_validity
-from pipeline.processors.fio_matching import (
-    fio_match as det_fio_match,
-)
+from pipeline.processors.fio_matching import fio_match as det_fio_match
 
 
 def _norm_text(text: Any) -> str:

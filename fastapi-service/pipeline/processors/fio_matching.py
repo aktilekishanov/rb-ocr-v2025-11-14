@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import re
 from dataclasses import dataclass
 
@@ -159,12 +160,12 @@ def fio_match(
         (matched: bool, metadata: dict)
     """
     from pipeline.processors.fio_matching_strategies import (
-        try_exact_canonical_match,
-        try_lio_raw_form_match,
-        try_li_special_case_match,
-        try_fuzzy_variant_match,
-        try_fuzzy_raw_match,
         build_no_match_result,
+        try_exact_canonical_match,
+        try_fuzzy_raw_match,
+        try_fuzzy_variant_match,
+        try_li_special_case_match,
+        try_lio_raw_form_match,
     )
 
     app_parts = parse_fio(app_fio)

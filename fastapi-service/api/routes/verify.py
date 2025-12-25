@@ -1,15 +1,16 @@
-import time
-import os
 import logging
-from fastapi import APIRouter, UploadFile, File, Form, Request, BackgroundTasks, Depends
-from api.schemas import VerifyResponse, ProblemDetail, VerifyRequest
-from api.validators import validate_upload_file
-from services.processor import DocumentProcessor
+import os
+import time
+
 from api.mappers import build_verify_response
+from api.schemas import ProblemDetail, VerifyRequest, VerifyResponse
+from api.validators import validate_upload_file
+from core.dependencies import get_db_manager, get_webhook_client
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
+from pipeline.core.database_manager import DatabaseManager
+from services.processor import DocumentProcessor
 from services.storage import save_upload_to_temp
 from services.tasks import enqueue_verification_run
-from core.dependencies import get_db_manager, get_webhook_client
-from pipeline.core.database_manager import DatabaseManager
 from services.webhook_client import WebhookClient
 
 router = APIRouter()

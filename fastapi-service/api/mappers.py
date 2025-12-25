@@ -1,4 +1,4 @@
-from api.schemas import VerifyResponse, KafkaEventRequest, KafkaResponse
+from api.schemas import KafkaEventRequest, KafkaResponse, VerifyResponse
 
 
 def build_verify_response(

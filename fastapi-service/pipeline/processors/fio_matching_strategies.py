@@ -11,9 +11,9 @@ Benefits:
 - Clear separation of concerns
 """
 
+import difflib
 from dataclasses import asdict
 from typing import Optional, Tuple
-import difflib
 
 
 def try_exact_canonical_match(
@@ -79,7 +79,7 @@ def try_lio_raw_form_match(
     if doc_variant_key != "L_IO":
         return None
 
-    from pipeline.processors.fio_matching import normalize_for_name, equals_canonical
+    from pipeline.processors.fio_matching import equals_canonical, normalize_for_name
 
     app_lio = app_variants.get("L_IO")
     if not app_lio:

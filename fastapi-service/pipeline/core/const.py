@@ -1,6 +1,5 @@
 from typing import Any, Set
 
-
 # File Upload Validation
 ALLOWED_CONTENT_TYPES: Set[str] = {
     "application/pdf",

@@ -1,17 +1,17 @@
 """Pydantic request/response schemas for API endpoints."""
 
-from pydantic import BaseModel, Field, field_validator
+import re
 from typing import List, Optional
 
 from pipeline.core.config import (
+    FIO_MAX_LENGTH,
+    FIO_MIN_LENGTH,
+    FIO_MIN_WORDS,
     IIN_LENGTH,
     NAME_MAX_LENGTH,
     S3_PATH_MAX_LENGTH,
-    FIO_MIN_LENGTH,
-    FIO_MAX_LENGTH,
-    FIO_MIN_WORDS,
 )
-import re
+from pydantic import BaseModel, Field, field_validator
 
 
 class ProblemDetail(BaseModel):

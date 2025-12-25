@@ -10,8 +10,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from pipeline.core.config import UTC_OFFSET_HOURS
-from pipeline.core.dates import parse_doc_date
 from pipeline.core.const import VALIDITY_OVERRIDES
+from pipeline.core.dates import parse_doc_date
 
 # Default validity window
 DEFAULT_FIXED_DAYS = 40

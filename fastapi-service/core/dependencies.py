@@ -4,7 +4,7 @@ This module provides dependency injection utilities for FastAPI routes,
 enabling clean separation of concerns and improved testability.
 """
 
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, Request, status
 from pipeline.core.database_manager import DatabaseManager
 from services.webhook_client import WebhookClient
 

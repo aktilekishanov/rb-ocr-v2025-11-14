@@ -7,9 +7,10 @@ contextual metadata (FIO), invoking the FastAPI service, and rendering results.
 
 import json
 import os
+from typing import Optional
+
 import requests
 import streamlit as st
-from typing import Optional
 
 DEFAULT_API_URL = "http://rb-ocr-dev-app-uv01.fortebank.com/rb-ocr/api"
 API_URL = os.getenv("FASTAPI_SERVICE_URL", DEFAULT_API_URL)

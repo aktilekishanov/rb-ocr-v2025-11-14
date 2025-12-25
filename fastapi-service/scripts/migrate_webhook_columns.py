@@ -1,7 +1,7 @@
 import asyncio
 import logging
-import sys
 import os
+import sys
 
 # Add current directory to path so we can import internal modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

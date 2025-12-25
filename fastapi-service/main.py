@@ -5,24 +5,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import logging
+
+from api.routes import health, kafka, verify
+from core.error_handlers import (
+    handle_app_error,
+    handle_http_error,
+    handle_pydantic_error,
+    handle_unknown_error,
+    handle_validation_error,
+)
+from core.lifespan import lifespan
+from core.middleware import trace_id_middleware
+from core.openapi import custom_openapi
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from pydantic_core import ValidationError as PydanticCoreValidationError
-
-from core.lifespan import lifespan
-from core.openapi import custom_openapi
-from core.middleware import trace_id_middleware
-from core.error_handlers import (
-    handle_validation_error,
-    handle_pydantic_error,
-    handle_http_error,
-    handle_app_error,
-    handle_unknown_error,
-)
-from api.routes import health, verify, kafka
-from pipeline.core.logging_config import configure_structured_logging
 from pipeline.core.exceptions import BaseError
+from pipeline.core.logging_config import configure_structured_logging
+from pydantic_core import ValidationError as PydanticCoreValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # Configure logging
 configure_structured_logging(level="INFO", json_format=True)

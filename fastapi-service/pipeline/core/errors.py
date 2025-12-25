@@ -5,8 +5,8 @@ Provides single source of truth for error codes, including Russian messages,
 error categories (client/server), and retryability flags.
 """
 
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
 
 
 @dataclass(frozen=True)

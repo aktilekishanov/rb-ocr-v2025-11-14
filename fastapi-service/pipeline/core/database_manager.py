@@ -5,9 +5,10 @@ connection pool with explicit lifecycle control, enabling dependency injection
 and improved testability.
 """
 
-import asyncpg
 import logging
 from typing import Optional
+
+import asyncpg
 
 logger = logging.getLogger(__name__)
 
