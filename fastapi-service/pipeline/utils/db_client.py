@@ -1,7 +1,7 @@
 """Database client for storing verification run results.
 
 Handles automatic insertion of final.json data into PostgreSQL with:
-- 5 retries with exponential backoff
+- {MAX_RETRIES} retries with exponential backoff
 - Verbose logging
 - Non-blocking (won't fail pipeline on DB errors)
 """
@@ -11,32 +11,31 @@ import logging
 import json
 from typing import Any
 
-from pipeline.core.db_config import get_db_pool
-from pipeline.core.config import BACKOFF_MULTIPLIER
+from pipeline.core.database_manager import DatabaseManager
+from pipeline.core.config import MAX_RETRIES, INITIAL_BACKOFF, BACKOFF_MULTIPLIER
 from pipeline.core.dates import parse_iso_timestamp
 
 logger = logging.getLogger(__name__)
 
-# Retry configuration
-MAX_RETRIES = 5
-INITIAL_BACKOFF = 0.5  # seconds
 
-
-async def insert_verification_run(final_json: dict[str, Any]) -> bool:
+async def insert_verification_run(
+    final_json: dict[str, Any], db_manager: DatabaseManager
+) -> bool:
     """Insert a verification run record into PostgreSQL.
 
-    Retries up to 5 times with exponential backoff on failure.
+    Retries up to {MAX_RETRIES} times with exponential backoff on failure.
     Logs all attempts (success and failure) verbosely.
 
     Args:
         final_json: The complete final.json dict to insert.
+        db_manager: Database manager instance for pool access.
 
     Returns:
         bool: True if insert succeeded, False if all retries failed.
     """
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            success = await _insert_once(final_json)
+            success = await _insert_once(final_json, db_manager)
             if success:
                 logger.info(
                     f"✅ DB INSERT SUCCESS on attempt {attempt}/{MAX_RETRIES} | "
@@ -69,11 +68,12 @@ async def insert_verification_run(final_json: dict[str, Any]) -> bool:
     return False
 
 
-async def _insert_once(final_json: dict[str, Any]) -> bool:
+async def _insert_once(final_json: dict[str, Any], db_manager: DatabaseManager) -> bool:
     """Single insert attempt without retry logic.
 
     Args:
         final_json: The final.json dict.
+        db_manager: Database manager instance.
 
     Returns:
         bool: True if insert succeeded.
@@ -81,7 +81,7 @@ async def _insert_once(final_json: dict[str, Any]) -> bool:
     Raises:
         Exception: On any database error.
     """
-    pool = await get_db_pool()
+    pool = await db_manager.get_pool()
 
     # Extract fields from final_json using centralized timestamp parser
     run_id = final_json.get("run_id")
@@ -182,7 +182,10 @@ async def _insert_once(final_json: dict[str, Any]) -> bool:
 
 
 async def update_webhook_status(
-    run_id: str, status: str, http_code: int | None = None
+    run_id: str,
+    status: str,
+    http_code: int | None = None,
+    db_manager: DatabaseManager | None = None,
 ) -> bool:
     """Update webhook status for a verification run.
 
@@ -190,11 +193,16 @@ async def update_webhook_status(
         run_id: The run ID to update.
         status: One of 'PENDING', 'SUCCESS', 'FAILED', 'ERROR'.
         http_code: The HTTP status code returned by the webhook (optional).
+        db_manager: Database manager instance (optional for backward compatibility).
 
     Returns:
         bool: True if update succeeded.
     """
-    pool = await get_db_pool()
+    if db_manager is None:
+        logger.warning(f"No database manager provided for {run_id}, skipping update")
+        return False
+
+    pool = await db_manager.get_pool()
 
     query = """
         UPDATE verification_runs

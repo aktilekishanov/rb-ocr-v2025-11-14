@@ -43,21 +43,21 @@ def build_kafka_response(
 ) -> KafkaResponse:
     """
     Map pipeline results to KafkaResponse format.
-    
+
     This builds a webhook-compatible response for Kafka endpoints.
     Unlike build_verify_response(), this omits diagnostic fields
     (run_id, trace_id, processing_time) which are only in logs/DB.
-    
+
     Args:
         result: Pipeline result dict with verdict and errors
         request_id: Original Kafka event request ID
-        
+
     Returns:
         KafkaResponse with request_id, status, and err_codes
     """
     verdict = result.get("verdict", False)
     errors = result.get("errors", [])
-    
+
     return KafkaResponse(
         request_id=request_id,
         status="success" if verdict else "fail",

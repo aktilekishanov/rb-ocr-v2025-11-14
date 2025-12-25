@@ -33,6 +33,8 @@ OCR_CLIENT_TIMEOUT_SECONDS = 60  # HTTP client timeout for OCR requests
 # Retry Configuration
 # =============================================================================
 
+MAX_RETRIES = 5
+INITIAL_BACKOFF = 0.5  # seconds
 BACKOFF_MULTIPLIER = 2  # Exponential backoff multiplier for retries
 
 

@@ -9,8 +9,15 @@ from api.schemas import (
     ProblemDetail,
 )
 from services.processor import DocumentProcessor
-from api.mappers import build_verify_response, build_kafka_response, build_external_metadata
+from api.mappers import (
+    build_verify_response,
+    build_kafka_response,
+    build_external_metadata,
+)
 from services.tasks import enqueue_verification_run
+from core.dependencies import get_db_manager, get_webhook_client
+from pipeline.core.database_manager import DatabaseManager
+from services.webhook_client import WebhookClient
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -134,6 +141,8 @@ async def verify_kafka_event(
     request: Request,
     background_tasks: BackgroundTasks,
     event: KafkaEventRequest,
+    db: DatabaseManager = Depends(get_db_manager),
+    webhook: WebhookClient = Depends(get_webhook_client),
 ):
     """
     Process a Kafka event for document verification.
@@ -183,7 +192,9 @@ async def verify_kafka_event(
         },
     )
 
-    enqueue_verification_run(background_tasks, result, request_id=event.request_id)
+    enqueue_verification_run(
+        background_tasks, result, db, webhook, request_id=event.request_id
+    )
     return response
 
 
@@ -303,6 +314,8 @@ async def verify_kafka_event_get(
     request: Request,
     background_tasks: BackgroundTasks,
     params: KafkaEventQueryParams = Depends(),
+    db: DatabaseManager = Depends(get_db_manager),
+    webhook: WebhookClient = Depends(get_webhook_client),
 ):
     """
     Process a Kafka event for document verification using query parameters.
@@ -351,7 +364,9 @@ async def verify_kafka_event_get(
         },
     )
 
-    enqueue_verification_run(background_tasks, result, request_id=params.request_id)
+    enqueue_verification_run(
+        background_tasks, result, db, webhook, request_id=params.request_id
+    )
     return response
 
 
@@ -372,7 +387,7 @@ async def verify_kafka_event_get(
                             "value": {
                                 "request_id": 52015072,
                                 "status": "success",
-                                "err_codes": []
+                                "err_codes": [],
                             },
                         },
                         "business_error": {
@@ -380,7 +395,7 @@ async def verify_kafka_event_get(
                             "value": {
                                 "request_id": 52015072,
                                 "status": "fail",
-                                "err_codes": [4, 2]
+                                "err_codes": [4, 2],
                             },
                         },
                     }
@@ -393,6 +408,8 @@ async def verify_kafka_event_v2(
     request: Request,
     background_tasks: BackgroundTasks,
     event: KafkaEventRequest,
+    db: DatabaseManager = Depends(get_db_manager),
+    webhook: WebhookClient = Depends(get_webhook_client),
 ):
     """
     Process a Kafka event for document verification WITHOUT sending webhook (v2).
@@ -428,7 +445,9 @@ async def verify_kafka_event_v2(
         },
     )
 
-    enqueue_verification_run(background_tasks, result, request_id=None)  # NO WEBHOOK
+    enqueue_verification_run(
+        background_tasks, result, db, webhook, request_id=None
+    )  # NO WEBHOOK
     return response
 
 
@@ -449,7 +468,7 @@ async def verify_kafka_event_v2(
                             "value": {
                                 "request_id": 52015072,
                                 "status": "success",
-                                "err_codes": []
+                                "err_codes": [],
                             },
                         },
                         "business_error": {
@@ -457,7 +476,7 @@ async def verify_kafka_event_v2(
                             "value": {
                                 "request_id": 52015072,
                                 "status": "fail",
-                                "err_codes": [4, 2]
+                                "err_codes": [4, 2],
                             },
                         },
                     }
@@ -470,6 +489,8 @@ async def verify_kafka_event_get_v2(
     request: Request,
     background_tasks: BackgroundTasks,
     params: KafkaEventQueryParams = Depends(),
+    db: DatabaseManager = Depends(get_db_manager),
+    webhook: WebhookClient = Depends(get_webhook_client),
 ):
     """
     Process a Kafka event for document verification WITHOUT sending webhook (v2 GET).

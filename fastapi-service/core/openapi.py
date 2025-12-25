@@ -26,7 +26,7 @@ def custom_openapi(app: FastAPI):
         for method in path.values():
             responses = method.get("responses", {})
             # If 422 exists and references HTTPValidationError, remove it
-            # (Note: Our custom ProblemDetail responses override this anyway, 
+            # (Note: Our custom ProblemDetail responses override this anyway,
             # but FastAPI might have merged them or kept the reference)
             if "422" in responses:
                 content = responses["422"].get("content", {})

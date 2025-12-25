@@ -29,14 +29,13 @@ configure_structured_logging(level="INFO", json_format=True)
 logger = logging.getLogger(__name__)
 
 # Suppress known warnings
-import warnings
 import urllib3
 
 # Suppress urllib3 SSL verification warnings (S3 uses self-signed certs in dev)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Suppress pypdf warnings about malformed PDF metadata (not our issue)
-logging.getLogger('pypdf').setLevel(logging.ERROR)
+logging.getLogger("pypdf").setLevel(logging.ERROR)
 
 # Initialize FastAPI app
 app = FastAPI(

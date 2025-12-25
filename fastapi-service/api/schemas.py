@@ -258,39 +258,29 @@ class VerifyResponse(BaseModel):
 
 class KafkaResponse(BaseModel):
     """Response for Kafka verify endpoints (webhook-compatible format).
-    
+
     This matches the webhook payload structure that NiFi expects.
     Simpler than VerifyResponse - diagnostic fields are in logs/database.
     """
-    
+
     request_id: int = Field(
-        ..., 
-        description="Original request ID from Kafka event",
-        gt=0
+        ..., description="Original request ID from Kafka event", gt=0
     )
     status: str = Field(
-        ..., 
+        ...,
         description="Verification status: 'success' or 'fail'",
-        pattern="^(success|fail)$"
+        pattern="^(success|fail)$",
     )
     err_codes: List[int] = Field(
         default_factory=list,
-        description="List of integer error codes (empty if successful)"
+        description="List of integer error codes (empty if successful)",
     )
 
     class Config:
         json_schema_extra = {
             "examples": [
-                {
-                    "request_id": 52015072,
-                    "status": "success",
-                    "err_codes": []
-                },
-                {
-                   "request_id": 52015072,
-                    "status": "fail",
-                    "err_codes": [4, 2]
-                }
+                {"request_id": 52015072, "status": "success", "err_codes": []},
+                {"request_id": 52015072, "status": "fail", "err_codes": [4, 2]},
             ]
         }
 

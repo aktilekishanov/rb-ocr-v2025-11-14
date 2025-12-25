@@ -26,7 +26,6 @@ from pipeline.utils.io_utils import (
     copy_file as util_copy_file,
     write_json as util_write_json,
 )
-from pipeline.utils.timing import StageTimers, stage_timer
 from pipeline.models.dto import DocTypeCheck, ExtractorResult
 
 logger = logging.getLogger(__name__)
@@ -55,51 +54,61 @@ def _now_iso() -> str:
 def _detect_extension_from_file(file_path: str) -> str:
     """
     Detect file extension by reading magic bytes (file header).
-    
+
     Supported formats:
         - PDF:  %PDF
         - JPEG: 0xFFD8
         - PNG:  0x89PNG
-    
+
     Args:
         file_path: Path to binary file on disk
-        
+
     Returns:
         Extension string without dot (e.g., 'pdf', 'jpg', 'png', 'bin')
     """
     try:
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             header = f.read(8)  # Read first 8 bytes
-        
+
         # PDF: %PDF-1.x
-        if header.startswith(b'%PDF'):
-            return 'pdf'
-        
+        if header.startswith(b"%PDF"):
+            return "pdf"
+
         # JPEG: 0xFFD8FF
-        if header.startswith(b'\xff\xd8'):
-            return 'jpg'
-        
+        if header.startswith(b"\xff\xd8"):
+            return "jpg"
+
         # PNG: 0x89504E47
-        if header.startswith(b'\x89PNG'):
-            return 'png'
-        
+        if header.startswith(b"\x89PNG"):
+            return "png"
+
     except Exception:
         # File read error or unrecognized format
         pass
-    
-    return 'bin'
+
+    return "bin"
 
 
-def _count_pdf_pages(pdf_path: str) -> Optional[int]:
-    """
+def _count_pdf_pages_sync(pdf_path: str) -> Optional[int]:
+    """Synchronous PDF page counting (runs in thread pool).
+
     Try pypdf then PyPDF2 to count pages. Return None if both fail.
-    Avoid loading whole file into memory.
+    This function is designed to run in a thread pool executor,
+    so it's safe to block here.
+
+    Args:
+        pdf_path: Path to PDF file
+
+    Returns:
+        Number of pages or None if counting fails
     """
     try:
         import pypdf as _pypdf  # type: ignore
 
         reader = _pypdf.PdfReader(pdf_path)
-        return len(reader.pages)
+        page_count = len(reader.pages)
+        logger.debug(f"PDF page count: {page_count} pages for {pdf_path}")
+        return page_count
     except Exception:
         logger.debug("pypdf failed to count pages", exc_info=True)
 
@@ -107,11 +116,41 @@ def _count_pdf_pages(pdf_path: str) -> Optional[int]:
         import PyPDF2 as _pypdf2  # type: ignore
 
         reader = _pypdf2.PdfReader(pdf_path)
-        return len(reader.pages)
+        page_count = len(reader.pages)
+        logger.debug(f"PDF page count (PyPDF2): {page_count} for {pdf_path}")
+        return page_count
     except Exception:
         logger.debug("PyPDF2 failed to count pages", exc_info=True)
 
     return None
+
+
+async def _count_pdf_pages_async(pdf_path: str) -> Optional[int]:
+    """Async PDF page counting using thread pool executor.
+
+    This runs the blocking PDF operation in a thread pool so the
+    event loop remains responsive for other requests.
+
+    Args:
+        pdf_path: Path to PDF file
+
+    Returns:
+        Number of pages or None if counting fails
+    """
+    import asyncio
+
+    loop = asyncio.get_event_loop()
+
+    try:
+        page_count = await loop.run_in_executor(
+            None,  # Use default ThreadPoolExecutor
+            _count_pdf_pages_sync,
+            pdf_path,
+        )
+        return page_count
+    except Exception as e:
+        logger.error(f"Failed to count PDF pages async: {e}", exc_info=True)
+        return None
 
 
 # Context & runner
@@ -135,7 +174,6 @@ class PipelineContext:
     pages_obj: Optional[list] = None
     doc_type_result: Optional[dict] = None
     extractor_result: Optional[dict] = None
-    timers: StageTimers = field(default_factory=StageTimers)
     t0: float = field(default_factory=time.perf_counter)
     errors: list[dict] = field(default_factory=list)
     artifacts: dict = field(default_factory=dict)
@@ -164,14 +202,13 @@ def _mk_run_dirs(runs_root: Path, run_id: str) -> Dict[str, Path]:
 
 
 def stage(name: str) -> Callable:
-    """Decorator to wrap stage functions, measure timing, and convert StageError to exception."""
+    """Decorator to wrap stage functions and convert StageError to exception."""
 
     def deco(
         fn: Callable[[Any, PipelineContext], Any],
     ) -> Callable[[Any, PipelineContext], Any]:
         def wrapper(self, ctx: PipelineContext) -> Any:
-            with stage_timer(ctx, name):
-                return fn(self, ctx)
+            return fn(self, ctx)
 
         return wrapper
 
@@ -190,8 +227,6 @@ class PipelineRunner:
 
     def _finalize_timing_artifacts(self, ctx: PipelineContext) -> None:
         ctx.artifacts["duration_seconds"] = time.perf_counter() - ctx.t0
-        ctx.artifacts["ocr_seconds"] = ctx.timers.totals.get("ocr", 0.0)
-        ctx.artifacts["llm_seconds"] = ctx.timers.totals.get("llm", 0.0)
 
     def _build_external_metadata_obj(self, ctx: PipelineContext):
         from pipeline.utils.db_record import ExternalMetadata
@@ -272,16 +307,16 @@ class PipelineRunner:
     def _stage_acquire(self, ctx: PipelineContext) -> None:
         # Try filename extension first
         ext = Path(ctx.original_filename).suffix
-        
+
         # If no extension in filename, detect from file content (magic bytes)
         if not ext:
             detected = _detect_extension_from_file(ctx.source_file_path)
-            ext = f'.{detected}'
+            ext = f".{detected}"
             logger.info(
                 f"Detected file type from magic bytes: {detected} "
                 f"(filename: {ctx.original_filename})"
             )
-        
+
         ctx.saved_path = ctx.base_dir / INPUT_FILE.format(ext=ext)
         try:
             util_copy_file(ctx.source_file_path, ctx.saved_path)

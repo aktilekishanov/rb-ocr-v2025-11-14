@@ -1,13 +1,16 @@
 import time
 import os
 import logging
-from fastapi import APIRouter, UploadFile, File, Form, Request, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Form, Request, BackgroundTasks, Depends
 from api.schemas import VerifyResponse, ProblemDetail, VerifyRequest
 from api.validators import validate_upload_file
 from services.processor import DocumentProcessor
 from api.mappers import build_verify_response
 from services.storage import save_upload_to_temp
 from services.tasks import enqueue_verification_run
+from core.dependencies import get_db_manager, get_webhook_client
+from pipeline.core.database_manager import DatabaseManager
+from services.webhook_client import WebhookClient
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -26,6 +29,8 @@ async def verify_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(..., description="PDF or Image file"),
     fio: str = Form(..., description="Applicant's full name (FIO)"),
+    db: DatabaseManager = Depends(get_db_manager),
+    webhook: WebhookClient = Depends(get_webhook_client),
 ):
     """
     Verify a loan deferment document by manually uploading a file.
@@ -62,7 +67,7 @@ async def verify_document(
             },
         )
 
-        enqueue_verification_run(background_tasks, result)
+        enqueue_verification_run(background_tasks, result, db, webhook)
         return response
 
     finally:

@@ -91,5 +91,18 @@ class WebhookClient:
             return 0
 
 
-# Global instance
-webhook_client = WebhookClient()
+def create_webhook_client_from_env() -> WebhookClient:
+    """Factory function to create WebhookClient from environment variables.
+
+    This allows the client to be created on-demand rather than at import time,
+    making it easier to test and configure.
+
+    Returns:
+        WebhookClient: Configured webhook client instance
+    """
+    return WebhookClient(
+        url=os.getenv("WEBHOOK_URL"),
+        username=os.getenv("WEBHOOK_USERNAME"),
+        password=os.getenv("WEBHOOK_PASSWORD"),
+        timeout=float(os.getenv("WEBHOOK_TIMEOUT", "10.0")),
+    )

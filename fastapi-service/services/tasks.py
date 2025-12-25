@@ -3,7 +3,8 @@ import asyncio
 from fastapi import BackgroundTasks
 from pipeline.utils.db_client import insert_verification_run, update_webhook_status
 
-from services.webhook_client import webhook_client
+from services.webhook_client import WebhookClient
+from pipeline.core.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +33,23 @@ async def send_webhook_and_persist(
     success: bool,
     errors: list[int],
     run_id: str,
+    db_manager: DatabaseManager,
+    webhook_client: WebhookClient,
     max_db_retries: int = 3,
 ) -> None:
     """Send webhook and persist status with retry logic.
 
     Ensures database is ALWAYS updated with webhook status, never silently fails.
     Implements exponential backoff for database retries.
+
+    Args:
+        request_id: Request ID for webhook
+        success: Whether verification succeeded
+        errors: List of error codes
+        run_id: Verification run ID
+        db_manager: Database manager instance
+        webhook_client: Webhook client instance
+        max_db_retries: Maximum retry attempts for DB update
     """
     http_code = 0
     status = "ERROR"
@@ -56,7 +68,9 @@ async def send_webhook_and_persist(
     # 2. Persist to DB with retries (NEVER silently fail)
     for attempt in range(1, max_db_retries + 1):
         try:
-            db_success = await update_webhook_status(run_id, status, http_code)
+            db_success = await update_webhook_status(
+                run_id, status, http_code, db_manager
+            )
             if db_success:
                 logger.info(
                     f"✅ Webhook status persisted: run_id={run_id}, "
@@ -98,15 +112,26 @@ async def insert_run_then_webhook(
     success: bool,
     errors: list[int],
     run_id: str,
+    db_manager: DatabaseManager,
+    webhook_client: WebhookClient,
 ) -> None:
     """Atomically insert run then send webhook. Guaranteed order.
 
     This prevents race condition where webhook status update happens
     before the verification run row exists in the database.
+
+    Args:
+        final_json: Complete final.json data
+        request_id: Request ID for webhook
+        success: Whether verification succeeded
+        errors: List of error codes
+        run_id: Verification run ID
+        db_manager: Database manager instance
+        webhook_client: Webhook client instance
     """
     try:
         # 1. Insert row FIRST (blocking operation)
-        insert_success = await insert_verification_run(final_json)
+        insert_success = await insert_verification_run(final_json, db_manager)
         if not insert_success:
             logger.error(f"❌ Failed to insert run {run_id}, skipping webhook send")
             return
@@ -115,7 +140,9 @@ async def insert_run_then_webhook(
 
         # 2. Now safe to send webhook and update status
         # Row is guaranteed to exist, so update_webhook_status won't fail
-        await send_webhook_and_persist(request_id, success, errors, run_id)
+        await send_webhook_and_persist(
+            request_id, success, errors, run_id, db_manager, webhook_client
+        )
 
     except Exception as e:
         logger.error(
@@ -124,16 +151,22 @@ async def insert_run_then_webhook(
         )
 
 
-async def insert_verification_run_from_path(path: str) -> bool:
+async def insert_verification_run_from_path(
+    path: str, db_manager: DatabaseManager
+) -> bool:
     """Load JSON from path and insert in background (Fix #6: File I/O).
 
     Moves file I/O out of the request handler into background task.
+
+    Args:
+        path: Path to final.json file
+        db_manager: Database manager instance
     """
     try:
         from pipeline.utils.io_utils import read_json as util_read_json
 
         final_json = util_read_json(path)
-        return await insert_verification_run(final_json)
+        return await insert_verification_run(final_json, db_manager)
     except Exception as e:
         logger.error(f"Failed to load/insert from {path}: {e}", exc_info=True)
         return False
@@ -147,12 +180,21 @@ async def insert_verification_run_from_path(path: str) -> bool:
 def enqueue_verification_run(
     background_tasks: BackgroundTasks,
     result: dict,
+    db_manager: DatabaseManager,
+    webhook_client: WebhookClient,
     request_id: int | None = None,
 ) -> None:
     """Queue database insertion and optional webhook.
 
     Single responsibility: Task enqueueing only.
     Delegates parsing and extraction to helper functions.
+
+    Args:
+        background_tasks: FastAPI background tasks
+        result: Pipeline result dictionary
+        db_manager: Database manager instance
+        webhook_client: Webhook client instance
+        request_id: Optional request ID for webhook
 
     Fixes applied:
     - #1: Race condition - uses atomic insert_run_then_webhook
@@ -184,11 +226,15 @@ def enqueue_verification_run(
                 success=success,
                 errors=error_codes,
                 run_id=run_id,
+                db_manager=db_manager,
+                webhook_client=webhook_client,
             )
         else:
             # No webhook, just insert (can defer file reading)
             background_tasks.add_task(
-                insert_verification_run_from_path, final_json_path
+                insert_verification_run_from_path,
+                final_json_path,
+                db_manager,
             )
 
     except Exception as e:
