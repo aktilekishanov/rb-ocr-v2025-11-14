@@ -6,6 +6,7 @@ from api.mappers import build_verify_response
 from api.schemas import ProblemDetail, VerifyRequest, VerifyResponse
 from api.validators import validate_upload_file
 from core.dependencies import get_db_manager, get_webhook_client
+from core.logging_utils import sanitize_fio
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
 from pipeline.core.database_manager import DatabaseManager
 from services.processor import DocumentProcessor
@@ -28,27 +29,26 @@ processor = DocumentProcessor(runs_root="./runs")
 async def verify_document(
     request: Request,
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(..., description="PDF or Image file"),
-    fio: str = Form(..., description="Applicant's full name (FIO)"),
+    file: UploadFile = File(..., description="PDF or image file"),
+    fio: str = Form(..., description="Applicant full name (FIO)"),
     db: DatabaseManager = Depends(get_db_manager),
     webhook: WebhookClient = Depends(get_webhook_client),
 ):
-    """
-    Verify a loan deferment document by manually uploading a file.
-    """
     start_time = time.time()
     trace_id = getattr(request.state, "trace_id", None)
 
     logger.info(
-        f"[NEW REQUEST] FIO={fio}, file={file.filename}", extra={"trace_id": trace_id}
+        "[NEW REQUEST] fio=%s file=%s",
+        sanitize_fio(fio),
+        file.filename,
+        extra={"trace_id": trace_id},
     )
 
-    # Validate input
     await validate_upload_file(file)
     verify_req = VerifyRequest(fio=fio)
 
-    # Save and process
     tmp_path = await save_upload_to_temp(file)
+
     try:
         result = await processor.process_document(
             file_path=tmp_path,
@@ -56,11 +56,18 @@ async def verify_document(
             fio=verify_req.fio,
         )
 
-        processing_time = time.time() - start_time
-        response = build_verify_response(result, processing_time, trace_id)
+        response = build_verify_response(
+            result,
+            processing_time=time.time() - start_time,
+            trace_id=trace_id,
+        )
 
         logger.info(
-            f"[RESPONSE] run_id={response.run_id}, verdict={response.verdict}, time={response.processing_time_seconds}s, errors={response.errors}",
+            "[RESPONSE] run_id=%s verdict=%s time=%.2fs errors=%s",
+            response.run_id,
+            response.verdict,
+            response.processing_time_seconds,
+            response.errors,
             extra={
                 "trace_id": trace_id,
                 "run_id": response.run_id,
@@ -73,6 +80,10 @@ async def verify_document(
 
     finally:
         try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
+            os.remove(tmp_path)
+        except OSError:
+            logger.warning(
+                "Failed to cleanup temp file: %s",
+                tmp_path,
+                extra={"trace_id": trace_id},
+            )
