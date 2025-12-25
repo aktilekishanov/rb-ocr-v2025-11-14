@@ -5,6 +5,7 @@ import os
 from typing import Any, Dict, Optional, Tuple
 
 import httpx
+from core.settings import ocr_settings
 from pipeline.core.config import (
     OCR_CLIENT_TIMEOUT_SECONDS,
     OCR_RESULT_FILE,
@@ -74,7 +75,7 @@ class TesseractAsyncClient:
     def __init__(
         self, base_url: Optional[str] = None, timeout: float = 60.0, verify: bool = True
     ):
-        self.base_url = base_url or os.getenv("OCR_BASE_URL")
+        self.base_url = base_url or ocr_settings.OCR_BASE_URL
         self.timeout = timeout
         self.verify = verify
         self._client: Optional[httpx.AsyncClient] = None

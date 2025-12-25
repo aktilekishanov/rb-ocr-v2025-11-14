@@ -1,17 +1,11 @@
 import asyncio
 import logging
-import os
 import sys
+from pathlib import Path
 
-# Add current directory to path so we can import internal modules
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-try:
-    from pipeline.core.db_config import get_db_pool
-except ImportError:
-    # Fallback if running from root
-    sys.path.append(os.getcwd())
-    from pipeline.core.db_config import get_db_pool
+# Add parent directory to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from pipeline.core.database_manager import create_database_manager_from_env
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 async def migrate():
     logger.info("Starting schema migration...")
-    pool = await get_db_pool()
+    db_manager = create_database_manager_from_env()
+    await db_manager.connect()
+    pool = await db_manager.get_pool()
 
     queries = [
         "ALTER TABLE verification_runs ADD COLUMN IF NOT EXISTS webhook_status VARCHAR(50) DEFAULT 'PENDING';",
@@ -33,7 +29,7 @@ async def migrate():
             await conn.execute(query)
 
     logger.info("Migration completed successfully.")
-    await pool.close()
+    await db_manager.disconnect()
 
 
 if __name__ == "__main__":

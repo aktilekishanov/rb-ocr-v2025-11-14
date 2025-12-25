@@ -1,16 +1,15 @@
 """Database setup script - creates verification_runs table."""
 
 import asyncio
-import os
+import sys
+from pathlib import Path
 
 import asyncpg
 
-# Database connection settings
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
+# Add parent directory to path to import core.settings
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from core.settings import db_settings
 
 # Table creation DDL
 CREATE_TABLE_SQL = """
@@ -85,16 +84,18 @@ ADD_COMMENTS_SQL = [
 
 async def setup_database():
     """Connect to PostgreSQL and create table with indexes."""
-    print(f"🔧 Connecting to {DB_HOST}:{DB_PORT}/{DB_NAME}...")
+    print(
+        f"🔧 Connecting to {db_settings.DB_HOST}:{db_settings.DB_PORT}/{db_settings.DB_NAME}..."
+    )
 
     try:
         # Create connection
         conn = await asyncpg.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
+            host=db_settings.DB_HOST,
+            port=db_settings.DB_PORT,
+            database=db_settings.DB_NAME,
+            user=db_settings.DB_USER,
+            password=db_settings.DB_PASSWORD,
             timeout=10.0,
         )
 

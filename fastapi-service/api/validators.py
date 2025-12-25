@@ -3,7 +3,6 @@ import os
 from typing import Final
 
 from fastapi import UploadFile
-
 from pipeline.core.config import MAX_FILE_SIZE_MB
 from pipeline.core.const import ALLOWED_CONTENT_TYPES
 from pipeline.core.exceptions import PayloadTooLargeError, ValidationError

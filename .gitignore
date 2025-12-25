@@ -13,10 +13,7 @@ dist/
 build/
 
 # Environment
-.env
-.env.local
-venv/
-env/
+.env.old
 
 # IDE
 .vscode/
@@ -43,5 +40,5 @@ htmlcov/
 docker-compose.yml.old
 
 .extra
-
-.env*
+*.md
+*.env

@@ -1,14 +1,15 @@
 from api.schemas import HealthResponse
-from fastapi import APIRouter
+from core.dependencies import get_db_manager
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from pipeline.core.db_config import check_db_health
+from pipeline.core.database_manager import DatabaseManager
 
 router = APIRouter()
 
 
 @router.get("/health", response_model=HealthResponse, tags=["health"])
-async def health_check():
-    db_health = await check_db_health()
+async def health_check(db: DatabaseManager = Depends(get_db_manager)):
+    db_health = await db.health_check()
     status_code = 200 if db_health["healthy"] else 503
 
     return JSONResponse(

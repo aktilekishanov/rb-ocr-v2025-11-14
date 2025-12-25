@@ -1,8 +1,8 @@
 import logging
-import os
 from typing import List
 
 import httpx
+from core.settings import webhook_settings
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -17,14 +17,7 @@ class WebhookPayload(BaseModel):
 
 
 class WebhookClient:
-    """Webhook client with environment-based configuration.
-
-    Environment variables (REQUIRED):
-        WEBHOOK_URL: Target webhook endpoint URL
-        WEBHOOK_USERNAME: Basic auth username
-        WEBHOOK_PASSWORD: Basic auth password
-        WEBHOOK_TIMEOUT: Request timeout in seconds (default: 10.0)
-    """
+    """Webhook client with centralized Pydantic settings."""
 
     def __init__(
         self,
@@ -33,12 +26,10 @@ class WebhookClient:
         password: str | None = None,
         timeout: float | None = None,
     ):
-        # Load from env vars (no defaults - must be configured)
-        self.url = url or os.getenv("WEBHOOK_URL")
-        self.username = username or os.getenv("WEBHOOK_USERNAME")
-        self.password = password or os.getenv("WEBHOOK_PASSWORD")
-        timeout_env = os.getenv("WEBHOOK_TIMEOUT")
-        self.timeout = timeout or (float(timeout_env) if timeout_env else 10.0)
+        self.url = url or webhook_settings.WEBHOOK_URL
+        self.username = username or webhook_settings.WEBHOOK_USERNAME
+        self.password = password or webhook_settings.WEBHOOK_PASSWORD
+        self.timeout = timeout or 10.0
 
         logger.info(
             f"WebhookClient initialized with URL: {self.url}, timeout: {self.timeout}s"
@@ -93,17 +84,13 @@ class WebhookClient:
 
 
 def create_webhook_client_from_env() -> WebhookClient:
-    """Factory function to create WebhookClient from environment variables.
-
-    This allows the client to be created on-demand rather than at import time,
-    making it easier to test and configure.
+    """Factory function to create WebhookClient from centralized settings.
 
     Returns:
         WebhookClient: Configured webhook client instance
     """
     return WebhookClient(
-        url=os.getenv("WEBHOOK_URL"),
-        username=os.getenv("WEBHOOK_USERNAME"),
-        password=os.getenv("WEBHOOK_PASSWORD"),
-        timeout=float(os.getenv("WEBHOOK_TIMEOUT", "10.0")),
+        url=webhook_settings.WEBHOOK_URL,
+        username=webhook_settings.WEBHOOK_USERNAME,
+        password=webhook_settings.WEBHOOK_PASSWORD,
     )

@@ -2,27 +2,16 @@
 
 import asyncio
 import logging
-import os
 import tempfile
 from pathlib import Path
 
+from core.settings import s3_settings
 from pipeline.core.exceptions import ExternalServiceError
 from pipeline.orchestrator import PipelineRunner
 from pipeline.utils.io_utils import build_fio
 from services.s3_client import S3Client
 
 logger = logging.getLogger(__name__)
-
-
-def _parse_bool_env(value: str | None, default: bool = True) -> bool:
-    if value is None:
-        return default
-    normalized = value.strip().lower()
-    if normalized in {"1", "true", "yes", "y", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "n", "off"}:
-        return False
-    return default
 
 
 # ============================================================================
@@ -32,9 +21,11 @@ def _parse_bool_env(value: str | None, default: bool = True) -> bool:
 
 def _extract_event_fields(event_data: dict) -> tuple[str, str, str]:
     """Extract required fields from event data."""
+    from pathlib import Path
+
     request_id = event_data["request_id"]
     s3_path = event_data["s3_path"]
-    filename = os.path.basename(s3_path) or f"document_{request_id}.pdf"
+    filename = Path(s3_path).name or f"document_{request_id}.pdf"
     return request_id, s3_path, filename
 
 
@@ -89,11 +80,11 @@ class DocumentProcessor:
 
         try:
             self.s3_client = S3Client(
-                endpoint=os.getenv("S3_ENDPOINT"),
-                access_key=os.getenv("S3_ACCESS_KEY"),
-                secret_key=os.getenv("S3_SECRET_KEY"),
-                bucket=os.getenv("S3_BUCKET"),
-                secure=_parse_bool_env(os.getenv("S3_SECURE"), default=True),
+                endpoint=s3_settings.S3_ENDPOINT,
+                access_key=s3_settings.S3_ACCESS_KEY,
+                secret_key=s3_settings.S3_SECRET_KEY,
+                bucket=s3_settings.S3_BUCKET,
+                secure=s3_settings.S3_SECURE,
             )
         except Exception as e:
             logger.error(

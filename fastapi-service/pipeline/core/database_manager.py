@@ -3,9 +3,8 @@ DatabaseManager with lifecycle, health check, and env-based config.
 """
 
 import logging
-import os
 import time
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 import asyncpg
 
@@ -89,53 +88,17 @@ class DatabaseManager:
 
 
 def create_database_manager_from_env() -> DatabaseManager:
-    """Create DatabaseManager from environment variables (fail-fast)."""
-    required_vars = ["DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD"]
-    config = {}
-    missing = []
+    """Create DatabaseManager from centralized settings (Pydantic-validated)."""
+    from core.settings import db_settings
 
-    for var in required_vars:
-        val = os.getenv(var)
-        if not val:
-            missing.append(var)
-        else:
-            config[var.lower()[3:]] = val
-
-    if missing:
-        raise ValueError(
-            f"Missing required environment variables: {', '.join(missing)}"
-        )
-
-    def parse_int(env_var: str) -> Optional[int]:
-        val = os.getenv(env_var)
-        if val is None:
-            return None
-        try:
-            return int(val)
-        except ValueError:
-            raise ValueError(f"Invalid integer value for {env_var}: {val}")
-
-    def parse_float(env_var: str) -> Optional[float]:
-        val = os.getenv(env_var)
-        if val is None:
-            return None
-        try:
-            return float(val)
-        except ValueError:
-            raise ValueError(f"Invalid float value for {env_var}: {val}")
-
-    optional_vars = {
-        "DB_PORT": parse_int,
-        "DB_POOL_MIN_SIZE": parse_int,
-        "DB_POOL_MAX_SIZE": parse_int,
-        "DB_POOL_TIMEOUT": parse_float,
-        "DB_COMMAND_TIMEOUT": parse_float,
-    }
-
-    for env_var, parser in optional_vars.items():
-        if val := parser(env_var):
-            key = env_var.lower()[3:]
-            config[key] = val
-
-    config.setdefault("port", 5432)
-    return DatabaseManager(**config)
+    return DatabaseManager(
+        host=db_settings.DB_HOST,
+        database=db_settings.DB_NAME,
+        user=db_settings.DB_USER,
+        password=db_settings.DB_PASSWORD,
+        port=db_settings.DB_PORT,
+        min_size=db_settings.DB_POOL_MIN_SIZE,
+        max_size=db_settings.DB_POOL_MAX_SIZE,
+        timeout=db_settings.DB_POOL_TIMEOUT,
+        command_timeout=db_settings.DB_COMMAND_TIMEOUT,
+    )

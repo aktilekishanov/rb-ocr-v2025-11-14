@@ -1,16 +1,23 @@
 import json
-import os
 import ssl
 import urllib.error
 import urllib.request
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Dict
 
+from core.settings import llm_settings
 from pipeline.core.config import ERROR_BODY_MAX_CHARS, LLM_REQUEST_TIMEOUT_SECONDS
 from pipeline.core.exceptions import ExternalServiceError
 
 
-def _raise_llm_error(error_type: str, details: dict[str, Any], exc: Exception) -> None:
+_SSL_CONTEXT = ssl._create_unverified_context()
+
+
+def _raise_llm_error(
+    error_type: str,
+    details: Dict[str, Any],
+    exc: Exception,
+) -> None:
     raise ExternalServiceError(
         service_name="LLM",
         error_type=error_type,
@@ -18,19 +25,35 @@ def _raise_llm_error(error_type: str, details: dict[str, Any], exc: Exception) -
     ) from exc
 
 
+def _read_error_body(err: urllib.error.HTTPError) -> str:
+    try:
+        return err.read().decode("utf-8")[:ERROR_BODY_MAX_CHARS]
+    except Exception:
+        return ""
+
+
+def _build_request(payload: dict) -> urllib.request.Request:
+    return urllib.request.Request(
+        llm_settings.LLM_ENDPOINT_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+
 def ask_llm(
     prompt: str,
+    *,
     model: str = "gpt-4o",
-    temperature: float = 0,
+    temperature: float = 0.0,
     max_tokens: int = 500,
 ) -> str:
     """
-    Call internal LLM endpoint and return raw JSON as string.
+    Call internal LLM endpoint and return raw response string.
 
-    Raises ExternalServiceError on any failure.
+    Raises:
+        ExternalServiceError: On any network or service failure.
     """
-    url = os.getenv("LLM_ENDPOINT_URL")
-
     payload = {
         "Model": model,
         "Content": prompt,
@@ -38,45 +61,37 @@ def ask_llm(
         "MaxTokens": max_tokens,
     }
 
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-
-    context = ssl._create_unverified_context()
+    request = _build_request(payload)
 
     try:
         with urllib.request.urlopen(
-            req, context=context, timeout=LLM_REQUEST_TIMEOUT_SECONDS
-        ) as r:
-            return r.read().decode("utf-8")
+            request,
+            context=_SSL_CONTEXT,
+            timeout=LLM_REQUEST_TIMEOUT_SECONDS,
+        ) as response:
+            return response.read().decode("utf-8")
 
     except urllib.error.HTTPError as e:
-        # Extract body if possible
-        try:
-            body = e.read().decode("utf-8")[:ERROR_BODY_MAX_CHARS]
-        except Exception:
-            body = ""
-
-        error_type = "rate_limit" if e.code == HTTPStatus.TOO_MANY_REQUESTS else "error"
+        error_type = (
+            "rate_limit"
+            if e.code == HTTPStatus.TOO_MANY_REQUESTS
+            else "error"
+        )
         _raise_llm_error(
             error_type,
             {
                 "http_code": e.code,
                 "reason": str(e.reason),
-                "body": body,
+                "body": _read_error_body(e),
             },
             e,
         )
 
     except urllib.error.URLError as e:
-        reason = getattr(e, "reason", str(e))
-        is_timeout = "timeout" in str(reason).lower()
+        reason = str(getattr(e, "reason", e))
         _raise_llm_error(
-            "timeout" if is_timeout else "unavailable",
-            {"reason": str(reason)},
+            "timeout" if "timeout" in reason.lower() else "unavailable",
+            {"reason": reason},
             e,
         )
 
@@ -87,5 +102,5 @@ def ask_llm(
             e,
         )
 
-    # Unreachable, but keeps type checkers happy
+    # for type checkers only
     return ""
