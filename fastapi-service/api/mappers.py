@@ -40,6 +40,8 @@ def build_external_metadata(event: KafkaEventRequest, trace_id: str) -> dict:
 def build_kafka_response(
     result: dict,
     request_id: int,
+    processing_time: float | None = None,
+    trace_id: str | None = None,
 ) -> KafkaResponse:
     """
     Map pipeline results to KafkaResponse format.
@@ -51,6 +53,8 @@ def build_kafka_response(
     Args:
         result: Pipeline result dict with verdict and errors
         request_id: Original Kafka event request ID
+        processing_time: Processing time in seconds (logged, not returned)
+        trace_id: Request trace ID (logged, not returned)
 
     Returns:
         KafkaResponse with request_id, status, and err_codes
