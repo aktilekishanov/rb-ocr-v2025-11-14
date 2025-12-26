@@ -1,11 +1,6 @@
 import os
 
-try:
-    from PIL import Image, ImageOps, ImageSequence
-except Exception:
-    Image = None
-    ImageSequence = None
-    ImageOps = None
+from PIL import Image, ImageOps, ImageSequence
 
 
 def convert_image_to_pdf(
@@ -14,8 +9,6 @@ def convert_image_to_pdf(
     output_path: str | None = None,
     overwrite: bool = False,
 ) -> str:
-    if Image is None:
-        raise RuntimeError("Pillow is required for image to PDF conversion")
     if not os.path.isfile(image_path):
         raise FileNotFoundError(image_path)
 

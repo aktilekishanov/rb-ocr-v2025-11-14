@@ -1,16 +1,13 @@
-from typing import Any, Set
+"""Application constants and configuration mappings."""
 
-# File Upload Validation
-ALLOWED_CONTENT_TYPES: Set[str] = {
+from typing import Any
+
+ALLOWED_CONTENT_TYPES: set[str] = {
     "application/pdf",
     "image/jpeg",
-    "image/jpg",
     "image/png",
     "image/tiff",
 }
-
-
-# Kazakh to Russian character mappings
 KZ_TO_RU_MAPPING: dict[str, str] = {
     "қ": "к",
     "ұ": "у",
@@ -25,9 +22,6 @@ KZ_TO_RU_MAPPING: dict[str, str] = {
     "Ғ": "Г",
     "Ө": "О",
 }
-
-
-# Latin to Cyrillic lookalike character mappings
 LATIN_TO_CYRILLIC_MAPPING: dict[str, str] = {
     "a": "а",
     "e": "е",
@@ -56,9 +50,6 @@ LATIN_TO_CYRILLIC_MAPPING: dict[str, str] = {
     "T": "Т",
     "I": "И",
 }
-
-
-# Patronymic suffixes for name parsing (Russian, Kazakh, Kyrgyz)
 PATRONYMIC_SUFFIXES: tuple[str, ...] = (
     "ович",
     "евич",
@@ -73,9 +64,6 @@ PATRONYMIC_SUFFIXES: tuple[str, ...] = (
     "кызы",
     "қызы",
 )
-
-
-# Document type validity overrides (in days)
 VALIDITY_OVERRIDES: dict[str, dict[str, Any]] = {
     "Заключение врачебно-консультативной комиссии (ВКК)": {
         "type": "fixed_days",

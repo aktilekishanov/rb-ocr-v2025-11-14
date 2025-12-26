@@ -1,3 +1,4 @@
+*.md
 # Runtime directories
 runs/
 logs/
@@ -40,5 +41,4 @@ htmlcov/
 docker-compose.yml.old
 
 .extra
-*.md
 *.env

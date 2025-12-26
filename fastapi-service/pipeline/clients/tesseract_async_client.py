@@ -1,26 +1,23 @@
 import asyncio
 import logging
-import mimetypes
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 import httpx
 from core.settings import ocr_settings
-from pipeline.core.config import (
+from pipeline.config.settings import (
     OCR_CLIENT_TIMEOUT_SECONDS,
     OCR_RESULT_FILE,
     OCR_TIMEOUT_SECONDS,
 )
 from pipeline.processors.image_to_pdf_converter import convert_image_to_pdf
+from pipeline.utils.file_detection import detect_file_type_from_path
 from pipeline.utils.io_utils import write_json
 
 logger = logging.getLogger(__name__)
 
 
-# -----------------------------
-# Utilities
-# -----------------------------
-def parse_ocr_result(resp: dict) -> Tuple[bool, Optional[str], dict]:
+def parse_ocr_result(resp: dict) -> tuple[bool, Optional[str], dict]:
     """Normalize OCR response."""
     success = bool(resp.get("success"))
     raw = resp.get("result") or {}
@@ -38,39 +35,6 @@ def parse_ocr_result(resp: dict) -> Tuple[bool, Optional[str], dict]:
     return False, error, raw_inner
 
 
-def detect_file_type(path: str) -> Tuple[bool, bool]:
-    """Detect if file is PDF or image."""
-    mime, _ = mimetypes.guess_type(path)
-    ext = os.path.splitext(path)[1].lower()
-
-    is_pdf = ext == ".pdf" or mime == "application/pdf"
-    is_image = (mime and mime.startswith("image/")) or ext in {
-        ".png",
-        ".jpg",
-        ".jpeg",
-        ".tif",
-        ".tiff",
-        ".bmp",
-        ".webp",
-        ".heic",
-        ".heif",
-    }
-    return is_pdf, is_image
-
-
-def convert_image_to_pdf_if_needed(
-    path: str, is_pdf: bool, is_image: bool
-) -> Tuple[str, Optional[str]]:
-    """Convert image to PDF if necessary."""
-    if is_image and not is_pdf:
-        pdf_path = f"{os.path.splitext(path)[0]}_converted.pdf"
-        return convert_image_to_pdf(path, output_path=pdf_path), pdf_path
-    return path, None
-
-
-# -----------------------------
-# OCR Client
-# -----------------------------
 class TesseractAsyncClient:
     def __init__(
         self, base_url: Optional[str] = None, timeout: float = 60.0, verify: bool = True
@@ -142,9 +106,6 @@ class TesseractAsyncClient:
             interval = min(interval * backoff, max_interval)
 
 
-# -----------------------------
-# High-level async API
-# -----------------------------
 async def ask_tesseract_async(
     file_path: str,
     *,
@@ -153,7 +114,7 @@ async def ask_tesseract_async(
     timeout: float = OCR_TIMEOUT_SECONDS,
     client_timeout: float = OCR_CLIENT_TIMEOUT_SECONDS,
     verify: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     async with TesseractAsyncClient(
         base_url=base_url, timeout=client_timeout, verify=verify
     ) as client:
@@ -179,9 +140,6 @@ async def ask_tesseract_async(
         }
 
 
-# -----------------------------
-# Synchronous wrapper
-# -----------------------------
 def ask_tesseract(
     pdf_path: str,
     output_dir: str = "output",
@@ -189,11 +147,19 @@ def ask_tesseract(
     *,
     base_url: Optional[str] = None,
     verify: bool = True,
-) -> Dict[str, Any]:
-    is_pdf, is_image = detect_file_type(pdf_path)
-    work_path, converted_pdf = convert_image_to_pdf_if_needed(
-        pdf_path, is_pdf, is_image
-    )
+) -> dict[str, Any]:
+    result = detect_file_type_from_path(pdf_path)
+    if result is None:
+        raise ValueError(f"Unsupported file type: {pdf_path}")
+
+    detected_type, mime_type = result
+
+    if detected_type in ("jpeg", "png", "tiff"):
+        converted_pdf = f"{os.path.splitext(pdf_path)[0]}_converted.pdf"
+        work_path = convert_image_to_pdf(pdf_path, output_path=converted_pdf)
+    else:
+        work_path = pdf_path
+        converted_pdf = None
 
     async_result = asyncio.run(
         ask_tesseract_async(file_path=work_path, base_url=base_url, verify=verify)

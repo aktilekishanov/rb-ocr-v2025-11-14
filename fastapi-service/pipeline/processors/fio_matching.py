@@ -1,18 +1,16 @@
+"""FIO (full name) matching with normalization and fuzzy logic."""
+
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 
-try:
-    from rapidfuzz import fuzz  # optional
-except Exception:
-    fuzz = None
-
-from pipeline.core.const import (
+from pipeline.config.constants import (
     KZ_TO_RU_MAPPING,
     LATIN_TO_CYRILLIC_MAPPING,
     PATRONYMIC_SUFFIXES,
 )
+from rapidfuzz import fuzz
 
 
 @dataclass
@@ -142,13 +140,9 @@ def fio_match(
     enable_fuzzy_fallback: bool = True,
     fuzzy_threshold: int = 85,
 ) -> tuple[bool, dict[str, object]]:
-    """Match FIO using strategy pattern.
+    """Match FIO using multi-strategy approach.
 
-    Refactored to use small, focused strategy functions instead of
-    one large complex function. Each strategy is tried in order.
-
-    Complexity reduced from 15 to 3. Each strategy function has
-    complexity < 5, making the code easier to understand and test.
+    Attempts exact matching, variant matching, and fuzzy matching in order.
 
     Args:
         app_fio: Application FIO string

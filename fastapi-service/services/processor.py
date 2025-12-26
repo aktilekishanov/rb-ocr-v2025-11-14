@@ -2,11 +2,13 @@
 
 import asyncio
 import logging
+import os
 import tempfile
 from pathlib import Path
 
 from core.settings import s3_settings
-from pipeline.core.exceptions import ExternalServiceError
+from fastapi import UploadFile
+from pipeline.errors.exceptions import ExternalServiceError
 from pipeline.orchestrator import PipelineRunner
 from pipeline.utils.io_utils import build_fio
 from services.s3_client import S3Client
@@ -14,13 +16,22 @@ from services.s3_client import S3Client
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# Module-Level Helper Functions
-# ============================================================================
+async def _save_upload_to_temp(file: UploadFile) -> str:
+    """Save uploaded file to temporary location.
+
+    Returns:
+        Absolute path to temporary file
+    """
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=f"_{file.filename}"
+    ) as temp_file:
+        content = await file.read()
+        temp_file.write(content)
+        return temp_file.name
 
 
 def _extract_event_fields(event_data: dict) -> tuple[str, str, str]:
-    """Extract required fields from event data."""
+    """Extract request_id, s3_path, and filename from event data."""
     from pathlib import Path
 
     request_id = event_data["request_id"]
@@ -30,7 +41,7 @@ def _extract_event_fields(event_data: dict) -> tuple[str, str, str]:
 
 
 def _build_fio_from_event(event_data: dict) -> str:
-    """Build FIO from event name components."""
+    """Build full name from first, last, and optional second name."""
     return build_fio(
         last_name=event_data["last_name"],
         first_name=event_data["first_name"],
@@ -55,7 +66,7 @@ async def _run_pipeline_async(
     runs_root: Path,
     external_metadata: dict | None,
 ) -> dict:
-    """Run pipeline in executor asynchronously."""
+    """Execute pipeline in thread pool executor."""
     loop = asyncio.get_event_loop()
     runner = PipelineRunner(runs_root)
     return await loop.run_in_executor(
@@ -64,7 +75,6 @@ async def _run_pipeline_async(
             fio=fio,
             source_file_path=tmp_path,
             original_filename=filename,
-            content_type=None,  # Rely solely on magic bytes detection
             external_metadata=external_metadata,
         ),
     )
@@ -82,7 +92,7 @@ class DocumentProcessor:
             self.s3_client = S3Client(
                 endpoint=s3_settings.S3_ENDPOINT,
                 access_key=s3_settings.S3_ACCESS_KEY,
-                secret_key=s3_settings.S3_SECRET_KEY,
+                secret_key=s3_settings.S3_SECRET_KEY.get_secret_value(),
                 bucket=s3_settings.S3_BUCKET,
                 secure=s3_settings.S3_SECURE,
             )
@@ -122,7 +132,6 @@ class DocumentProcessor:
                 fio=fio,
                 source_file_path=file_path,
                 original_filename=original_filename,
-                content_type=None,
             ),
         )
 

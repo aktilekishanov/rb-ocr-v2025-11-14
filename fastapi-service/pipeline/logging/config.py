@@ -111,13 +111,3 @@ def configure_structured_logging(
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
-
-
-# For backward compatibility with existing code
-def configure_logging(level: str = "INFO") -> None:
-    """Legacy function - use configure_structured_logging instead.
-
-    Args:
-        level: Logging level
-    """
-    configure_structured_logging(level=level, json_format=True)

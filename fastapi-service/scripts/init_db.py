@@ -35,11 +35,11 @@ CREATE TABLE IF NOT EXISTS verification_runs (
     -- Pipeline status
     status VARCHAR(50) NOT NULL CHECK (status IN ('success', 'error')),
     
-    -- HTTP error fields (populated only when status='error')
-    http_error_code VARCHAR(100),
-    http_error_message TEXT,
-    http_error_category VARCHAR(100),
-    http_error_retryable BOOLEAN,
+    -- Pipeline error fields (populated only when status='error')
+    pipeline_error_code INTEGER,
+    pipeline_error_message TEXT,
+    pipeline_error_category VARCHAR(100),
+    pipeline_error_retryable BOOLEAN,
     
     -- Extracted data (populated only when status='success')
     extracted_fio VARCHAR(500),
@@ -95,7 +95,7 @@ async def setup_database():
             port=db_settings.DB_PORT,
             database=db_settings.DB_NAME,
             user=db_settings.DB_USER,
-            password=db_settings.DB_PASSWORD,
+            password=db_settings.DB_PASSWORD.get_secret_value(),
             timeout=10.0,
         )
 

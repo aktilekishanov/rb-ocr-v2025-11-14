@@ -1,21 +1,22 @@
+"""LLM client for internal language model endpoint."""
+
 import json
 import ssl
 import urllib.error
 import urllib.request
 from http import HTTPStatus
-from typing import Any, Dict
+from typing import Any
 
 from core.settings import llm_settings
-from pipeline.core.config import ERROR_BODY_MAX_CHARS, LLM_REQUEST_TIMEOUT_SECONDS
-from pipeline.core.exceptions import ExternalServiceError
-
+from pipeline.config.settings import ERROR_BODY_MAX_CHARS, LLM_REQUEST_TIMEOUT_SECONDS
+from pipeline.errors.exceptions import ExternalServiceError
 
 _SSL_CONTEXT = ssl._create_unverified_context()
 
 
 def _raise_llm_error(
     error_type: str,
-    details: Dict[str, Any],
+    details: dict[str, Any],
     exc: Exception,
 ) -> None:
     raise ExternalServiceError(
@@ -48,11 +49,19 @@ def ask_llm(
     temperature: float = 0.0,
     max_tokens: int = 500,
 ) -> str:
-    """
-    Call internal LLM endpoint and return raw response string.
+    """Call internal LLM endpoint.
+
+    Args:
+        prompt: Input prompt for the model
+        model: Model identifier
+        temperature: Sampling temperature
+        max_tokens: Maximum response tokens
+
+    Returns:
+        Raw response string from LLM
 
     Raises:
-        ExternalServiceError: On any network or service failure.
+        ExternalServiceError: On network or service failure
     """
     payload = {
         "Model": model,
@@ -72,11 +81,7 @@ def ask_llm(
             return response.read().decode("utf-8")
 
     except urllib.error.HTTPError as e:
-        error_type = (
-            "rate_limit"
-            if e.code == HTTPStatus.TOO_MANY_REQUESTS
-            else "error"
-        )
+        error_type = "rate_limit" if e.code == HTTPStatus.TOO_MANY_REQUESTS else "error"
         _raise_llm_error(
             error_type,
             {
@@ -102,5 +107,4 @@ def ask_llm(
             e,
         )
 
-    # for type checkers only
     return ""

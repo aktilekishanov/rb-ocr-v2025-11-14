@@ -11,9 +11,11 @@ Benefits:
 - Clear separation of concerns
 """
 
-import difflib
 from dataclasses import asdict
-from typing import Optional, Tuple
+from typing import Optional
+
+from pipeline.processors.fio_matching import equals_canonical, normalize_for_name
+from rapidfuzz import fuzz
 
 
 def try_exact_canonical_match(
@@ -21,7 +23,7 @@ def try_exact_canonical_match(
     doc_variants: dict[str, str],
     doc_variant_key: str,
     app_parts: "NameParts",
-) -> Optional[Tuple[bool, dict]]:
+) -> Optional[tuple[bool, dict]]:
     """Strategy 1: Try exact canonical match for detected variant.
 
     Attempts to match the specific variant type (FULL, LF, L_IO, etc.)
@@ -36,7 +38,6 @@ def try_exact_canonical_match(
     Returns:
         (True, metadata) if matched, None if not matched
     """
-    from pipeline.processors.fio_matching import equals_canonical
 
     app_val = app_variants.get(doc_variant_key)
     doc_val = doc_variants.get(doc_variant_key)
@@ -61,7 +62,7 @@ def try_lio_raw_form_match(
     doc_fio: str,
     doc_variant_key: str,
     app_parts: "NameParts",
-) -> Optional[Tuple[bool, dict]]:
+) -> Optional[tuple[bool, dict]]:
     """Strategy 2: Try L_IO raw form normalization match.
 
     Handles case where document has "Иванов И О" (with spaces)
@@ -78,8 +79,6 @@ def try_lio_raw_form_match(
     """
     if doc_variant_key != "L_IO":
         return None
-
-    from pipeline.processors.fio_matching import equals_canonical, normalize_for_name
 
     app_lio = app_variants.get("L_IO")
     if not app_lio:
@@ -104,7 +103,7 @@ def try_li_special_case_match(
     doc_variants: dict[str, str],
     doc_variant_key: str,
     app_parts: "NameParts",
-) -> Optional[Tuple[bool, dict]]:
+) -> Optional[tuple[bool, dict]]:
     """Strategy 3: Accept L_I match when app has FULL parts.
 
     Special case: Document has "Иванов И" but application has
@@ -122,8 +121,6 @@ def try_li_special_case_match(
     """
     if doc_variant_key != "L_IO":
         return None
-
-    from pipeline.processors.fio_matching import equals_canonical
 
     # Only apply if app has full name (last, first, patronymic)
     if not (app_parts.last and app_parts.first and app_parts.patro):
@@ -153,7 +150,7 @@ def try_fuzzy_variant_match(
     doc_variant_key: str,
     app_parts: "NameParts",
     fuzzy_threshold: int,
-) -> Optional[Tuple[bool, dict]]:
+) -> Optional[tuple[bool, dict]]:
     """Strategy 4: Try fuzzy matching on specific variant.
 
     Uses Levenshtein distance or SequenceMatcher to find
@@ -194,7 +191,7 @@ def try_fuzzy_raw_match(
     doc_fio: str,
     app_parts: "NameParts",
     fuzzy_threshold: int,
-) -> Optional[Tuple[bool, dict]]:
+) -> Optional[tuple[bool, dict]]:
     """Strategy 5: Try fuzzy matching on raw normalized strings.
 
     Last resort: Compare raw normalized strings when structured
@@ -209,7 +206,6 @@ def try_fuzzy_raw_match(
     Returns:
         (True, metadata) if matched, None if not matched
     """
-    from pipeline.processors.fio_matching import normalize_for_name
 
     app_norm = normalize_for_name(app_fio or "")
     doc_norm = normalize_for_name(doc_fio or "")
@@ -240,12 +236,7 @@ def _calculate_fuzzy_score(a: str, b: str) -> int:
     Returns:
         Similarity score from 0 to 100
     """
-    try:
-        from rapidfuzz import fuzz
-
-        return int(fuzz.ratio(a, b))
-    except ImportError:
-        return int(round(difflib.SequenceMatcher(None, a, b).ratio() * 100))
+    return int(fuzz.ratio(a, b))
 
 
 def _calculate_fuzzy_score_token_sort(a: str, b: str) -> int:
@@ -260,12 +251,7 @@ def _calculate_fuzzy_score_token_sort(a: str, b: str) -> int:
     Returns:
         Similarity score from 0 to 100
     """
-    try:
-        from rapidfuzz import fuzz
-
-        return int(fuzz.token_sort_ratio(a, b))
-    except ImportError:
-        return int(round(difflib.SequenceMatcher(None, a, b).ratio() * 100))
+    return int(fuzz.token_sort_ratio(a, b))
 
 
 def build_no_match_result(
@@ -283,7 +269,6 @@ def build_no_match_result(
     Returns:
         Metadata dictionary for failed match
     """
-    from pipeline.processors.fio_matching import normalize_for_name
 
     return {
         "matched_variant": None,

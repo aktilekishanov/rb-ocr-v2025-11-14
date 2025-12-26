@@ -5,7 +5,7 @@ from pathlib import Path
 
 # Add parent directory to path to import core modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from pipeline.core.database_manager import create_database_manager_from_env
+from pipeline.database.manager import create_database_manager_from_env
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

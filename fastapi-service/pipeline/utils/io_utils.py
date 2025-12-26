@@ -28,25 +28,6 @@ def ensure_parent(path: str | Path) -> None:
     path_obj.parent.mkdir(parents=True, exist_ok=True)
 
 
-def safe_filename(name: str) -> str:
-    """
-    Return a filesystem-safe basename derived from an arbitrary string.
-
-    Non-word characters are replaced with underscores and consecutive
-    whitespace collapsed into single underscores. If the result is
-    empty, "file" is used as a fallback.
-
-    Args:
-      name: Arbitrary name, typically user-provided.
-
-    Returns:
-      A safe filename component without directory separators.
-    """
-    name = re.sub(r"[^\w\-\.\s]", "_", (name or "").strip())
-    name = re.sub(r"\s+", "_", name)
-    return name or "file"
-
-
 def write_json(path: str | Path, obj: dict[str, Any]) -> None:
     """
     Write a JSON object to disk using UTF-8 encoding.

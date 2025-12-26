@@ -4,7 +4,7 @@ DatabaseManager with lifecycle, health check, and env-based config.
 
 import logging
 import time
-from typing import Dict, Optional
+from typing import Optional
 
 import asyncpg
 
@@ -65,7 +65,7 @@ class DatabaseManager:
             raise RuntimeError("Database pool not initialized. Call connect() first")
         return self._pool
 
-    async def health_check(self) -> Dict[str, Optional[float]]:
+    async def health_check(self) -> dict[str, Optional[float]]:
         """Check database connectivity and measure latency."""
         try:
             pool = await self.get_pool()
@@ -83,7 +83,7 @@ class DatabaseManager:
         await self.connect()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, *_):
         await self.disconnect()
 
 
@@ -95,7 +95,7 @@ def create_database_manager_from_env() -> DatabaseManager:
         host=db_settings.DB_HOST,
         database=db_settings.DB_NAME,
         user=db_settings.DB_USER,
-        password=db_settings.DB_PASSWORD,
+        password=db_settings.DB_PASSWORD.get_secret_value(),
         port=db_settings.DB_PORT,
         min_size=db_settings.DB_POOL_MIN_SIZE,
         max_size=db_settings.DB_POOL_MAX_SIZE,

@@ -1,8 +1,10 @@
+"""Application lifecycle management."""
+
 import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from pipeline.core.database_manager import create_database_manager_from_env
+from pipeline.database.manager import create_database_manager_from_env
 from services.webhook_client import create_webhook_client_from_env
 
 logger = logging.getLogger(__name__)
@@ -10,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager for startup/shutdown tasks."""
+    """Manage application startup and shutdown."""
 
     logger.info("Initializing database connection pool...")
     try:

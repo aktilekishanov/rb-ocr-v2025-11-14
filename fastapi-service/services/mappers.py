@@ -1,3 +1,5 @@
+"""Response mapping utilities for API endpoints."""
+
 from api.schemas import KafkaEventRequest, KafkaResponse, VerifyResponse
 
 
@@ -7,10 +9,7 @@ def build_verify_response(
     trace_id: str,
     request_id: str | None = None,
 ) -> VerifyResponse:
-    """
-    Map pipeline results to the VerifyResponse DTO.
-    Pure transformation, no side effects.
-    """
+    """Map pipeline result to VerifyResponse."""
     return VerifyResponse(
         request_id=request_id,
         run_id=result["run_id"],
@@ -22,10 +21,7 @@ def build_verify_response(
 
 
 def build_external_metadata(event: KafkaEventRequest, trace_id: str) -> dict:
-    """
-    Map Kafka event data to internal metadata dictionary.
-    Pure transformation, no side effects.
-    """
+    """Map Kafka event to internal metadata dictionary."""
     return {
         "trace_id": trace_id,
         "external_request_id": str(event.request_id),
@@ -43,21 +39,16 @@ def build_kafka_response(
     processing_time: float | None = None,
     trace_id: str | None = None,
 ) -> KafkaResponse:
-    """
-    Map pipeline results to KafkaResponse format.
-
-    This builds a webhook-compatible response for Kafka endpoints.
-    Unlike build_verify_response(), this omits diagnostic fields
-    (run_id, trace_id, processing_time) which are only in logs/DB.
+    """Map pipeline result to KafkaResponse format.
 
     Args:
-        result: Pipeline result dict with verdict and errors
+        result: Pipeline result dict
         request_id: Original Kafka event request ID
-        processing_time: Processing time in seconds (logged, not returned)
-        trace_id: Request trace ID (logged, not returned)
+        processing_time: Processing time (for logging)
+        trace_id: Request trace ID (for logging)
 
     Returns:
-        KafkaResponse with request_id, status, and err_codes
+        KafkaResponse with status and error codes
     """
     verdict = result.get("verdict", False)
     errors = result.get("errors", [])

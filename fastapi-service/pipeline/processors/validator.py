@@ -1,15 +1,10 @@
-import re
+"""Business rule validation for document verification."""
+
 from typing import Any
 
-from pipeline.core.dates import now_utc_plus
-from pipeline.core.validity import compute_valid_until, is_within_validity
 from pipeline.processors.fio_matching import fio_match as det_fio_match
-
-
-def _norm_text(text: Any) -> str:
-    if not isinstance(text, str):
-        return ""
-    return re.sub(r"\s+", " ", text.strip()).casefold()
+from pipeline.utils.dates import now_utc_plus
+from pipeline.utils.validity import compute_valid_until, is_within_validity
 
 
 def validate_run(
@@ -17,8 +12,15 @@ def validate_run(
     extractor_data: dict[str, Any],
     doc_type_data: dict[str, Any],
 ) -> dict[str, Any]:
-    """
-    Validate a single run using in-memory data only.
+    """Validate document against business rules.
+
+    Args:
+        user_provided_fio: User-provided full name
+        extractor_data: Extracted document data
+        doc_type_data: Document type detection results
+
+    Returns:
+        Validation result with checks and verdict
     """
 
     detected_doc_types = doc_type_data.get("detected_doc_types")

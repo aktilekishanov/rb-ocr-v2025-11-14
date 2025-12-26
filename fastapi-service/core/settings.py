@@ -5,7 +5,7 @@ All environment variables are read once at startup and validated.
 Use this instead of scattered os.getenv() calls throughout the codebase.
 """
 
-from pydantic import Field
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings
 
 
@@ -16,7 +16,7 @@ class DatabaseSettings(BaseSettings):
     DB_PORT: int = 5432
     DB_NAME: str
     DB_USER: str
-    DB_PASSWORD: str
+    DB_PASSWORD: SecretStr
     DB_POOL_MIN_SIZE: int = 5
     DB_POOL_MAX_SIZE: int = 30
     DB_POOL_TIMEOUT: float = 10.0
@@ -30,7 +30,7 @@ class S3Settings(BaseSettings):
 
     S3_ENDPOINT: str
     S3_ACCESS_KEY: str
-    S3_SECRET_KEY: str
+    S3_SECRET_KEY: SecretStr
     S3_BUCKET: str
     S3_SECURE: bool = True
 
@@ -58,7 +58,7 @@ class WebhookSettings(BaseSettings):
 
     WEBHOOK_URL: str
     WEBHOOK_USERNAME: str
-    WEBHOOK_PASSWORD: str
+    WEBHOOK_PASSWORD: SecretStr
 
     model_config = {"case_sensitive": True, "env_file": ".env", "extra": "ignore"}
 
@@ -74,7 +74,7 @@ class AppSettings(BaseSettings):
 
     @property
     def runs_dir(self):
-        """Computed property for backward compatibility."""
+        """Resolve runs directory path from environment variable."""
         from pathlib import Path
 
         env_runs_dir = self.RB_IDP_RUNS_DIR.strip()

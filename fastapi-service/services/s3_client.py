@@ -7,7 +7,7 @@ from pathlib import Path
 import urllib3
 from minio import Minio
 from minio.error import S3Error
-from pipeline.core.exceptions import ExternalServiceError, ResourceNotFoundError
+from pipeline.errors.exceptions import ExternalServiceError, ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 

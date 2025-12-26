@@ -20,9 +20,16 @@ RUN mkdir -p /app/runs && chmod 775 /app/runs
 # Copy database setup script (for offline server deployment)
 COPY scripts/init_db.py /app/db_setup.py
 
+# Create non-root user and set ownership
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
 EXPOSE 8000
 
-# Use bash to set umask before running gunicorn
-CMD ["/bin/bash", "-c", "umask 0002 && exec gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 60 --access-logfile - --error-logfile -"]
+# Use bash to set umask before running gunicorn with graceful shutdown
+CMD ["/bin/bash", "-c", "umask 0002 && exec gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 60 --graceful-timeout 30 --access-logfile - --error-logfile -"]
 
 

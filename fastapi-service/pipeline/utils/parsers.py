@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 
 def parse_ocr_output(obj: dict) -> list[dict]:
@@ -24,7 +24,7 @@ def parse_ocr_output(obj: dict) -> list[dict]:
     return parsed
 
 
-def parse_llm_output(raw: str) -> Dict[str, Any]:
+def parse_llm_output(raw: str) -> dict[str, Any]:
     """
     Extract and parse the JSON dict contained inside LLM response["choices"][0]["message"]["content"].
 

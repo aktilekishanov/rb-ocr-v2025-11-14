@@ -1,11 +1,13 @@
+"""Centralized exception handlers for FastAPI."""
+
 import logging
 
 from api.schemas import ProblemDetail
-from core.utils import ensure_trace_id
+from core.middleware import _ensure_trace_id
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pipeline.core.exceptions import BaseError
+from pipeline.errors.exceptions import BaseError
 from pydantic_core import ValidationError as PydanticCoreValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -13,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 async def handle_validation_error(request: Request, exc: RequestValidationError):
-    """Handler for FastAPI/Pydantic request validation errors."""
-    trace_id = ensure_trace_id(request)
+    """Handle FastAPI request validation errors."""
+    trace_id = _ensure_trace_id(request)
 
     first_error = exc.errors()[0] if exc.errors() else {}
     loc = first_error.get("loc", [])
@@ -48,8 +50,8 @@ async def handle_validation_error(request: Request, exc: RequestValidationError)
 
 
 async def handle_pydantic_error(request: Request, exc: PydanticCoreValidationError):
-    """Handler for generic Pydantic errors outside request validation."""
-    trace_id = ensure_trace_id(request)
+    """Handle Pydantic validation errors."""
+    trace_id = _ensure_trace_id(request)
 
     logger.warning(
         "Pydantic validation failed",
@@ -84,8 +86,8 @@ async def handle_pydantic_error(request: Request, exc: PydanticCoreValidationErr
 
 
 async def handle_app_error(request: Request, exc: BaseError):
-    """Handler for application-specific BaseErrors."""
-    trace_id = ensure_trace_id(request)
+    """Handle application-specific errors."""
+    trace_id = _ensure_trace_id(request)
 
     logger.error(
         "Application error occurred",
@@ -112,8 +114,8 @@ async def handle_app_error(request: Request, exc: BaseError):
 
 
 async def handle_http_error(request: Request, exc: StarletteHTTPException):
-    """Handler for standard HTTP exceptions (404, 401, etc.)."""
-    trace_id = ensure_trace_id(request)
+    """Handle standard HTTP exceptions."""
+    trace_id = _ensure_trace_id(request)
 
     logger.warning(
         "HTTP exception",
@@ -144,8 +146,8 @@ async def handle_http_error(request: Request, exc: StarletteHTTPException):
 
 
 async def handle_unknown_error(request: Request, exc: Exception):
-    """Handler for unexpected 500 errors."""
-    trace_id = ensure_trace_id(request)
+    """Handle unexpected server errors."""
+    trace_id = _ensure_trace_id(request)
 
     logger.exception(
         "Unexpected error occurred",

@@ -1,16 +1,17 @@
+"""Manual document verification endpoint."""
+
 import logging
 import os
 import time
 
-from api.mappers import build_verify_response
+from api.file_validation import validate_upload_file
 from api.schemas import ProblemDetail, VerifyRequest, VerifyResponse
-from api.validators import validate_upload_file
 from core.dependencies import get_db_manager, get_webhook_client
-from core.logging_utils import sanitize_fio
+from core.security import sanitize_fio
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
-from pipeline.core.database_manager import DatabaseManager
-from services.processor import DocumentProcessor
-from services.storage import save_upload_to_temp
+from pipeline.database.manager import DatabaseManager
+from services.mappers import build_verify_response
+from services.processor import DocumentProcessor, _save_upload_to_temp
 from services.tasks import enqueue_verification_run
 from services.webhook_client import WebhookClient
 
@@ -47,7 +48,7 @@ async def verify_document(
     await validate_upload_file(file)
     verify_req = VerifyRequest(fio=fio)
 
-    tmp_path = await save_upload_to_temp(file)
+    tmp_path = await _save_upload_to_temp(file)
 
     try:
         result = await processor.process_document(

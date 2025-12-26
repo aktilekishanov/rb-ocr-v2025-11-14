@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 import httpx
 from core.settings import webhook_settings
@@ -9,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class WebhookPayload(BaseModel):
-    err_codes: List[int] = Field(
+    err_codes: list[int] = Field(
         default_factory=list, description="List of integer error codes"
     )
     request_id: int = Field(..., description="Original request ID")
@@ -28,7 +27,7 @@ class WebhookClient:
     ):
         self.url = url or webhook_settings.WEBHOOK_URL
         self.username = username or webhook_settings.WEBHOOK_USERNAME
-        self.password = password or webhook_settings.WEBHOOK_PASSWORD
+        self.password = password or webhook_settings.WEBHOOK_PASSWORD.get_secret_value()
         self.timeout = timeout or 10.0
 
         logger.info(
@@ -36,7 +35,7 @@ class WebhookClient:
         )
 
     async def send_result(
-        self, request_id: int, success: bool, errors: List[int] | None = None
+        self, request_id: int, success: bool, errors: list[int] | None = None
     ) -> int:
         """Send the processing result to the webhook endpoint.
 
@@ -92,5 +91,5 @@ def create_webhook_client_from_env() -> WebhookClient:
     return WebhookClient(
         url=webhook_settings.WEBHOOK_URL,
         username=webhook_settings.WEBHOOK_USERNAME,
-        password=webhook_settings.WEBHOOK_PASSWORD,
+        password=webhook_settings.WEBHOOK_PASSWORD.get_secret_value(),
     )

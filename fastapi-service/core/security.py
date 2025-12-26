@@ -1,8 +1,8 @@
 """
-PII-safe logging utilities.
+Security utilities for the RB-OCR application.
 
-Provides minimal sanitization helpers to prevent sensitive data
-leakage in logs while keeping them useful for debugging.
+Provides PII sanitization helpers to prevent sensitive data leakage in logs
+while keeping them useful for debugging.
 """
 
 
@@ -36,10 +36,3 @@ def sanitize_iin(iin: str | None) -> str:
         return "***"
 
     return f"{iin[:3]}***{iin[-2:]}"
-
-
-def sanitize_request_id(request_id: int | str | None) -> str:
-    """
-    Normalize request ID for logs.
-    """
-    return str(request_id) if request_id is not None else "N/A"

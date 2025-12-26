@@ -1,9 +1,10 @@
 """Pydantic request/response schemas for API endpoints."""
 
 import re
-from typing import List, Optional
+from typing import Optional
 
-from pipeline.core.config import (
+from api.validators import validate_iin_format, validate_s3_path_security
+from pipeline.config.settings import (
     FIO_MAX_LENGTH,
     FIO_MIN_LENGTH,
     FIO_MIN_WORDS,
@@ -145,43 +146,8 @@ class KafkaEventQueryParams(BaseModel):
         description="Applicant's patronymic/middle name (optional)",
     )
 
-    @field_validator("iin")
-    @classmethod
-    def validate_iin(cls, iin_value: str) -> str:
-        """Validate IIN is exactly 12 digits.
-
-        Raises:
-            ValueError: If IIN is not exactly 12 digits
-        """
-        if not iin_value.isdigit():
-            raise ValueError("IIN must contain only digits")
-        if len(iin_value) != IIN_LENGTH:
-            raise ValueError(
-                f"IIN must be exactly {IIN_LENGTH} digits, got {len(iin_value)}"
-            )
-        return iin_value
-
-    @field_validator("s3_path")
-    @classmethod
-    def validate_s3_path(cls, s3_path_value: str) -> str:
-        """Validate S3 path for security.
-
-        Security checks:
-        - Prevent directory traversal attacks (..)
-        - Prevent absolute paths (/)
-
-        Raises:
-            ValueError: If path fails validation
-        """
-        # Security: Prevent directory traversal
-        if ".." in s3_path_value:
-            raise ValueError("S3 path cannot contain '..' (directory traversal)")
-
-        # Security: Prevent absolute paths
-        if s3_path_value.startswith("/"):
-            raise ValueError("S3 path cannot start with '/' (absolute path)")
-
-        return s3_path_value
+    _validate_iin = field_validator("iin")(validate_iin_format)
+    _validate_s3_path = field_validator("s3_path")(validate_s3_path_security)
 
     class Config:
         json_schema_extra = {
@@ -208,7 +174,7 @@ class VerifyResponse(BaseModel):
     )
     run_id: str = Field(..., description="Unique run identifier (UUID)")
     verdict: bool = Field(..., description="True if all checks pass")
-    errors: List[int] = Field(
+    errors: list[int] = Field(
         default_factory=list,
         description="List of business validation errors (empty if verdict=True)",
     )
@@ -271,7 +237,7 @@ class KafkaResponse(BaseModel):
         description="Verification status: 'success' or 'fail'",
         pattern="^(success|fail)$",
     )
-    err_codes: List[int] = Field(
+    err_codes: list[int] = Field(
         default_factory=list,
         description="List of integer error codes (empty if successful)",
     )
@@ -321,41 +287,8 @@ class KafkaEventRequest(BaseModel):
         description="Applicant's patronymic/middle name (optional)",
     )
 
-    @field_validator("iin")
-    @classmethod
-    def validate_iin(cls, iin_value: str) -> str:
-        """Validate IIN is exactly 12 digits.
-
-        Raises:
-            ValueError: If IIN is not exactly 12 digits
-        """
-        if not iin_value.isdigit():
-            raise ValueError("IIN must contain only digits")
-        if len(iin_value) != 12:
-            raise ValueError(f"IIN must be exactly 12 digits, got {len(iin_value)}")
-        return iin_value
-
-    @field_validator("s3_path")
-    @classmethod
-    def validate_s3_path(cls, s3_path_value: str) -> str:
-        """Validate S3 path for security.
-
-        Security checks:
-        - Prevent directory traversal attacks (..)
-        - Prevent absolute paths (/)
-
-        Raises:
-            ValueError: If path fails validation
-        """
-        # Security: Prevent directory traversal
-        if ".." in s3_path_value:
-            raise ValueError("S3 path cannot contain '..' (directory traversal)")
-
-        # Security: Prevent absolute paths
-        if s3_path_value.startswith("/"):
-            raise ValueError("S3 path cannot start with '/' (absolute path)")
-
-        return s3_path_value
+    _validate_iin = field_validator("iin")(validate_iin_format)
+    _validate_s3_path = field_validator("s3_path")(validate_s3_path_security)
 
     class Config:
         json_schema_extra = {

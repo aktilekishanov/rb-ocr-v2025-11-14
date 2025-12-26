@@ -1,89 +1,57 @@
-import logging
-import os
-from typing import Final
+"""Shared Pydantic field validators.
 
-from fastapi import UploadFile
-from pipeline.core.config import MAX_FILE_SIZE_MB
-from pipeline.core.const import ALLOWED_CONTENT_TYPES
-from pipeline.core.exceptions import PayloadTooLargeError, ValidationError
+This module contains reusable Pydantic validation functions for common fields
+to ensure DRY principle and consistency across all API schemas.
+"""
 
-logger = logging.getLogger(__name__)
-
-MAX_FILE_SIZE_BYTES: Final = MAX_FILE_SIZE_MB * 1024 * 1024
-
-MAGIC_BYTES_MAP: Final = {
-    b"%PDF": ("pdf", "application/pdf"),
-    b"\xff\xd8\xff": ("jpeg", "image/jpeg"),
-    b"\x89PNG": ("png", "image/png"),
-    b"\x49\x49\x2a\x00": ("tiff", "image/tiff"),
-    b"\x4d\x4d\x00\x2a": ("tiff", "image/tiff"),
-}
+from pipeline.config.settings import IIN_LENGTH, S3_PATH_MAX_LENGTH
 
 
-def _get_file_size(file: UploadFile) -> int:
-    file.file.seek(0, os.SEEK_END)
-    size = file.file.tell()
-    file.file.seek(0)
-    return size
+def validate_iin_format(iin_value: str) -> str:
+    """Validate IIN is exactly 12 digits.
 
+    Args:
+        iin_value: The IIN string to validate
 
-def _validate_file_size(size: int) -> None:
-    if size == 0:
-        raise ValidationError(
-            message="File is empty (0 bytes)",
-            field="file",
-            details={"file_size": 0},
+    Returns:
+        str: The validated IIN
+
+    Raises:
+        ValueError: If IIN is not exactly 12 digits or contains non-digits
+    """
+    if not iin_value.isdigit():
+        raise ValueError("IIN must contain only digits")
+    if len(iin_value) != IIN_LENGTH:
+        raise ValueError(
+            f"IIN must be exactly {IIN_LENGTH} digits, got {len(iin_value)}"
         )
-
-    if size > MAX_FILE_SIZE_BYTES:
-        raise PayloadTooLargeError(
-            max_size_mb=MAX_FILE_SIZE_MB,
-            actual_size_mb=size / (1024 * 1024),
-        )
+    return iin_value
 
 
-def _detect_file_type(file: UploadFile) -> tuple[str, str]:
-    file.file.seek(0)
-    header = file.file.read(8)
-    file.file.seek(0)
+def validate_s3_path_security(s3_path_value: str) -> str:
+    """Validate S3 path for security vulnerabilities.
 
-    for signature, result in MAGIC_BYTES_MAP.items():
-        if header.startswith(signature):
-            return result
+    Security checks:
+    - Prevent directory traversal attacks (..)
+    - Prevent absolute paths (/)
+    - Check max length
 
-    raise ValidationError(
-        message="Unsupported file type (invalid magic bytes)",
-        field="file",
-        details={
-            "magic_bytes": header.hex(),
-            "expected_types": ["pdf", "jpeg", "png", "tiff"],
-        },
-    )
+    Args:
+        s3_path_value: The S3 path to validate
 
+    Returns:
+        str: The validated S3 path
 
-async def validate_upload_file(file: UploadFile) -> None:
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
-        raise ValidationError(
-            message=f"Invalid content type: {file.content_type}",
-            field="file",
-            details={"allowed_types": list(ALLOWED_CONTENT_TYPES)},
-        )
+    Raises:
+        ValueError: If path fails security validation
+    """
+    if ".." in s3_path_value:
+        raise ValueError("S3 path cannot contain '..' (directory traversal)")
 
-    file_size = _get_file_size(file)
-    _validate_file_size(file_size)
+    if s3_path_value.startswith("/"):
+        raise ValueError("S3 path cannot start with '/' (absolute path)")
 
-    detected_type, expected_content_type = _detect_file_type(file)
+    if len(s3_path_value) > S3_PATH_MAX_LENGTH:
+        raise ValueError(f"S3 path exceeds maximum length of {S3_PATH_MAX_LENGTH}")
 
-    if file.content_type != expected_content_type:
-        logger.warning(
-            "Content-Type mismatch: header=%s detected=%s",
-            file.content_type,
-            expected_content_type,
-        )
-
-    logger.info(
-        "File validated: type=%s size=%d content_type=%s",
-        detected_type,
-        file_size,
-        file.content_type,
-    )
+    return s3_path_value

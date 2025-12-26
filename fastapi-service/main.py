@@ -17,16 +17,20 @@ from core.error_handlers import (
 from core.lifespan import lifespan
 from core.middleware import trace_id_middleware
 from core.openapi import custom_openapi
+from core.validation import validate_all_settings
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from pipeline.core.exceptions import BaseError
-from pipeline.core.logging_config import configure_structured_logging
+from pipeline.errors.exceptions import BaseError
+from pipeline.logging.config import configure_structured_logging
 from pydantic_core import ValidationError as PydanticCoreValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # Configure logging
 configure_structured_logging(level="INFO", json_format=True)
 logger = logging.getLogger(__name__)
+
+# Validate environment before starting application
+validate_all_settings()
 
 # Suppress known warnings
 import urllib3

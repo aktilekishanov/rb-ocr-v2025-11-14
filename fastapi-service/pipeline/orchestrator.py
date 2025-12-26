@@ -6,10 +6,10 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Optional
 
 from pipeline.clients.tesseract_async_client import ask_tesseract
-from pipeline.core.config import (
+from pipeline.config.settings import (
     FINAL_RESULT_FILE,
     INPUT_FILE,
     LLM_DTC_RESULT_FILE,
@@ -18,11 +18,12 @@ from pipeline.core.config import (
     OCR_RESULT_FILE,
     UTC_OFFSET_HOURS,
 )
-from pipeline.core.errors import ErrorCode, make_error
+from pipeline.errors.codes import ErrorCode, make_error
 from pipeline.models.dto import DocTypeCheck, ExtractorResult
 from pipeline.processors.agent_doc_type_checker import check_single_doc_type
 from pipeline.processors.agent_extractor import extract_doc_data
 from pipeline.processors.validator import validate_run
+from pipeline.utils.file_detection import detect_file_type_from_path
 from pipeline.utils.io_utils import copy_file as util_copy_file
 from pipeline.utils.io_utils import write_json as util_write_json
 from pipeline.utils.parsers import parse_llm_output, parse_ocr_output
@@ -30,11 +31,8 @@ from pipeline.utils.parsers import parse_llm_output, parse_ocr_output
 logger = logging.getLogger(__name__)
 
 
-# Exceptions & utilities
-
-
 class StageError(Exception):
-    """Raised by stages to signal a pipeline failure with an error code and optional details."""
+    """Pipeline stage failure with error code."""
 
     def __init__(self, code: str, details: Optional[str] = None) -> None:
         super().__init__(f"{code}: {details}")
@@ -50,49 +48,8 @@ def _now_iso() -> str:
     return datetime.now(timezone(timedelta(hours=UTC_OFFSET_HOURS))).isoformat()
 
 
-def _detect_extension_from_file(file_path: str) -> str:
-    """
-    Detect file extension by reading magic bytes (file header).
-
-    Supported formats:
-        - PDF:  %PDF
-        - JPEG: 0xFFD8
-        - PNG:  0x89PNG
-
-    Args:
-        file_path: Path to binary file on disk
-
-    Returns:
-        Extension string without dot (e.g., 'pdf', 'jpg', 'png', 'bin')
-    """
-    try:
-        with open(file_path, "rb") as f:
-            header = f.read(8)  # Read first 8 bytes
-
-        # PDF: %PDF-1.x
-        if header.startswith(b"%PDF"):
-            return "pdf"
-
-        # JPEG: 0xFFD8FF
-        if header.startswith(b"\xff\xd8"):
-            return "jpg"
-
-        # PNG: 0x89504E47
-        if header.startswith(b"\x89PNG"):
-            return "png"
-
-    except Exception:
-        # File read error or unrecognized format
-        pass
-
-    return "bin"
-
-
 def _count_pdf_pages(pdf_path: str) -> Optional[int]:
-    """Count PDF pages.
-
-    Try pypdf then PyPDF2 to count pages. Return None if both fail.
-    Avoid loading whole file into memory.
+    """Count PDF pages using pypdf or PyPDF2.
 
     Args:
         pdf_path: Path to PDF file
@@ -123,22 +80,18 @@ def _count_pdf_pages(pdf_path: str) -> Optional[int]:
     return None
 
 
-# Context & runner
-
-
 @dataclass
 class PipelineContext:
     fio: Optional[str]
     source_file_path: str
     original_filename: str
-    content_type: Optional[str]
     runs_root: Path
     run_id: str
     request_created_at: str
     trace_id: Optional[str] = None
 
     # populated during run
-    dirs: Dict[str, Path] = field(default_factory=dict)
+    dirs: dict[str, Path] = field(default_factory=dict)
     saved_path: Optional[Path] = None
     size_bytes: Optional[int] = None
     pages_obj: Optional[list] = None
@@ -161,18 +114,15 @@ class PipelineContext:
         return self.dirs["base"]
 
 
-def _mk_run_dirs(runs_root: Path, run_id: str) -> Dict[str, Path]:
+def _mk_run_dirs(runs_root: Path, run_id: str) -> dict[str, Path]:
     date_str = datetime.now().strftime("%Y-%m-%d")
     base_dir = runs_root / date_str / run_id
     base_dir.mkdir(parents=True, exist_ok=True)
     return {"base": base_dir}
 
 
-# Stage decorator
-
-
 def stage(name: str) -> Callable:
-    """Decorator to wrap stage functions and convert StageError to exception."""
+    """Decorator for pipeline stage functions."""
 
     def deco(
         fn: Callable[[Any, PipelineContext], Any],
@@ -185,21 +135,16 @@ def stage(name: str) -> Callable:
     return deco
 
 
-# Pipeline runner
-
-
 class PipelineRunner:
     def __init__(self, runs_root: Path) -> None:
         self.runs_root = runs_root
         self.logger = logger
 
-    # Helpers for final JSON
-
     def _finalize_timing_artifacts(self, ctx: PipelineContext) -> None:
         ctx.artifacts["duration_seconds"] = time.perf_counter() - ctx.t0
 
     def _build_external_metadata_obj(self, ctx: PipelineContext):
-        from pipeline.utils.db_record import ExternalMetadata
+        from pipeline.database.models import ExternalMetadata
 
         return ExternalMetadata(
             request_id=ctx.external_request_id,
@@ -211,7 +156,7 @@ class PipelineRunner:
         )
 
     def _build_error_final_json(self, ctx: PipelineContext, code: str) -> dict:
-        from pipeline.utils.db_record import FinalJsonBuilder
+        from pipeline.database.models import FinalJsonBuilder
 
         error_spec = ErrorCode.get_spec(code)
         processing_time = ctx.artifacts.get("duration_seconds", 0.0)
@@ -233,7 +178,7 @@ class PipelineRunner:
     def _build_success_final_json(
         self, ctx: PipelineContext, verdict: bool, checks: dict | None
     ) -> dict:
-        from pipeline.utils.db_record import ExtractedData, FinalJsonBuilder, RuleChecks
+        from pipeline.database.models import ExtractedData, FinalJsonBuilder, RuleChecks
 
         extractor_data = ctx.extractor_result or {}
         doc_type_data = ctx.doc_type_result or {}
@@ -272,7 +217,6 @@ class PipelineRunner:
         ctx.artifacts["final_result_path"] = str(final_path)
         return str(final_path)
 
-    # Stage implementations
     @stage("acquire")
     def _stage_acquire(self, ctx: PipelineContext) -> None:
         # Try filename extension first
@@ -280,12 +224,19 @@ class PipelineRunner:
 
         # If no extension in filename, detect from file content (magic bytes)
         if not ext:
-            detected = _detect_extension_from_file(ctx.source_file_path)
-            ext = f".{detected}"
-            logger.info(
-                f"Detected file type from magic bytes: {detected} "
-                f"(filename: {ctx.original_filename})"
-            )
+            result = detect_file_type_from_path(ctx.source_file_path)
+            if result:
+                detected_type, _ = result
+                ext = f".{detected_type}"
+                logger.info(
+                    f"Detected file type from magic bytes: {detected_type} "
+                    f"(filename: {ctx.original_filename})"
+                )
+            else:
+                logger.warning(
+                    f"Could not detect file type for: {ctx.original_filename}"
+                )
+                ext = ".bin"
 
         ctx.saved_path = ctx.base_dir / INPUT_FILE.format(ext=ext)
         try:
@@ -357,13 +308,10 @@ class PipelineRunner:
         except Exception as exc:
             raise StageError("LLM_FILTER_PARSE_ERROR", str(exc))
 
-        # Validate extractor schema
         try:
             extractor_result = ExtractorResult.model_validate(ctx.extractor_result)
         except Exception as ve:
             raise StageError("EXTRACT_SCHEMA_INVALID", str(ve))
-
-        # Basic required fields & types (preserve previous logic)
         if not hasattr(extractor_result, "fio") or not hasattr(
             extractor_result, "doc_date"
         ):
@@ -378,7 +326,7 @@ class PipelineRunner:
             raise StageError("EXTRACT_SCHEMA_INVALID", "Key doc_date has invalid type")
 
     @stage("validate")
-    def _stage_validate(self, ctx: PipelineContext) -> Tuple[bool, dict]:
+    def _stage_validate(self, ctx: PipelineContext) -> tuple[bool, dict]:
         try:
             validation = validate_run(
                 user_provided_fio={"fio": ctx.fio},
@@ -397,7 +345,6 @@ class PipelineRunner:
             bool(val_result.get("verdict")) if isinstance(val_result, dict) else False
         )
 
-        # Build check errors similarly to previous logic
         check_errors = []
         fio_match_result = checks.get("fio_match") if isinstance(checks, dict) else None
         if fio_match_result is False:
@@ -422,14 +369,11 @@ class PipelineRunner:
         ctx.errors.extend(check_errors)
         return verdict, checks or {}
 
-    # Public run method
-
     def run(
         self,
         fio: Optional[str],
         source_file_path: str,
         original_filename: str,
-        content_type: Optional[str],
         external_metadata: Optional[dict] = None,
     ) -> dict:
         """Execute pipeline end-to-end and return result dict."""
@@ -443,7 +387,6 @@ class PipelineRunner:
             fio=fio,
             source_file_path=source_file_path,
             original_filename=original_filename,
-            content_type=content_type,
             runs_root=self.runs_root,
             run_id=run_id,
             request_created_at=request_created_at,
@@ -457,7 +400,6 @@ class PipelineRunner:
             external_second_name=ext_meta.get("external_second_name"),
         )
 
-        # Execute stages in order. Convert StageError -> final JSON & return.
         try:
             self._stage_acquire(ctx)
             self._stage_ocr(ctx)
@@ -465,6 +407,14 @@ class PipelineRunner:
             self._stage_extract(ctx)
             verdict, checks = self._stage_validate(ctx)
         except StageError as se:
+            self.logger.error(
+                f"Pipeline stage failed: {se.code} - {se.details}",
+                extra={
+                    "trace_id": ctx.trace_id,
+                    "run_id": ctx.run_id,
+                    "error_code": se.code,
+                },
+            )
             ctx.errors.append(make_error(se.code, details=se.details))
             self._finalize_timing_artifacts(ctx)
             final_json = self._build_error_final_json(ctx, se.code)
@@ -476,7 +426,6 @@ class PipelineRunner:
                 "final_result_path": final_path,
             }
         except Exception as exc:
-            # Unexpected error
             self.logger.error(f"Unexpected pipeline error: {exc}", exc_info=True)
             ctx.errors.append(make_error("UNKNOWN_ERROR", details=str(exc)))
             self._finalize_timing_artifacts(ctx)
@@ -489,7 +438,6 @@ class PipelineRunner:
                 "final_result_path": final_path,
             }
 
-        # Success finalization
         self._finalize_timing_artifacts(ctx)
         final_json = self._build_success_final_json(ctx, verdict, checks)
         final_path = self._write_final_json(ctx, final_json)

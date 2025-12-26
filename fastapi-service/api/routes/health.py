@@ -1,8 +1,10 @@
+"""Health check endpoint."""
+
 from api.schemas import HealthResponse
 from core.dependencies import get_db_manager
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from pipeline.core.database_manager import DatabaseManager
+from pipeline.database.manager import DatabaseManager
 
 router = APIRouter()
 

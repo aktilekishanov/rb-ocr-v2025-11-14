@@ -5,29 +5,18 @@ enabling clean separation of concerns and improved testability.
 """
 
 from fastapi import HTTPException, Request, status
-from pipeline.core.database_manager import DatabaseManager
+from pipeline.database.manager import DatabaseManager
 from services.webhook_client import WebhookClient
 
 
 async def get_db_manager(request: Request) -> DatabaseManager:
-    """Dependency to get database manager from app state.
-
-    This dependency retrieves the DatabaseManager instance that was
-    initialized during application startup. It enables dependency
-    injection in route handlers.
-
-    Usage in routes:
-        @router.get("/endpoint")
-        async def endpoint(db: DatabaseManager = Depends(get_db_manager)):
-            pool = await db.get_pool()
-            async with pool.acquire() as conn:
-                ...
+    """Get database manager from app state.
 
     Args:
         request: FastAPI request object
 
     Returns:
-        DatabaseManager: The application's database manager
+        DatabaseManager instance
 
     Raises:
         HTTPException: 503 if database manager is unavailable
@@ -44,21 +33,13 @@ async def get_db_manager(request: Request) -> DatabaseManager:
 
 
 async def get_webhook_client(request: Request) -> WebhookClient:
-    """Dependency to get webhook client from app state.
-
-    This dependency retrieves the WebhookClient instance that was
-    initialized during application startup.
-
-    Usage in routes:
-        @router.post("/endpoint")
-        async def endpoint(webhook: WebhookClient = Depends(get_webhook_client)):
-            await webhook.send_result(...)
+    """Get webhook client from app state.
 
     Args:
         request: FastAPI request object
 
     Returns:
-        WebhookClient: The application's webhook client
+        WebhookClient instance
 
     Raises:
         HTTPException: 503 if webhook client is unavailable

@@ -1,23 +1,24 @@
+"""Kafka event verification endpoints."""
+
 import logging
 import time
 from typing import Callable, Optional
 
-from api.mappers import (
-    build_external_metadata,
-    build_kafka_response,
-    build_verify_response,
-)
 from api.schemas import (
     KafkaEventQueryParams,
     KafkaEventRequest,
     KafkaResponse,
-    ProblemDetail,
     VerifyResponse,
 )
 from core.dependencies import get_db_manager, get_webhook_client
-from core.logging_utils import sanitize_iin
+from core.security import sanitize_iin
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
-from pipeline.core.database_manager import DatabaseManager
+from pipeline.database.manager import DatabaseManager
+from services.mappers import (
+    build_external_metadata,
+    build_kafka_response,
+    build_verify_response,
+)
 from services.processor import DocumentProcessor
 from services.tasks import enqueue_verification_run
 from services.webhook_client import WebhookClient

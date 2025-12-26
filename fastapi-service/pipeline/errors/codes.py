@@ -39,13 +39,6 @@ class ErrorCode(Enum):
         "client_error",
         False,
     )
-    FILE_SAVE_FAILED = ErrorSpec(
-        "FILE_SAVE_FAILED",
-        13,
-        "Не удалось сохранить файл",
-        "client_error",
-        False,
-    )
     MULTIPLE_DOCUMENTS = ErrorSpec(
         "MULTIPLE_DOCUMENTS",
         3,
@@ -57,6 +50,13 @@ class ErrorCode(Enum):
     # ========================================
     # SERVER ERRORS (retryable)
     # ========================================
+    FILE_SAVE_FAILED = ErrorSpec(
+        "FILE_SAVE_FAILED",
+        13,
+        "Не удалось сохранить файл",
+        "server_error",
+        True,
+    )
     OCR_FAILED = ErrorSpec(
         "OCR_FAILED",
         20,
@@ -78,24 +78,10 @@ class ErrorCode(Enum):
         "server_error",
         True,
     )
-    DTC_FAILED = ErrorSpec(
-        "DTC_FAILED",
-        23,
-        "Ошибка проверки типа документа",
-        "server_error",
-        True,
-    )
     DTC_PARSE_ERROR = ErrorSpec(
         "DTC_PARSE_ERROR",
         24,
         "Некорректный ответ проверки типа документа",
-        "server_error",
-        True,
-    )
-    EXTRACT_FAILED = ErrorSpec(
-        "EXTRACT_FAILED",
-        25,
-        "Ошибка извлечения данных LLM",
         "server_error",
         True,
     )
@@ -113,19 +99,12 @@ class ErrorCode(Enum):
         "server_error",
         True,
     )
-    MERGE_FAILED = ErrorSpec(
-        "MERGE_FAILED",
-        28,
-        "Ошибка при формировании итогового JSON",
-        "server_error",
-        False,  # Usually indicates bug, not transient
-    )
     VALIDATION_FAILED = ErrorSpec(
         "VALIDATION_FAILED",
         29,
         "Ошибка валидации",
         "server_error",
-        False,  # Usually indicates bug, not transient
+        False,
     )
 
     # ========================================
@@ -135,7 +114,7 @@ class ErrorCode(Enum):
         "FIO_MISMATCH",
         4,
         "ФИО не совпадает",
-        "client_error",  # User provided wrong data
+        "client_error",
         False,
     )
     FIO_MISSING = ErrorSpec(
@@ -191,13 +170,6 @@ class ErrorCode(Enum):
                 return error.value
         # Default for unknown errors
         return ErrorSpec(code, 0, f"Ошибка: {code}", "server_error", False)
-
-
-# Keep existing helper functions for backward compatibility
-def message_for(code: str) -> str | None:
-    """Get Russian message for error code."""
-    spec = ErrorCode.get_spec(code)
-    return spec.message_ru
 
 
 def make_error(

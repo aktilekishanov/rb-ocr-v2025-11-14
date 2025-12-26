@@ -1,7 +1,4 @@
-"""Build final.json structure matching PostgreSQL schema.
-
-Optimized with Builder pattern to eliminate code duplication and improve maintainability.
-"""
+"""Build final.json structure matching PostgreSQL schema."""
 
 from dataclasses import dataclass
 from typing import Any
@@ -43,8 +40,6 @@ class RuleChecks:
 class FinalJsonBuilder:
     """Builder for final.json with fluent interface.
 
-    Eliminates code duplication and provides clean, testable API.
-
     Example:
         final_json = (
             FinalJsonBuilder(run_id, trace_id, created_at)
@@ -80,14 +75,14 @@ class FinalJsonBuilder:
     def with_error(
         self, code: int, message: str, category: str, retryable: bool
     ) -> "FinalJsonBuilder":
-        """Mark as error and set HTTP error fields, NULL all extracted/rule fields."""
+        """Mark as error and set pipeline error fields, NULL all extracted/rule fields."""
         self.data.update(
             {
                 "status": "error",
-                "http_error_code": code,
-                "http_error_message": message,
-                "http_error_category": category,
-                "http_error_retryable": retryable,
+                "pipeline_error_code": code,
+                "pipeline_error_message": message,
+                "pipeline_error_category": category,
+                "pipeline_error_retryable": retryable,
                 # NULL all extracted/rule fields
                 "extracted_fio": None,
                 "extracted_doc_date": None,
@@ -111,14 +106,14 @@ class FinalJsonBuilder:
         verdict: bool,
         rule_errors: list[int],
     ) -> "FinalJsonBuilder":
-        """Mark as success and set extracted/rule fields, NULL all HTTP error fields."""
+        """Mark as success and set extracted/rule fields, NULL all pipeline error fields."""
         self.data.update(
             {
                 "status": "success",
-                "http_error_code": None,
-                "http_error_message": None,
-                "http_error_category": None,
-                "http_error_retryable": None,
+                "pipeline_error_code": None,
+                "pipeline_error_message": None,
+                "pipeline_error_category": None,
+                "pipeline_error_retryable": None,
                 "extracted_fio": extracted.fio,
                 "extracted_doc_date": extracted.doc_date,
                 "extracted_single_doc_type": extracted.single_doc_type,
